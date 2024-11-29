@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<!--    <string name="app_name">Stasht</string>-->
+<!--    <string name="facebook_app_id">309756814662949</string>-->
+<!--    <string name="facebook_app_id">483052953613968</string>   &lt;!&ndash;dev&ndash;&gt;-->
+    <string name="facebook_app_id">539243058497843</string>   <!--dev-->
+     <string name="fb_login_protocol_scheme">fb539243058497843</string>   <!--dev-->
+<!--    <string name="facebook_client_token">ba64fb3a5c2a3e94ec0bdfee6ec4b1d8</string>-->
+<!--    <string name="facebook_client_token">0ae27af78b4e10dd27aac1361a76b067</string>   &lt;!&ndash;dev&ndash;&gt;-->
+    <string name="facebook_client_token">012de033ffb6b1f079193ad152077a5e</string>   <!--dev-->
+</resources>

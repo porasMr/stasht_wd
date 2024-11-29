@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1049890183663",
+    "project_id": "stasht-staging",
+    "storage_bucket": "stasht-staging.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049890183663:android:0b16b5f56ecd9eaaa53e1a",
+        "android_client_info": {
+          "package_name": "com.app.stasht.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1049890183663-ag80748g0f4lqliuhf8us2rhb6a8rhej.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.app.stasht.dev",
+            "certificate_hash": "ba602754cdfe27bbfa10a78af6941d9e30e4ddeb"
+          }
+        },
+        {
+          "client_id": "1049890183663-ds3d1fkt3cdu7aaqvseocbhdjkdtjtdq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBANFui_6KWlkuPQRyi5CVVn3VVhXPjtos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1049890183663-ds3d1fkt3cdu7aaqvseocbhdjkdtjtdq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1049890183663-11kvrh4amlsseg7hhd6hb2r6oltpg9sa.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.app.stasht.dev"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

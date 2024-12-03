@@ -32,8 +32,9 @@ void configLoading() {
 }
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+         await  PrefUtils.instance.init();
+
    configLoading();
-    PrefUtils.instance.init();
 
   runApp(const MyApp());
 }
@@ -43,6 +44,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
     //  getPages: AppPages.routes,

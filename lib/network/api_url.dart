@@ -17,6 +17,8 @@ class ApiUrl {
         static const String memoryByCategory = "memory-by-category";
         static const String createMemory = "create-memory";
         static const String uploadImageTomemory = "upload-memory-image";
+            static const String createSubCategory = "create-sub-category";
+
 
 
 

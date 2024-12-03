@@ -19,6 +19,8 @@ import 'package:stasht/network/api_url.dart';
 import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/common_widgets.dart';
+import 'package:stasht/utils/pref_utils.dart';
+import 'package:stasht/utils/progress_dialog.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
@@ -303,7 +305,7 @@ List<PhotoModel> photosList = [];
   }
 
   fetchPhotosFromDrive(GoogleSignIn googleSignIn, BuildContext context,
-      { bool fromSplash = false}) async {
+     ) async {
     try {
       photoLinks.clear();
       List<File> allFiles = [];
@@ -353,6 +355,8 @@ List<PhotoModel> photosList = [];
                     thumbnailPath: convertToDirectLink(allFiles[i].webViewLink!,allFiles[i].id!,httpClient.credentials.accessToken.data,driveApi)));
                 uploadCount += 1;
                 progressbarValue = uploadCount / allFiles.take(50).length;
+                      progressNotifier.value=progressbarValue;
+
                 await Future.delayed(const Duration(seconds: 1));
                 setState(() {
                   
@@ -376,6 +380,8 @@ List<PhotoModel> photosList = [];
                   thumbnailPath: convertToDirectLink(allFiles[i].webViewLink!,allFiles[i].id!,httpClient.credentials.accessToken.data,driveApi)));
               uploadCount += 1;
               progressbarValue = uploadCount / allFiles.length;
+                    progressNotifier.value=progressbarValue;
+
               await Future.delayed(const Duration(seconds: 1));
               setState(() {
                 
@@ -389,8 +395,8 @@ List<PhotoModel> photosList = [];
           
         });
       } else {
-        Get.snackbar("Error", "No image available in drive",
-            snackPosition: SnackPosition.TOP, colorText: Colors.red);
+        CommonWidgets.errorDialog(context, 'No image available in drive');
+
         await Future.delayed(const Duration(seconds: 2), () {
           // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
           //   "photoList": photoLinks,
@@ -413,6 +419,16 @@ clossProgressDialog(String type){
   if((progressbarValue * 100).toStringAsFixed(0)=='100'){
         Navigator.pop(context);
         progressbarValue=0.0;
+        if(type=="google_drive_synced"){
+        PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+
+        }else if(type=='facebook_synced'){
+                  PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
+
+        }else{
+                  PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+
+        }
         ApiCall.syncAccount(api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
        }
 }
@@ -585,6 +601,8 @@ setState(() {
           }
           uploadCount += 1;
           progressbarValue = uploadCount / data["data"].length;
+                progressNotifier.value=progressbarValue;
+
           await Future.delayed(const Duration(seconds: 1));
 setState(() {
   
@@ -595,8 +613,8 @@ setState(() {
          
         });
       } else {
-        Get.snackbar("Error", "No image available in Insta",
-            snackPosition: SnackPosition.TOP, colorText: Colors.red);
+        CommonWidgets.errorDialog(context, "No image available in Insta");
+
         await Future.delayed(const Duration(seconds: 2), () {
         
         });
@@ -725,6 +743,7 @@ setState(() {
       print(photoLinks);
       uploadCount += 1;
       progressbarValue = uploadCount / faceBook.length;
+      progressNotifier.value=progressbarValue;
       await Future.delayed(const Duration(seconds: 1));
       setState(() {
         
@@ -736,38 +755,19 @@ setState(() {
     }
   }
 
-_showProgressbar() {
- 
-  return  AlertDialog(
-        backgroundColor: Colors.transparent,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              value: progressbarValue, // Reactive value
-              backgroundColor: AppColors.textfieldFillColor,
-              color: AppColors.primaryColor,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${(progressbarValue * 100).toStringAsFixed(0)}%',
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
-        
-      ));
-}
-void showProgressDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    barrierDismissible: false, // Prevent dismissal
-    builder: (context) => _showProgressbar(),
-  );
-}
+final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
 
+  void showProgressDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal
+      builder: (context) => ProgressDialog(progressNotifier),
+    );
+  }
   @override
   void onFailure(String message) {
-              Get.snackbar("Error",message, colorText: Colors.red);
+            CommonWidgets.errorDialog(context, message);
+
 
   }
 
@@ -888,6 +888,7 @@ class _InstagramLoginPageState extends State<InstagramLoginPage> {
     controller.clearCache();
     cookieController.clearCookies();
   }
+
 
   @override
   Widget build(BuildContext context) {

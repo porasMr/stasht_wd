@@ -69,6 +69,27 @@ print(ApiUrl.baseUrl+api);
     return response;
   }
 
+static Future<http.Response> postTypeWithJsonTokenApi({
+    required String api,
+   required dynamic body
+  }) async {
+    print(PrefUtils.instance.getToken());
+    final ioc = HttpClient()
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true; // Bypass SSL verification
+    final httpClient = IOClient(ioc);
+
+
+    final response = await httpClient.post(
+      Uri.parse(ApiUrl.baseUrl+api),
+      body: body,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization':'Bearer ${PrefUtils.instance.getToken()}'
+      },
+    );
+
+    return response;
+  }
 static Future<http.Response> getTypeWithTokenApi({
     required String api,
   }) async {

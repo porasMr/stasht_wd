@@ -159,6 +159,7 @@ class ApiCall {
   static Future<void> createCategory(
       {required String api,
       required String name,
+      
       required ApiCallback callack}) async {
     final body = {
       "name": name,
@@ -280,11 +281,11 @@ class ApiCall {
       required CreateMoemoryModel model,
       required ApiCallback callack}) async {
     final body = model.toJson();
-    print(body);
+    print(jsonEncode(body));
 
     try {
       final Response response =
-          await ApiClient.postTypeWithTokenApi(api: api, body:jsonEncode(body) );
+          await ApiClient.postTypeWithJsonTokenApi(api: api, body:jsonEncode(body) );
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
       } else {
@@ -325,9 +326,37 @@ class ApiCall {
 
   }
     } catch (e) {
+      print(e);
             callack.onFailure("Something went wrong");
     }
   }
 
+ static Future<void> createSubCategory(
+      {required String api,
+      required String name,
+      required String id,
+      
+      required ApiCallback callack}) async {
+    final body = {
+      "name": name,
+            "category_id": id,
+
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
   
 }

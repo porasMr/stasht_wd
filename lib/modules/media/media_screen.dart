@@ -1,17 +1,25 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/drive/v3.dart';
+
 import 'package:photo_manager/photo_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/modules/media/image_grid.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
 import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/memories/model/subcategory.dart';
+import 'package:stasht/modules/onboarding/domain/model/favebook_photo.dart';
+import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
 import 'package:stasht/network/api_url.dart';
@@ -22,17 +30,18 @@ import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:stasht/utils/file_path.dart';
+import 'package:stasht/utils/pref_utils.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:http/http.dart' as http;
+import 'package:stasht/utils/progress_dialog.dart';
 import 'model/phot_mdoel.dart';
-
-
 
 // ignore: must_be_immutable
 class MediaScreen extends StatefulWidget {
-   MediaScreen({super.key,required this.future,required this.photosList});
-List<Future<Uint8List?>> future=[];
-   List<PhotoModel> photosList = [];
-
+  MediaScreen({super.key, required this.future, required this.photosList});
+  List<Future<Uint8List?>> future = [];
+  List<PhotoModel> photosList = [];
 
   @override
   State<MediaScreen> createState() => _MediaScreenState();
@@ -64,16 +73,42 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   bool addLable = false;
 
   //----------bottom sheet variable------------
- 
+
   double _bottomSheetHeight = 0;
   double initialChildSize = 0.47;
   List<String> thumbnails = []; // Cache for thumbnail data
   double _progress = 0.0;
-int _currentIndex=1;
+  int _currentIndex = 1;
+  List<PhotoDetailModel> driveModel = [];
+  List<PhotoDetailModel> fbModel = [];
+  List<PhotoDetailModel> instaModel = [];
+
+  List<PhotoDetailModel> photoLinks = [];
+  int uploadCount = 0;
+  var progressbarValue = 0.0;
 
   @override
   void initState() {
     super.initState();
+    PrefUtils.instance.getDrivePrefs().then((value) {
+      for (var photoList in value) {
+        photoList.isSelected = false;
+      }
+      driveModel = value;
+    });
+    PrefUtils.instance.getFacebookPrefs().then((value) {
+      for (var photoList in value) {
+        photoList.isSelected = false;
+      }
+      fbModel = value;
+    });
+    PrefUtils.instance.getInstaPrefs().then((value) {
+      for (var photoList in value) {
+        photoList.isSelected = false;
+      }
+      instaModel = value;
+    });
+    deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
 
     // CommonWidgets.requestStoragePermission(((allAssets) {
@@ -89,6 +124,12 @@ int _currentIndex=1;
     //     });
     //   }
     // }));
+  }
+
+  void deselectAll() {
+    for (var photoList in widget.photosList) {
+      photoList.selectedValue = false;
+    }
   }
 
   Future<XFile?> _compressAsset(AssetEntity asset) async {
@@ -121,11 +162,9 @@ int _currentIndex=1;
             child: tab(),
           ),
           Expanded(
-              child:
-               Padding(
+              child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: 
-                  selectedtabView(context))),
+                  child: selectedtabView(context))),
         ],
       ),
     );
@@ -133,16 +172,46 @@ int _currentIndex=1;
 
   selectedtabView(BuildContext context) {
     if (selectedIndex == 0) {
-      return albumView();
+      return CommonWidgets.albumView(
+          widget.future, widget.photosList, viewRefersh);
     } else if (selectedIndex == 1) {
-      return albumView();
+      return CommonWidgets.albumView(
+          widget.future, widget.photosList, viewRefersh);
     } else if (selectedIndex == 2) {
-      return CommonWidgets.fbView(context);
+      if (fbModel.isEmpty) {
+        return CommonWidgets.fbView(context, getFacebbokPhoto);
+      } else {
+        return CommonWidgets.fbPhtotView(fbModel, viewRefersh);
+      }
     } else if (selectedIndex == 3) {
-      return CommonWidgets.instaView(context);
+      if (instaModel.isEmpty) {
+        return CommonWidgets.instaView(context, getInstaView);
+      } else {
+        return CommonWidgets.instaPhtotView(instaModel, viewRefersh);
+      }
     } else if (selectedIndex == 4) {
-      return CommonWidgets.driveView(context);
+      if (driveModel.isEmpty) {
+        return CommonWidgets.driveView(context, getDriveView);
+      } else {
+        return CommonWidgets.drivePhtotView(driveModel, viewRefersh);
+      }
     }
+  }
+
+  getFacebbokPhoto(AccessToken token) {
+    fetchFacebookPhotos(token);
+  }
+
+  getInstaView(String token) {
+    instaRequestForAccessToken(token);
+  }
+
+  getDriveView(GoogleSignIn v1) {
+    fetchPhotosFromDrive(v1, context);
+  }
+
+  viewRefersh() {
+    setState(() {});
   }
 
   //------------Tab function---------------
@@ -209,89 +278,11 @@ int _currentIndex=1;
   }
 
   //---------------Selected tab view-----------
-  Widget albumView() {
-    return GridView.builder(
-      shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // Number of columns
-        crossAxisSpacing: 10.0,
-        mainAxisSpacing: 10.0,
-        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-      ),
-      itemCount: widget.photosList.length,
-       addAutomaticKeepAlives: false,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-           
-            setState(() {
-               widget.photosList[index].selectedValue = !widget.photosList[index].selectedValue;
-            _bottomSheetHeight = 230;
-            initialChildSize = 0.6;
-            });
-
-            // update();
-            if (countSelectedPhotos() > 4) {
-              openAddPillBottomSheet(context);
-            }
-          },
-          child: 
-          
-          Stack(
-            children: [
-            MyGridItem(widget.future[index])
-                      ,
-             
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: widget.photosList[index].selectedValue
-                        ? AppColors.primaryColor.withOpacity(.65)
-                        : null),
-              ),
-              Positioned(
-                top: 5,
-                right: 5,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 4, right: 4),
-                  child: PhysicalModel(
-                    borderRadius: BorderRadius.circular(8),
-                    elevation: 4,
-                    color: Colors.transparent,
-                    child: Container(
-                      height: 21.87,
-                      width: 30.07,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Colors.white.withOpacity(.5), width: 1.5),
-                          borderRadius: BorderRadius.circular(8),
-                          color: widget.photosList[index].selectedValue
-                              ? Colors.white
-                              : Colors.black.withOpacity(.3)),
-                      child: widget.photosList[index].selectedValue
-                          ? Image.asset(
-                              correct,
-                              height: 12,
-                              width: 12,
-                            )
-                          : const IgnorePointer(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   @override
   void onFailure(String message) {
-    Get.snackbar("Error", message, colorText: AppColors.redColor);
+                CommonWidgets.errorDialog(context, message);
+
   }
 
   @override
@@ -309,27 +300,28 @@ int _currentIndex=1;
     } else if (apiType == ApiUrl.memoryByCategory) {
       categoryMemoryModelWithoutPage =
           CategoryMemoryModelWithoutPage.fromJson(jsonDecode(data));
-     
-          setState(() {
-             if (categoryMemoryModelWithoutPage.subCategories!.isEmpty) {
-        addLable = true;
-      }
-          });
 
-    }else if(apiType == ApiUrl.uploadImageTomemory){
-      String count=data.split("=")[1]; 
+      setState(() {
+        if (categoryMemoryModelWithoutPage.subCategories!.isEmpty) {
+          addLable = true;
+        }
+      });
+    } else if (apiType == ApiUrl.uploadImageTomemory) {
+      String count = data.split("=")[1];
       print(json.decode(data.split("=")[0])['file'].toString());
 
-                  print(int.parse(count));
+      print(int.parse(count));
 
-                _progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
+      _progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
 
-                print(_progress);
-createModel.images![int.parse(count)].link=json.decode(data.split("=")[0])['file'].toString();
+      print(_progress);
+      createModel.images![int.parse(count)].link =
+          json.decode(data.split("=")[0])['file'].toString();
       setState(() {
-                          progressDialog(_progress);
-
+        progressDialog(_progress);
       });
+    } else if (apiType == ApiUrl.syncAccount) {
+      setState(() {});
     }
   }
 
@@ -349,7 +341,8 @@ createModel.images![int.parse(count)].link=json.decode(data.split("=")[0])['file
     }
     return '';
   }
-   String selectedCategoryId() {
+
+  String selectedCategoryId() {
     for (var category in categoryModel.categories!) {
       if (category.isSelected) {
         return category.id.toString();
@@ -369,7 +362,7 @@ createModel.images![int.parse(count)].link=json.decode(data.split("=")[0])['file
 
   void openAddPillBottomSheet(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(Get.context!).requestFocus(titleFocusNode);
+      FocusScope.of(context).requestFocus(titleFocusNode);
     });
     showModalBottomSheet(
       context: context,
@@ -485,13 +478,11 @@ createModel.images![int.parse(count)].link=json.decode(data.split("=")[0])['file
                                     if (titleController.text.isNotEmpty) {
                                       FocusManager.instance.primaryFocus
                                           ?.unfocus();
-Navigator.pop(context);
-uploadData(selectedCategoryId(),"");
-
+                                      Navigator.pop(context);
+                                      uploadData(selectedCategoryId(), "");
                                     } else {
-                                      Get.snackbar(
-                                          "Error", "Please enter memory title",
-                                          colorText: Colors.red);
+                                      CommonWidgets.errorDialog(
+                                          context, "Please enter memory title");
                                     }
                                   },
                                   child: Text(
@@ -499,7 +490,9 @@ uploadData(selectedCategoryId(),"");
                                     style: appTextStyle(
                                       fm: robotoRegular,
                                       fz: 17,
-                                      color:titleController.text.isNotEmpty?AppColors.black: const Color(0XFF858484),
+                                      color: titleController.text.isNotEmpty
+                                          ? AppColors.black
+                                          : const Color(0XFF858484),
                                     ),
                                   ),
                                 ),
@@ -855,86 +848,503 @@ uploadData(selectedCategoryId(),"");
       },
     );
   }
-  CreateMoemoryModel createModel=CreateMoemoryModel();
 
-uploadData(String categoryId,String subCategoryId){
-  createModel.categoryId=categoryId;
-    createModel.categoryId=categoryId;
-    createModel.title=titleController.text;
-    List<ImagesFile> imageFile=[];
+  CreateMoemoryModel createModel = CreateMoemoryModel();
 
-for(int i=0;i<widget.photosList.length;i++){
-  if(widget.photosList[i].selectedValue){
-        ImagesFile imp=ImagesFile();
+  uploadData(String categoryId, String subCategoryId) {
+    createModel.categoryId = categoryId;
+    createModel.categoryId = categoryId;
+    createModel.title = titleController.text;
+    List<ImagesFile> imageFile = [];
 
-    imp.type="image";
-    imp.captureDate=_getFormattedDateTime(widget.photosList[i].assetEntity);
-    imp.description='';
-      imp.link='';
-    
-    imp.location='';
-    imageFile.add(imp);
-   
-    
-  }
-}
-  createModel.images=imageFile;
+    for (int i = 0; i < widget.photosList.length; i++) {
+      if (widget.photosList[i].selectedValue) {
+        ImagesFile imp = ImagesFile();
 
-                  _progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
+        imp.type = "image";
+        imp.captureDate =
+            _getFormattedDateTime(widget.photosList[i].assetEntity);
+        imp.description = '';
+        imp.link = '';
 
-  progressDialog(_progress);
-
-  for(int i=0;i<widget.photosList.length;i++){
-    if(widget.photosList[i].selectedValue){
-       getFile(widget.photosList[i].assetEntity).then((value){
-
-     ApiCall.uploadImageIntoMemory(api: ApiUrl.uploadImageTomemory, path: value!.path, callack: this,count:i.toString());
-    });
+        imp.location = '';
+        imageFile.add(imp);
+      }
     }
-  }
+    createModel.images = imageFile;
 
-print(createModel.images!.length);
-}
+    _progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
 
-String _getFormattedDateTime(AssetEntity asset) {
-    final DateTime creationDate = asset.createDateTime;  // Get the creation date of the asset
-    final DateFormat formatter = DateFormat('yyyy-MM-dd HH:mm:ss');  // Define the format
-    return formatter.format(creationDate);  // Format the date as a string
-  }
-  Future<String?> _getFilePath(AssetEntity asset) async {
-    final File? file = await asset.file;
-    if (file != null) {
-      return file.path; // Return the file path
+    progressDialog(_progress);
+
+    for (int i = 0; i < widget.photosList.length; i++) {
+      if (widget.photosList[i].selectedValue) {
+        FilePath.getFile(widget.photosList[i].assetEntity).then((value) {
+          ApiCall.uploadImageIntoMemory(
+              api: ApiUrl.uploadImageTomemory,
+              path: value!.path,
+              callack: this,
+              count: i.toString());
+        });
+      }
     }
-    return null;
+
+    print(createModel.images!.length);
   }
 
-  Future<File?> getFile(AssetEntity assets)async{
-    
-    final File? file = await assets.file;
-    if (file != null) {
-      return file; // Return the file path
-    }
-    return null;
+  String _getFormattedDateTime(AssetEntity asset) {
+    final DateTime creationDate =
+        asset.createDateTime; // Get the creation date of the asset
+    final DateFormat formatter =
+        DateFormat('yyyy-MM-dd HH:mm:ss'); // Define the format
+    return formatter.format(creationDate); // Format the date as a string
   }
 
- progressDialog(double p){
-  
+  progressDialog(double p) {
     EasyLoading.showProgress(
       p,
-       // Show percentage
+      // Show percentage
     );
 
-    if (p >=0.9 ) {
-      _progress=0.0;
-      _currentIndex=0;
+    if (p >= 0.9) {
+      _progress = 0.0;
+      _currentIndex = 0;
       EasyLoading.dismiss(); // Dismiss the dialog
     }
- 
-  
-
   }
 
+  //=====================Instagram========================
+  void instaRequestForAccessToken(value) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    pref!.setString("selectedTab", jsonEncode({"type": "insta"}));
+    String clientId = '1261297914899174';
+    // String clientId = '820343826870430';
+    String clientSecret = 'ad28543d801e5a81087105fdcd9adf46';
+    // String clientSecret = '1805f78dbdb29d02d1c7790806e119ec';
+    String redirectUri = 'https://stashtdev.page.link/';
+    String authorizationCode = value;
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.instagram.com/oauth/access_token'),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'grant_type': 'authorization_code',
+          'redirect_uri': redirectUri,
+          'code': authorizationCode,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Handle the response here
+        final data = jsonDecode(response.body);
+        print('Access Token: ${data['access_token']}');
+        if (data != null) {
+          /* await FirebaseFirestore.instance
+              .collection(userCollection).doc(userId).update({"instaToken":data['access_token'],
+          "syncAccount":"insta"});*/
+          await fetchMedia(data['access_token']);
+        }
+      } else {
+        // Print out error details
+        print('Error: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        //fetchMedia(accessToke);
+      }
+    } catch (e) {
+      print('Exception: ${e.toString()}');
+    }
+  }
+
+  Future<void> fetchMedia(String accessToken, {bool fromSplash = false}) async {
+    final response = await http.get(
+      Uri.parse(
+          'https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=$accessToken'),
+    );
+
+    // Extract rate limit headers
+    var rateLimit = response.headers['x-ratelimit-limit'];
+    var rateLimitRemaining = response.headers['x-ratelimit-remaining'];
+    var rateLimitReset = response.headers['x-ratelimit-reset'];
+
+    // Log or handle rate limit information
+    print('Rate Limit: $rateLimit');
+    print('Rate Limit Remaining: $rateLimitRemaining');
+    print('Rate Limit Reset: $rateLimitReset');
+    photoLinks.clear();
+
+    if (response.statusCode == 200) {
+      // Successfully received the media
+      var data = jsonDecode(response.body);
+      if (data["data"] != null) {
+        showProgressDialog(context);
+
+        // requestStoragePermission();
+        await Future.forEach(data["data"], (dynamic element) async {
+          if (element["media_type"] == "IMAGE") {
+            photoLinks.add(PhotoDetailModel(
+              createdTime: convertTimeStampIntoDateTime(element["timestamp"]),
+              isSelected: false,
+              isEdit: false,
+              type: "insta",
+              id: element["id"],
+              webLink: element["media_url"],
+            ));
+          }
+          uploadCount += 1;
+          progressbarValue = uploadCount / data["data"].length;
+          progressNotifier.value=progressbarValue;
+          await Future.delayed(const Duration(seconds: 1));
+          setState(() {});
+          clossProgressDialog('instagram_synced');
+        });
+
+        await Future.delayed(const Duration(seconds: 2), () {});
+      } else {
+                    CommonWidgets.errorDialog(context, "No image available in Insta");
+
+     
+        await Future.delayed(const Duration(seconds: 2), () {});
+      }
+    } else {
+      // Handle errors, including potential rate limiting
+      if (response.statusCode == 429) {
+        // HTTP 429 Too Many Requests
+        print('Rate limit exceeded, retrying after reset time...');
+        final resetTime = DateTime.fromMillisecondsSinceEpoch(
+            int.parse(rateLimitReset ?? "") * 1000);
+        final waitDuration = resetTime.difference(DateTime.now()).inSeconds;
+
+        // Wait until the reset time before retrying
+        await Future.delayed(Duration(seconds: waitDuration));
+        await fetchMedia(accessToken,
+            fromSplash: fromSplash); // Retry the request
+      } else {
+        _refreshInstaAccessToken(accessToken);
+        print('Error: ${response.statusCode}');
+        print('Response body: ${response.body}');
+      }
+    }
+  }
+
+  Future<String?> _refreshInstaAccessToken(String shortLivedToken) async {
+    final response = await http.get(
+      Uri.parse(
+          "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=$shortLivedToken"),
+    );
+
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body);
+      if (data != null) {
+        await fetchMedia(data['access_token']);
+      }
+      return data['access_token'];
+    } else {
+      print('Error exchanging token: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      return null;
+    }
+  }
+
+  convertTimeStampIntoDateTime(dateString) {
+    String formattedDateString = dateString.replaceAll('+0000', 'Z');
+    DateTime dateTime = DateTime.parse(formattedDateString);
+
+    return dateTime;
+  }
+
+  _showProgressbar() {
+    return AlertDialog(
+        backgroundColor: Colors.transparent,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              value: progressbarValue, // Reactive value
+              backgroundColor: AppColors.textfieldFillColor,
+              color: AppColors.primaryColor,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '${(progressbarValue * 100).toStringAsFixed(0)}%',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ));
+  }
+final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
+
+  void showProgressDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal
+      builder: (context) => ProgressDialog(progressNotifier),
+    );
+  }
+
+
+  clossProgressDialog(String type) {
+    if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
+      Navigator.pop(context);
+      progressbarValue = 0.0;
+      if (type == "google_drive_synced") {
+        driveModel = photoLinks;
+        PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+      } else if (type == 'facebook_synced') {
+        fbModel = photoLinks;
+
+        PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
+      } else {
+        instaModel = photoLinks;
+
+        PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+      }
+      ApiCall.syncAccount(
+          api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
+    }
+  }
+
+//===============Drive===================
+  fetchPhotosFromDrive(
+    GoogleSignIn googleSignIn,
+    BuildContext context,
+  ) async {
+    try {
+      photoLinks.clear();
+      List<File> allFiles = [];
+      FileList fileList;
+      String? nextPageToken;
+      var httpClient = await googleSignIn.authenticatedClient();
+      if (httpClient == null) {
+        print('Failed to get authenticated client');
+        return null;
+      }
+      var driveApi = DriveApi(httpClient);
+      print(httpClient.credentials.accessToken.data);
+      showProgressDialog(context);
+
+      // do {
+      do {
+        fileList = await driveApi.files.list(
+          // q: "mimeType contains 'image/'",
+          q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and visibility='anyoneWithLink'",
+          pageToken: nextPageToken,
+          $fields:
+              "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
+        );
+        if (fileList.files != null) {
+          if (fileList.files!.length > 50) {
+            allFiles.addAll(fileList.files!.take(50));
+          }
+          {
+            allFiles.addAll(fileList.files!);
+          }
+        }
+        nextPageToken = fileList.nextPageToken;
+      } while (nextPageToken != null);
+      if (allFiles.isNotEmpty) {
+        if (allFiles.length > 50) {
+          for (int i = 0; i < allFiles.take(50).length; i++) {
+            if (allFiles[i].webViewLink != null) {
+              photoLinks.add(PhotoDetailModel(
+                  id: allFiles[i].id,
+                  createdTime: allFiles[i].createdTime,
+                  modifiedTime: allFiles[i].modifiedTime,
+                  isSelected: false,
+                  isEdit: false,
+                  type: "drive",
+                  webLink: allFiles[i].thumbnailLink,
+                  thumbnailPath: convertToDirectLink(
+                      allFiles[i].webViewLink!,
+                      allFiles[i].id!,
+                      httpClient.credentials.accessToken.data,
+                      driveApi)));
+              uploadCount += 1;
+              progressbarValue = uploadCount / allFiles.take(50).length;
+          progressNotifier.value=progressbarValue;
+              await Future.delayed(const Duration(seconds: 1));
+              setState(() {});
+            }
+          }
+          clossProgressDialog('google_drive_synced');
+        } else {
+          for (int i = 0; i < allFiles.length; i++) {
+            if (allFiles[i].webViewLink != null) {
+              photoLinks.add(PhotoDetailModel(
+                  id: allFiles[i].id,
+                  createdTime: allFiles[i].createdTime,
+                  modifiedTime: allFiles[i].modifiedTime,
+                  isSelected: false,
+                  isEdit: false,
+                  type: "drive",
+                  webLink: allFiles[i].thumbnailLink,
+                  thumbnailPath: convertToDirectLink(
+                      allFiles[i].webViewLink!,
+                      allFiles[i].id!,
+                      httpClient.credentials.accessToken.data,
+                      driveApi)));
+              uploadCount += 1;
+              progressbarValue = uploadCount / allFiles.length;
+                        progressNotifier.value=progressbarValue;
+
+              await Future.delayed(const Duration(seconds: 1));
+              setState(() {});
+              clossProgressDialog('google_drive_synced');
+            }
+          }
+        }
+
+        await Future.delayed(const Duration(seconds: 1), () {});
+      } else {
+        CommonWidgets.errorDialog(context, 'No image available in drive');
+
+        await Future.delayed(const Duration(seconds: 2), () {
+          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
+          //   "photoList": photoLinks,
+          //   "context": context,
+          //   "groupAssets": groupedAssets,
+          //   "assetsList": assetsItems,
+          //   "assets": assets,
+          //   "fromMedia": true
+          // });
+        });
+        // goToMemories(false);
+      }
+    } catch (e) {
+      print('Error fetching files: $e');
+      return null;
+    }
+  }
+
+  String convertToDirectLink(
+      String shareableLink, String fileId, String accessToken, var driveApi) {
+    print("Before ====>$shareableLink");
+    final parts = shareableLink.split('/');
+    final fileId = parts[5]; // The file ID is at index 5
+    final directLink = 'https://drive.google.com/uc?export=view&id=$fileId';
+    print("After ========>$directLink");
+
+    changeFilePermission(fileId, accessToken, driveApi);
+
+    return directLink;
+  }
+
+  Future<void> changeFilePermission(
+      String fileId, String? accessToken, var driveApi) async {
+    if (accessToken == null) {
+      throw Exception('Access token is null');
+    }
+
+    // Create a Google Drive API client
+    // final driveApi = drive.DriveApi(httpClient);
+
+    // Create a permission object to set to "Anyone with the link" (public)
+    final newPermission = drive.Permission(
+      type: 'anyone', // Permission type: "anyone"
+      role: 'reader', // Role: "reader" (view only)
+    );
+
+    try {
+      // Apply the new permission to the file
+      await driveApi.permissions.create(
+        newPermission,
+        fileId, // The Google Drive file ID
+      );
+
+      print(
+          'File permissions updated: Now anyone with the link can access the file.');
+    } catch (e) {
+      photoLinks.forEach((element) {
+        if (element.id == fileId) {
+          photoLinks.remove(element);
+        }
+        setState(() {});
+      });
+      print('Failed to change permission: $e');
+    } finally {}
+  }
+
+//=============facebook=======================
+  fetchFacebookPhotos(AccessToken accessToken) async {
+    photoLinks.clear();
+    // EasyLoading.show(status: 'Processing');
+
+    final response = await http.get(
+      Uri.parse(
+        'https://graph.facebook.com/me/photos?type=uploaded&access_token=${accessToken.tokenString}',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      List<FaceBookPhoto> faceBook = [];
+      final data = json.decode(response.body);
+      var photos = data['data'] as List;
+      photos.forEach((element) {
+        faceBook.add(FaceBookPhoto(
+            id: element["id"], createdTime: element["created_time"]));
+      });
+      if (faceBook.isNotEmpty) {
+        showProgressDialog(context);
+
+        await Future.forEach(faceBook, (dynamic element) async {
+          await fetchFacebookPhotosById(
+                  accessToken.tokenString, element, faceBook)
+              .then((value) {});
+        });
+      }
+      if (photoLinks.isNotEmpty) {
+        await Future.delayed(const Duration(seconds: 2), () {
+          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
+          //   "photoList": photoLinks,
+          //   "context": Get.context,
+          //   "groupAssets": groupedAssets,
+          //   "assetsList": assetsItems,
+          //   "assets": assets,
+          //   "fromMedia": true,
+          //   "type": "fb"
+          // });
+        });
+        // groupFbByMonth(photoList);
+      }
+
+      // Extract the URL of the first image from each photo
+    } else {
+      throw Exception('Failed to load photos');
+    }
+  }
+
+  ///Fetch facebook url by photo id
+  Future fetchFacebookPhotosById(
+    String accessToken,
+    FaceBookPhoto element,
+    List<FaceBookPhoto> faceBook,
+  ) async {
+    final response = await http.get(
+      Uri.parse(
+        'https://graph.facebook.com/${element.id}?fields=images&access_token=$accessToken',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      photoLinks.add(PhotoDetailModel(
+          type: "fb",
+          createdTime: DateTime.tryParse(element.createdTime ?? ""),
+          webLink: data['images'][0]["source"],
+          id: element.id));
+      print(photoLinks);
+      uploadCount += 1;
+      progressbarValue = uploadCount / faceBook.length;
+                progressNotifier.value=progressbarValue;
+
+      await Future.delayed(const Duration(seconds: 1));
+      setState(() {});
+      clossProgressDialog('facebook_synced');
+    } else {
+      throw Exception('Failed to load photos');
+    }
+  }
 }
-
-

@@ -4,12 +4,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:googleapis/mybusinessbusinessinformation/v1.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/media_screen.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/memories_screen.dart';
+import 'package:stasht/modules/memories/model/category_model.dart';
+import 'package:stasht/modules/profile/profile_screen.dart';
 
 import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/assets_images.dart';
@@ -29,14 +32,16 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
  // final MediaController mediaController = Get.put(MediaController());
 
   UserModel model = UserModel();
+final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
 List<Future<Uint8List?>> future=[];
   @override
   void initState() {
-    PrefUtils.instance.init();
+        WidgetsBinding.instance.addObserver(this);
 
-    WidgetsBinding.instance.addObserver(this);
+
     PrefUtils.instance.getUserFromPrefs().then((value) {
+
       model = value!;
       setState(() {});
     });
@@ -166,11 +171,18 @@ List<Future<Uint8List?>> future=[];
                 children: [
                   GestureDetector(
                     onTap: (){
-                      Navigator.pushReplacement(
+                      Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (BuildContext context) =>
-                        CreateMemoryScreen(photosList: widget.photosList,future: future,isBack: true,)));
+                        CreateMemoryScreen(photosList: widget.photosList,future: future,isBack: true,))).then((value) {
+                          if(value!=null){
+                                                        selectedIndex = 2;
+
+                            selectedIndex = 0;
+                  setState(() {});
+                          }
+                        });
                     },
                     child: Stack(
                       alignment: Alignment.center,
@@ -204,7 +216,7 @@ List<Future<Uint8List?>> future=[];
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: selectedIndex == 0
           ? MemoriesScreen()
-          :  MediaScreen(future:future,photosList: widget.photosList,)
+          :  selectedIndex == 1? MediaScreen(future:future,photosList: widget.photosList,):Container()
            
     );
   }
@@ -290,8 +302,15 @@ List<Future<Uint8List?>> future=[];
             const SizedBox(
                 // width: 17,
                 ),
+                if(model.user!=null)
             InkWell(
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (BuildContext context) =>
+                       const ProfileScreen()));
+              },
               child: Container(
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
@@ -303,8 +322,10 @@ List<Future<Uint8List?>> future=[];
                 width: 46,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(50.0),
-                  child: model.user!.profileImage!.isNotEmpty
-                      ? CachedNetworkImage(
+                  child:
+                   model.user!.profileImage!.isNotEmpty
+                      ? 
+                      CachedNetworkImage(
                           imageUrl: model.user!.profileImage!,
                           fit: BoxFit.cover,
                           height: 46,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -13,10 +14,10 @@ import 'package:stasht/network/api_url.dart';
 import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
+import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/shimmer_widget.dart';
 
-// ignore: must_be_immutable
 class MemoriesScreen extends StatefulWidget {
   const MemoriesScreen({super.key});
 
@@ -33,6 +34,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
   int selectedId = 0; // Default selected ID
   int selectedIndex = 0;
   bool isAll = false;
+  int? subId;
   @override
   void initState() {
     super.initState();
@@ -112,6 +114,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                                 return GestureDetector(
                                   onTap: () {
                                     selectedCategory(index);
+                                    subId=null;
                                   },
                                   onLongPressStart: (details) {
                                     if (categoryModel.categories![index].name !=
@@ -188,15 +191,19 @@ class _MemoriesScreenState extends State<MemoriesScreen>
     } else {
       return
           // Call fetchTabs first, and then return the UI
-          categoryMemoryModel.data!.data==null
-              ? Container()
-              : myMemoriesUI();
+          categoryMemoryModel.subCategories == null ? Container() :  myMemoriesUI();
     }
   }
 
   bool anyValueSelected() {
     bool isAnySelected =
         categoryModel.categories!.any((category) => category.isSelected);
+    return isAnySelected;
+  }
+
+  bool anySubValueSelected() {
+    bool isAnySelected = categoryMemoryModel.subCategories!
+        .any((category) => category.isSelected);
     return isAnySelected;
   }
 
@@ -219,9 +226,35 @@ class _MemoriesScreenState extends State<MemoriesScreen>
         callack: this);
   }
 
+  refershSubCategory(String subId) {
+    print(subId);
+    for (int i = 0; i < categoryModel.categories!.length; i++) {
+      if (categoryModel.categories![i].isSelected) {
+         setState(() {});
+    EasyLoading.show();
+    ApiCall.memoryByCategory(
+        api: ApiUrl.memoryByCategory,
+        id: categoryModel.categories![i].id.toString(),
+        sub_category_id: subId,
+        type: '',
+        callack: this);
+      }
+      break;
+    }
+   
+  }
+
+
   allCategory() {
     for (int i = 0; i < categoryModel.categories!.length; i++) {
       categoryModel.categories![i].isSelected = false;
+    }
+    setState(() {});
+  }
+
+  allSubCategory() {
+    for (int i = 0; i < categoryMemoryModel.subCategories!.length; i++) {
+      categoryMemoryModel.subCategories![i].isSelected = false;
     }
     setState(() {});
   }
@@ -328,34 +361,39 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                           const SizedBox(
                             height: 20,
                           ),
-                            if(memoriesModel.data![index].memorisCount == 0)
-                                 Column(
-                                    children: [
-                                      Image.asset(
-                                        noMemoriesPlaceholder,
-                                        height: 230,
-                                      ),
-                                      const SizedBox(height: 16),
+                          (memoriesModel.data![index].memorisCount == 0 &&
+                                  index == 0)
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      noMemoriesPlaceholder,
+                                      height: 230,
+                                    ),
+                                    const SizedBox(height: 16),
 
-                                      // No memory text
-                                      const Text(
-                                        "You haven't created a memory yet!",
-                                        style: TextStyle(
-                                            color: Colors.black, fontSize: 16),
-                                      ),
-                                      const SizedBox(height: 20),
-
-                                    
-                                    ],
-                                  ),
-                                
-                                                         if (memoriesModel.data!.length == 1)
- 
-                                 Container(child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [  // Add category title view
-                                      _addCategoryTitleView(),
-                                      const SizedBox(height: 20),],),)
+                                    // No memory text
+                                    const Text(
+                                      "You haven't created a memory yet!",
+                                      style: TextStyle(
+                                          color: Colors.black, fontSize: 16),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                )
+                              : listView(memoriesModel.data![index].memoris!),
+                          if (memoriesModel.data!.length == 1)
+                            Container(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Add category title view
+                                  _addCategoryTitleView(),
+                                  const SizedBox(height: 20),
+                                ],
+                              ),
+                            )
 
                           /*   listView(controller
                                                   .modelList[index].memoryList),*/
@@ -452,6 +490,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
       height: MediaQuery.of(context).size.height * .8,
       child: Column(
         children: [
+          categoryMemoryModel.subCategories!.isEmpty?Container():
           Container(
             height: 49,
             margin: const EdgeInsets.only(top: 8),
@@ -470,31 +509,94 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                 end: Alignment.bottomCenter, // Ending point of the gradient
               ),
             ),
-            child: ListView.builder(
-              itemCount: categoryMemoryModel.subCategories!
-                  .where(
-                      (element) => element.name != "" && element.name != null)
-                  .length,
-              itemBuilder: (context, index) {
-                var title = categoryMemoryModel.subCategories!
-                    .where(
-                        (element) => element.name != "" && element.name != null)
-                    .toList();
-                return GestureDetector(
-                  onTap: () {},
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    allSubCategory();
+                    refershSubCategory('');
+                  },
                   onLongPressStart: (details) {},
                   child: Align(
                     alignment: Alignment.center, // Center each subTitle
-                    child: subTitle(
-                        title: title[index].name,
-                        index: index), // Call the subTitle method
+                    child: Container(
+                      alignment: Alignment.center,
+                      width: 40,
+                      height: 27,
+                      // Reduced height
+                      margin: const EdgeInsets.only(right: 8),
+                      // Reduced margin
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      // Reduced padding
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: anySubValueSelected()
+                              ? AppColors.black
+                              : Colors.transparent,
+                        ),
+                        borderRadius: BorderRadius.circular(13),
+                        // Slightly reduced border radius
+                        color: anySubValueSelected()
+                            ? Colors.white
+                            : AppColors.subTitleColor,
+                      ),
+                      child: Text(
+                        "All",
+                        style: appTextStyle(
+                          fm: interMedium,
+                          height: 24 / 14, // Adjusted line height
+                          fz: 12, // Reduced font size
+                          color: AppColors.black,
+                        ),
+                      ),
+                    ), // Call the subTitle method
                   ),
-                );
-              },
-              shrinkWrap: true,
-              scrollDirection: Axis.horizontal,
-              physics:
-                  const BouncingScrollPhysics(), // Optional: adds bounce effect on scroll
+                ),
+                categoryMemoryModel.subCategories==null?Container():
+                Expanded(
+                  child: Container(
+                    child: ListView.builder(
+                      itemCount: categoryMemoryModel.subCategories!.length,
+
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () {
+                            for (int i = 0;
+                                i < categoryMemoryModel.subCategories!.length;
+                                i++) {
+                              if (i == index) {
+                                categoryMemoryModel
+                                    .subCategories![index].isSelected = true;
+                              } else {
+                                categoryMemoryModel
+                                    .subCategories![i].isSelected = false;
+                              }
+                            }
+                            subId=index;
+                                    setState(() {
+                                      
+                                    });
+                    refershSubCategory(categoryMemoryModel
+                                    .subCategories![index].id.toString());
+                          },
+                          onLongPressStart: (details) {},
+                          child: Align(
+                            alignment: Alignment.center, // Center each subTitle
+                            child: subTitle(
+                                title: categoryMemoryModel
+                                    .subCategories![index].name,
+                                index: index), // Call the subTitle method
+                          ),
+                        );
+                      },
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      physics:
+                          const BouncingScrollPhysics(), // Optional: adds bounce effect on scroll
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -510,26 +612,180 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                       scrollDirection: Axis.vertical,
                       itemBuilder: (BuildContext context, int index) {
                         return InkWell(
-                            onTap: () {},
-                            child: Container(
-                              height: 90,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              width: MediaQuery.of(Get.context!).size.width,
-                              decoration: const BoxDecoration(
-                                  border: Border(
-                                      // top: BorderSide(
-                                      //     color: AppColors.textfieldFillColor),
-                                      bottom: BorderSide(
-                                          color:
-                                              AppColors.textfieldFillColor))),
-                              child: SizedBox(
-                                height: 71,
+                      onTap: () {
+                       
+                      },
+                      child: Container(
+                        height: 90,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        width: MediaQuery.of(context).size.width,
+                        decoration: const BoxDecoration(
+                            border: Border(
+                                // top: BorderSide(
+                                //     color: AppColors.textfieldFillColor),
+                                bottom: BorderSide(
+                                    color: AppColors.textfieldFillColor))),
+                        child: SizedBox(
+                          height: 71,
+                          child: Row(
+                            children: [
+                              Stack(
+                                alignment: Alignment.centerRight,
+                                children: [
+                                  Container(
+                                    alignment: Alignment.centerLeft,
+                                    height: 51,
+                                    width: 70,
+                                    child: Container(
+                                      height: 51,
+                                      width: 55,
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color:categoryMemoryModel.data!.data![index].lastUpdateImg!=''?AppColors.black:Colors.transparent),
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: Colors.white,
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child:categoryMemoryModel.data!.data![index].lastUpdateImg==''?
+                                          Image.asset("assets/images/placeHolder.png"): CachedNetworkImage(
+                                          imageUrl: categoryMemoryModel.data!.data![index].lastUpdateImg!,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                   Container(
+                                          height: 32,
+                                          width: 32,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                              border: Border.all(
+                                                  color: Colors.white),
+                                              shape: BoxShape.circle,
+                                              color: 
+                                                  
+                                                      AppColors.primaryColor),
+                                          child:  Container(
+                                                  decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              50.0),
+                                                      border: Border.all(
+                                                          color: Colors.grey,
+                                                          width: 0.3)),
+                                                  height: 46,
+                                                  width: 46,
+                                                  child: ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            50.0),
+                                                    child: categoryMemoryModel.data!.data![index].user!.profileImage!=''
+                                                        ? CachedNetworkImage(
+                                                            imageUrl:
+                                                                categoryMemoryModel.data!.data![index].user!.profileImage,
+                                                            fit: BoxFit.cover,
+                                                            height: 30,
+                                                            width: 30,
+                                                            progressIndicatorBuilder: (context,
+                                                                    url,
+                                                                    downloadProgress) =>
+                                                                CircularProgressIndicator(
+                                                                    value: downloadProgress
+                                                                        .progress))
+                                                        : Center(
+                                                            child: Text(
+                                                              categoryMemoryModel.data!.data![index].user!.name![0].toUpperCase(),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: const TextStyle(
+                                                                  fontSize: 13,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontFamily:
+                                                                      robotoRegular),
+                                                            ),
+                                                          ),
+                                                  ))
+                                           
+                                        ),
+                                ],
+                              ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              Expanded(
                                 child: Row(
-                                  children: [],
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          categoryMemoryModel.data!.data![index].user!.name!,
+                                          style: appTextStyle(
+                                            fm: robotoRegular,
+                                            fz: 12,
+                                            color: AppColors.black,
+                                            height: 19.2 / 12,
+                                          ),
+                                        ),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              categoryMemoryModel.data!.data![index].title!.length >
+                                                      20
+                                                  ? categoryMemoryModel.data!.data![index].title!
+                                                          .substring(0, 20) +
+                                                      "...."
+                                                  :categoryMemoryModel.data!.data![index].title!,
+                                              style: appTextStyle(
+                                                fm: robotoMedium,
+                                                fz: 16,
+                                                color: AppColors.black,
+                                                height: 19 / 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Container(
+                                        height: 32,
+                                        width: 43,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                            border: Border.all(
+                                                color: AppColors.black),
+                                            borderRadius:
+                                                BorderRadius.circular(18)),
+                                        child: Text(
+                                         '${categoryMemoryModel.data!.data![index].postsCount}',
+                                          style: appTextStyle(
+                                            fm: interMedium,
+                                            fz: 12,
+                                            color: AppColors.black,
+                                            height: 26.2 / 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ));
+                            ],
+                          ),
+                        ),
+                      ));
                       },
                     ),
             ),
@@ -598,6 +854,10 @@ class _MemoriesScreenState extends State<MemoriesScreen>
     } else if (apiType == ApiUrl.memoryByCategory) {
       EasyLoading.dismiss();
       categoryMemoryModel = CategoryMemoryModel.fromJson(jsonDecode(data));
+      if(subId!=null){
+      categoryMemoryModel.subCategories![subId!].isSelected=true;
+
+      }
     }
     setState(() {});
   }
@@ -613,166 +873,338 @@ class _MemoriesScreenState extends State<MemoriesScreen>
 
   void openAddPillBottomSheet(String name, String id) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(Get.context!).requestFocus(titleFocusNode);
+      FocusScope.of(context).requestFocus(titleFocusNode);
     });
     titleController.text = name;
-    Get.bottomSheet(
-        DraggableScrollableSheet(
-          initialChildSize: 0.4,
-          // Starting size (fraction of the screen height)
-          minChildSize: 0.2,
-          // Minimum size
-          maxChildSize: 0.9,
-          builder: (BuildContext context, ScrollController scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(25),
-                    topLeft: Radius.circular(25)),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withOpacity(0.2),
-                    spreadRadius: 2,
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Container(
-                decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.only(
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor:
+          Colors.transparent, // Optional for transparent background
+      builder: (context) {
+        return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+          return SafeArea(
+            top: true,
+            bottom: false,
+            child: DraggableScrollableSheet(
+              initialChildSize: 0.6,
+              // Starting size (fraction of the screen height)
+              minChildSize: 0.4,
+              // Minimum size
+              maxChildSize: 0.9,
+              builder:
+                  (BuildContext context, ScrollController scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.only(
                         topRight: Radius.circular(25),
                         topLeft: Radius.circular(25)),
-                    color: AppColors.whiteColor),
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Container(
-                          height: 5,
-                          width: 36,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(100),
-                              color: AppColors.dragColor),
-                        ),
-                      ),
-                      const SizedBox(height: 13),
-                      Container(
-                        height: 48,
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                titleController.clear();
-                                Get.back();
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.only(left: 20.0),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Icon(Icons.close),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              name == ''
-                                  ? AppStrings.addCategory
-                                  : AppStrings.editCategory,
-                              style: appTextStyle(
-                                  fm: robotoBold,
-                                  height: 25 / 20,
-                                  fz: 20,
-                                  color: AppColors.black),
-                            ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () async {
-                                Get.back();
-                                EasyLoading.show();
-                                if (name == '') {
-                                  ApiCall.createCategory(
-                                      api: ApiUrl.createCategory,
-                                      name: titleController.text,
-                                      callack: this);
-                                } else {
-                                  ApiCall.ediCategory(
-                                      api: ApiUrl.updateCategory,
-                                      id: id,
-                                      name: titleController.text,
-                                      callack: this);
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 20.0),
-                                child: Text(AppStrings.done,
-                                    style: appTextStyle(
-                                        fm: interRegular,
-                                        fz: 17,
-                                        color: AppColors.primaryColor)),
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 13),
-                      Divider(
-                          color: AppColors.textfieldFillColor.withOpacity(.75)),
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Text(
-                          AppStrings.categoryTitle,
-                          style: appTextStyle(
-                              fm: interRegular,
-                              fz: 14,
-                              height: 19.2 / 14,
-                              color: AppColors.primaryColor),
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: TextFormField(
-                          focusNode: titleFocusNode,
-                          controller: titleController,
-                          maxLines: 2,
-                          textInputAction: TextInputAction.done,
-                          style: appTextStyle(
-                              fm: robotoRegular,
-                              fz: 21,
-                              height: 27 / 21,
-                              color: AppColors.black),
-                          decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: "Add Category title here",
-                              hintStyle: appTextStyle(
-                                  fm: robotoRegular,
-                                  fz: 21,
-                                  height: 27 / 21,
-                                  color: AppColors.hintColor)),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const SizedBox(
-                        height: 10,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-        barrierColor: AppColors.transparentColor,
-        isScrollControlled: true,
-        elevation: 6);
+                  child: Container(
+                    decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(25),
+                            topLeft: Radius.circular(25)),
+                        color: AppColors.whiteColor),
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              height: 5,
+                              width: 36,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(100),
+                                  color: AppColors.dragColor),
+                            ),
+                          ),
+                          const SizedBox(height: 13),
+                          Container(
+                            height: 48,
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    titleController.clear();
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 20.0),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Icon(Icons.close),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  name == ''
+                                      ? AppStrings.addCategory
+                                      : AppStrings.editCategory,
+                                  style: appTextStyle(
+                                      fm: robotoBold,
+                                      height: 25 / 20,
+                                      fz: 20,
+                                      color: AppColors.black),
+                                ),
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: () async {
+                                    Navigator.pop(context);
+                                    EasyLoading.show();
+                                    if (name == '') {
+                                      ApiCall.createCategory(
+                                          api: ApiUrl.createCategory,
+                                          name: titleController.text,
+                                          callack: this);
+                                    } else {
+                                      ApiCall.ediCategory(
+                                          api: ApiUrl.updateCategory,
+                                          id: id,
+                                          name: titleController.text,
+                                          callack: this);
+                                    }
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 20.0),
+                                    child: Text(AppStrings.done,
+                                        style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 17,
+                                            color: AppColors.primaryColor)),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 13),
+                          Divider(
+                              color: AppColors.textfieldFillColor
+                                  .withOpacity(.75)),
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Text(
+                              AppStrings.categoryTitle,
+                              style: appTextStyle(
+                                  fm: interRegular,
+                                  fz: 14,
+                                  height: 19.2 / 14,
+                                  color: AppColors.primaryColor),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: TextFormField(
+                              focusNode: titleFocusNode,
+                              controller: titleController,
+                              maxLines: 2,
+                              textInputAction: TextInputAction.done,
+                              style: appTextStyle(
+                                  fm: robotoRegular,
+                                  fz: 21,
+                                  height: 27 / 21,
+                                  color: AppColors.black),
+                              decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: "Add Category title here",
+                                  hintStyle: appTextStyle(
+                                      fm: robotoRegular,
+                                      fz: 21,
+                                      height: 27 / 21,
+                                      color: AppColors.hintColor)),
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        });
+      },
+    );
+
+    // Get.bottomSheet(
+    //     DraggableScrollableSheet(
+    //       initialChildSize: 0.4,
+    //       // Starting size (fraction of the screen height)
+    //       minChildSize: 0.2,
+    //       // Minimum size
+    //       maxChildSize: 0.9,
+    //       builder: (BuildContext context, ScrollController scrollController) {
+    //         return Container(
+    //           decoration: BoxDecoration(
+    //             borderRadius: const BorderRadius.only(
+    //                 topRight: Radius.circular(25),
+    //                 topLeft: Radius.circular(25)),
+    //             boxShadow: [
+    //               BoxShadow(
+    //                 color: AppColors.black.withOpacity(0.2),
+    //                 spreadRadius: 2,
+    //                 blurRadius: 10,
+    //                 offset: const Offset(0, 3),
+    //               ),
+    //             ],
+    //           ),
+    //           child: Container(
+    //             decoration: const BoxDecoration(
+    //                 borderRadius: BorderRadius.only(
+    //                     topRight: Radius.circular(25),
+    //                     topLeft: Radius.circular(25)),
+    //                 color: AppColors.whiteColor),
+    //             child: SingleChildScrollView(
+    //               controller: scrollController,
+    //               child: Column(
+    //                 crossAxisAlignment: CrossAxisAlignment.start,
+    //                 children: [
+    //                   const SizedBox(height: 8),
+    //                   Align(
+    //                     alignment: Alignment.center,
+    //                     child: Container(
+    //                       height: 5,
+    //                       width: 36,
+    //                       decoration: BoxDecoration(
+    //                           borderRadius: BorderRadius.circular(100),
+    //                           color: AppColors.dragColor),
+    //                     ),
+    //                   ),
+    //                   const SizedBox(height: 13),
+    //                   Container(
+    //                     height: 48,
+    //                     child: Row(
+    //                       children: [
+    //                         GestureDetector(
+    //                           onTap: () {
+    //                             titleController.clear();
+    //                             Get.back();
+    //                           },
+    //                           child: const Padding(
+    //                             padding: EdgeInsets.only(left: 20.0),
+    //                             child: Align(
+    //                               alignment: Alignment.centerLeft,
+    //                               child: Icon(Icons.close),
+    //                             ),
+    //                           ),
+    //                         ),
+    //                         const SizedBox(width: 5),
+    //                         Text(
+    //                           name == ''
+    //                               ? AppStrings.addCategory
+    //                               : AppStrings.editCategory,
+    //                           style: appTextStyle(
+    //                               fm: robotoBold,
+    //                               height: 25 / 20,
+    //                               fz: 20,
+    //                               color: AppColors.black),
+    //                         ),
+    //                         const Spacer(),
+    //                         GestureDetector(
+    //                           onTap: () async {
+    //                             Get.back();
+    //                             EasyLoading.show();
+    //                             if (name == '') {
+    //                               ApiCall.createCategory(
+    //                                   api: ApiUrl.createCategory,
+    //                                   name: titleController.text,
+    //                                   callack: this);
+    //                             } else {
+    //                               ApiCall.ediCategory(
+    //                                   api: ApiUrl.updateCategory,
+    //                                   id: id,
+    //                                   name: titleController.text,
+    //                                   callack: this);
+    //                             }
+    //                           },
+    //                           child: Padding(
+    //                             padding: const EdgeInsets.only(right: 20.0),
+    //                             child: Text(AppStrings.done,
+    //                                 style: appTextStyle(
+    //                                     fm: interRegular,
+    //                                     fz: 17,
+    //                                     color: AppColors.primaryColor)),
+    //                           ),
+    //                         )
+    //                       ],
+    //                     ),
+    //                   ),
+    //                   const SizedBox(height: 13),
+    //                   Divider(
+    //                       color: AppColors.textfieldFillColor.withOpacity(.75)),
+    //                   const SizedBox(height: 16),
+    //                   Padding(
+    //                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    //                     child: Text(
+    //                       AppStrings.categoryTitle,
+    //                       style: appTextStyle(
+    //                           fm: interRegular,
+    //                           fz: 14,
+    //                           height: 19.2 / 14,
+    //                           color: AppColors.primaryColor),
+    //                     ),
+    //                   ),
+    //                   const SizedBox(
+    //                     height: 10,
+    //                   ),
+    //                   Padding(
+    //                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    //                     child: TextFormField(
+    //                       focusNode: titleFocusNode,
+    //                       controller: titleController,
+    //                       maxLines: 2,
+    //                       textInputAction: TextInputAction.done,
+    //                       style: appTextStyle(
+    //                           fm: robotoRegular,
+    //                           fz: 21,
+    //                           height: 27 / 21,
+    //                           color: AppColors.black),
+    //                       decoration: InputDecoration(
+    //                           border: InputBorder.none,
+    //                           hintText: "Add Category title here",
+    //                           hintStyle: appTextStyle(
+    //                               fm: robotoRegular,
+    //                               fz: 21,
+    //                               height: 27 / 21,
+    //                               color: AppColors.hintColor)),
+    //                     ),
+    //                   ),
+    //                   const SizedBox(height: 5),
+    //                   const SizedBox(
+    //                     height: 10,
+    //                   ),
+    //                 ],
+    //               ),
+    //             ),
+    //           ),
+    //         );
+    //       },
+    //     ),
+    //     barrierColor: AppColors.transparentColor,
+    //     isScrollControlled: true,
+    //     elevation: 6);
   }
 
   Widget subTitle({String? title, int? index}) {
@@ -810,7 +1242,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
 
   showPopupMenu(details, String id, String name) async {
     final RenderBox overlay =
-        Overlay.of(Get.context!).context.findRenderObject() as RenderBox;
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     // Calculate the position for the popup menu
     final RelativeRect position = RelativeRect.fromRect(
@@ -822,7 +1254,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
     );
 
     await showMenu<String>(
-      context: Get.context!,
+      context: context,
       color: AppColors.whiteColor,
       surfaceTintColor: Color(0XFFF9F9F9),
       position: position,
@@ -862,5 +1294,326 @@ class _MemoriesScreenState extends State<MemoriesScreen>
             api: ApiUrl.deleteCategory, id: id, callack: this);
       }
     });
+  }
+
+  //------------memory view------------
+  listView(List<Memoris> memoriesList) {
+    double deviceHeight = MediaQuery.of(context).size.height;
+    double deviceWidth = MediaQuery.of(context).size.width;
+    return memoriesList.isEmpty
+        ? const IgnorePointer()
+        : SizedBox(
+            height: deviceHeight * .237,
+            child: ListView.builder(
+                itemCount: memoriesList.length,
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {},
+                    child: SizedBox(
+                      height: deviceHeight * .237,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Stack(
+                            children: [
+                              Stack(
+                                alignment: Alignment.topCenter,
+                                children: [
+                                  Stack(
+                                    alignment: Alignment.topRight,
+                                    children: [
+                                      Container(
+                                        height: deviceHeight * .2,
+                                        width: deviceWidth * .43,
+                                        margin: const EdgeInsets.only(right: 0),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: memoriesList[index]
+                                                          .lastUpdateImg ==
+                                                      ''
+                                                  ? AppColors.skeltonBorderColor
+                                                  : Colors.transparent),
+                                          borderRadius:
+                                              BorderRadius.circular(46),
+                                          image: memoriesList[index]
+                                                      .lastUpdateImg ==
+                                                  ''
+                                              ? const DecorationImage(
+                                                  image: AssetImage(
+                                                    "assets/images/placeHolder.png",
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : memoriesList[index]
+                                                          .lastUpdateImg !=
+                                                      ''
+                                                  ? DecorationImage(
+                                                      image:
+                                                          CachedNetworkImageProvider(
+                                                        memoriesList[index]
+                                                            .lastUpdateImg!,
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                  : null,
+                                          color: memoriesList[index]
+                                                      .lastUpdateImg !=
+                                                  ''
+                                              ? null
+                                              : Colors.grey,
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(46),
+                                      child: Stack(
+                                        alignment: Alignment.topCenter,
+                                        children: [
+                                          Container(
+                                            height: deviceHeight * .18,
+                                            width: deviceWidth * .43,
+                                            margin: EdgeInsets.only(
+                                                right: 20,
+                                                bottom: deviceHeight * .037),
+                                            alignment: Alignment.bottomCenter,
+                                            child: Container(
+                                              height: deviceHeight * .1,
+                                              width: deviceWidth * .43,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12),
+                                              decoration: BoxDecoration(
+                                                  color: Colors.white
+                                                      .withOpacity(.79),
+                                                  border: Border.all(
+                                                      color: AppColors
+                                                          .skeltonBorderColor),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          46)),
+                                              child: Row(
+                                                children: [
+                                                  ValueListenableBuilder(
+                                                      valueListenable:
+                                                          userProfileColor,
+                                                      builder:
+                                                          (BuildContext context,
+                                                              value,
+                                                              Widget? child) {
+                                                        return Container(
+                                                          height: 52,
+                                                          width: 52,
+                                                          alignment:
+                                                              Alignment.center,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            shape:
+                                                                BoxShape.circle,
+                                                            color: AppColors
+                                                                .primaryColor,
+                                                          ),
+                                                          child: ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        40),
+                                                            child: memoriesList[
+                                                                            index]
+                                                                        .user!
+                                                                        .profileImage !=
+                                                                    ''
+                                                                ? CachedNetworkImage(
+                                                                    imageUrl: memoriesList[
+                                                                            index]
+                                                                        .user!
+                                                                        .profileImage,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    height: 52,
+                                                                    width: 52,
+                                                                    progressIndicatorBuilder: (context,
+                                                                            url,
+                                                                            downloadProgress) =>
+                                                                        CircularProgressIndicator(
+                                                                            value:
+                                                                                downloadProgress.progress),
+                                                                  )
+                                                                : Text(
+                                                                    memoriesList[
+                                                                            index]
+                                                                        .user!
+                                                                        .name![
+                                                                            0]
+                                                                        .toUpperCase(),
+                                                                    style: const TextStyle(
+                                                                        fontSize:
+                                                                            24,
+                                                                        color: Colors
+                                                                            .white,
+                                                                        fontFamily:
+                                                                            robotoRegular),
+                                                                  ),
+                                                          ),
+                                                        );
+                                                      }),
+                                                  const SizedBox(
+                                                    width: 5,
+                                                  ),
+                                                  Expanded(
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          memoriesList
+                                                                  .isNotEmpty
+                                                              ? memoriesList[index]
+                                                                          .title!
+                                                                          .length >
+                                                                      10
+                                                                  ? memoriesList[
+                                                                              index]
+                                                                          .title!
+                                                                          .substring(
+                                                                              0,
+                                                                              10) +
+                                                                      ".."
+                                                                  : memoriesList[
+                                                                          index]
+                                                                      .title!
+                                                              : "",
+                                                          style: const TextStyle(
+                                                              color: AppColors
+                                                                  .black,
+                                                              fontFamily:
+                                                                  robotoBold,
+                                                              height: 17.2 / 15,
+                                                              fontSize: 15),
+                                                        ),
+                                                        Text(
+                                                          "${CommonWidgets.dateRetrun(memoriesList[index].minUploadedImgDate!)}-${memoriesList[index].maxUploadedImgDate!.split('-')[2]}/${memoriesList[index].maxUploadedImgDate!.split('-')[0].substring(2, 4)}",
+                                                          style: const TextStyle(
+                                                              color: AppColors
+                                                                  .black,
+                                                              fontFamily:
+                                                                  robotoRegular,
+                                                              height: 17.2 / 13,
+                                                              fontSize: 13),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (memoriesList[index].subCategoryId != '')
+                                Positioned(
+                                  top: deviceHeight * .085,
+                                  child: Container(
+                                    width: deviceWidth * .43,
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                        height: 27,
+                                        // margin: const EdgeInsets.only(
+                                        //     left: 16, right: 16, top: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16),
+                                        decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            color: AppColors.subTitleColor),
+                                        child: Text(
+                                          memoriesList[index]
+                                              .subCategory!
+                                              .name!,
+                                          style: appTextStyle(
+                                              fm: robotoMedium,
+                                              height: 27 / 14,
+                                              fz: 14,
+                                              color: AppColors.black),
+                                        )),
+                                  ),
+                                )
+                            ],
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(
+                                bottom: deviceHeight * .016, left: 18),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    alignment: Alignment.center,
+                                    height: 32,
+                                    width: 77,
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border:
+                                            Border.all(color: AppColors.black),
+                                        borderRadius:
+                                            BorderRadius.circular(26)),
+                                    child: Text(
+                                      '${memoriesList[index].postsCount!}',
+                                      style: appTextStyle(
+                                          fz: 12,
+                                          color: AppColors.black,
+                                          height: 24 / 12,
+                                          fm: interMedium),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 7,
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {},
+                                    child: Container(
+                                        alignment: Alignment.center,
+                                        height: 32,
+                                        width: 39,
+                                        decoration: BoxDecoration(
+                                            color: AppColors.black,
+                                            borderRadius:
+                                                BorderRadius.circular(26)),
+                                        child: Image.asset(
+                                          add,
+                                          height: 9,
+                                          width: 9,
+                                        )),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+          );
   }
 }

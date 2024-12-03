@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info/device_info.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
+import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:stasht/modules/media/image_grid.dart';
+import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
 import 'package:stasht/modules/onboarding/onboarding_screen.dart';
 import 'package:stasht/network/api_call.dart';
@@ -24,7 +28,6 @@ import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import 'package:permission_handler/permission_handler.dart' as permission;
-
 
 class CommonWidgets {
   static Future<dynamic> googleSignup(ApiCallback callBack) async {
@@ -39,18 +42,18 @@ class CommonWidgets {
         idToken: googleAuth?.idToken,
       );
       print(googleUser!.displayName!);
-            print(googleAuth!.accessToken);
+      print(googleAuth!.accessToken);
 
       print(googleUser.email);
-            print(googleUser.id);
+      print(googleUser.id);
 
       CommonWidgets.progressDialog();
       ApiCall.scocialLogin(
           api: ApiUrl.socialLogin,
           email: googleUser.email,
           type: 'google',
-          name:googleUser.displayName!,
-          id:googleUser.id,
+          name: googleUser.displayName!,
+          id: googleUser.id,
           callack: callBack);
     } catch (e) {
       print(e);
@@ -78,13 +81,13 @@ class CommonWidgets {
             if (appleIdCredential!.email != null) {
               print(
                   "Apple Login Credentials...  ${appleIdCredential.email} \n  ${appleIdCredential.fullName!.givenName} \n ${appleIdCredential.fullName!.familyName}");
-                  CommonWidgets.progressDialog();
+              CommonWidgets.progressDialog();
 
               ApiCall.scocialLogin(
                   api: ApiUrl.socialLogin,
                   email: appleIdCredential.email!,
                   type: 'apple',
-                  name: appleIdCredential.fullName!.givenName??'',
+                  name: appleIdCredential.fullName!.givenName ?? '',
                   id: convertedIdentityToken,
                   callack: callBack);
             }
@@ -111,10 +114,8 @@ class CommonWidgets {
             .login(permissions: ['email', 'user_photos'])
         : await FacebookAuth.instance.login();
     if (result.status == LoginStatus.success) {
-
       // print('Access Token: ${accessToken.tokenString}');
-    return result.accessToken!;
-
+      return result.accessToken!;
     } else {
       print('Login failed: ${result.message}');
     }
@@ -142,9 +143,7 @@ class CommonWidgets {
       if (account != null) {
         return googleSignIn;
       } else {}
-    } catch (e) {
-
-    }
+    } catch (e) {}
     return null;
   }
 
@@ -152,7 +151,6 @@ class CommonWidgets {
     final LoginResult result = await FacebookAuth.instance.login();
 
     if (result.status == LoginStatus.success) {
-
       // print('Access Token: ${accessToken.tokenString}');
       return result.accessToken!;
       // controller.fetchFacebookPhotos(accessToken);
@@ -163,7 +161,7 @@ class CommonWidgets {
   }
 
   static Future<String>? openInstagramPage() {
-    Get.to(() => InstagramLoginPage())?.then((value) async{
+    Get.to(() => InstagramLoginPage())?.then((value) async {
       print("code====>$value");
       if (value != null) {
         return value;
@@ -191,25 +189,24 @@ class CommonWidgets {
     );
   }
 
-  static progressDialog(){
-  double _progress = 0.0;
-  Timer.periodic(const Duration(milliseconds: 50), (Timer timer) {
-    _progress += 0.03;
+  static progressDialog() {
+    double _progress = 0.0;
+    Timer.periodic(const Duration(milliseconds: 100), (Timer timer) {
+      _progress += 0.03;
 
-    EasyLoading.showProgress(
-      _progress,
-       // Show percentage
-    );
+      EasyLoading.showProgress(
+        _progress,
+        // Show percentage
+      );
 
-    if (_progress >= 0.9) {
-      timer.cancel(); // Stop the timer
-      EasyLoading.dismiss(); // Dismiss the dialog
-    }
-  });
-  
-
+      if (_progress >= 0.9) {
+        timer.cancel(); // Stop the timer
+        EasyLoading.dismiss(); // Dismiss the dialog
+      }
+    });
   }
-   static fbView(BuildContext context,{VoidCallback ? calback}) {
+
+  static fbView(BuildContext context, Function(AccessToken token) callBack) {
     return SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: SingleChildScrollView(
@@ -240,12 +237,11 @@ class CommonWidgets {
             const SizedBox(
               height: 20,
             ),
-        GestureDetector(
+            GestureDetector(
                 onTap: () {
-                  if(calback!=null){
-                    calback();
-                  }
-
+                  loginWithFacebook()!.then((value) {
+                    callBack(value!);
+                  });
                 },
                 child: button(
                     color: const Color(0XFF1877F2),
@@ -257,7 +253,7 @@ class CommonWidgets {
     );
   }
 
-  static instaView(BuildContext context,{VoidCallback ? callback}) {
+  static instaView(BuildContext context, Function(String token) callBack) {
     return SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: SingleChildScrollView(
@@ -293,10 +289,10 @@ class CommonWidgets {
             ),
             GestureDetector(
               onTap: () {
-                if(callback!=null){
-                  callback();
-                }
-               /* uploadCount=0;
+                openInstagramPage()!.then((value) {
+                  callBack(value);
+                });
+                /* uploadCount=0;
                 progressbarValue.value = 0.0;
                 update();
                 ///InstaLogin Function
@@ -319,7 +315,8 @@ class CommonWidgets {
       ),
     );
   }
-static button(BuildContext context, {Color? color, String? title}) {
+
+  static button(BuildContext context, {Color? color, String? title}) {
     return Container(
       height: 35,
       width: MediaQuery.of(context).size.width * .6,
@@ -333,7 +330,7 @@ static button(BuildContext context, {Color? color, String? title}) {
     );
   }
 
-  static driveView(BuildContext context) {
+  static driveView(BuildContext context, Function(GoogleSignIn v) callBack) {
     return SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: SingleChildScrollView(
@@ -366,9 +363,9 @@ static button(BuildContext context, {Color? color, String? title}) {
             ),
             GestureDetector(
               onTap: () {
-                // progressbarValue.value = 0.0;
-                // update();
-                // getFileFromGoogleDrive();
+                getFileFromGoogleDrive(context).then((value) {
+                  callBack(value!);
+                });
               },
               child: button(
                   color: Color(0XFF34A853),
@@ -380,40 +377,35 @@ static button(BuildContext context, {Color? color, String? title}) {
       ),
     );
   }
+
   static Future<List<AssetEntity>> getLocalImages() async {
-      List<AssetEntity> assets = [];
+    List<AssetEntity> assets = [];
 
     final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
-
-        type: Platform.isAndroid? RequestType.image:RequestType.all,
-        filterOption: FilterOptionGroup(
-            orders: [
-              const OrderOption(type: OrderOptionType.createDate,asc: false)
-            ]
-        )
-    );
+        type: Platform.isAndroid ? RequestType.image : RequestType.all,
+        filterOption: FilterOptionGroup(orders: [
+          const OrderOption(type: OrderOptionType.createDate, asc: false)
+        ]));
     AssetPathEntity? cameraRoll;
-    for(var path in paths){
-
-      if(Platform.isAndroid){
-        if(path.name.toLowerCase()=="camera" || path.name.toLowerCase()=="dcim"){
-          cameraRoll=path;
+    for (var path in paths) {
+      if (Platform.isAndroid) {
+        if (path.name.toLowerCase() == "camera" ||
+            path.name.toLowerCase() == "dcim") {
+          cameraRoll = path;
           break;
         }
-      }
-      else{
+      } else {
         cameraRoll = path;
         break;
-
       }
     }
-    
+
     List<AssetEntity> allAssets = [];
 
     int page = 0;
 
     int size = 100; // Number of assets per page
- 
+
     while (true) {
       assets = await cameraRoll!.getAssetListPaged(page: page, size: size);
 
@@ -425,13 +417,12 @@ static button(BuildContext context, {Color? color, String? title}) {
 
       page++;
     }
-   
-return allAssets;
-  
-    
-  }
-  static Future<void> requestStoragePermission(Function(List<AssetEntity> allAssets)? onPressed) async {
 
+    return allAssets;
+  }
+
+  static Future<void> requestStoragePermission(
+      Function(List<AssetEntity> allAssets)? onPressed) async {
     if (Platform.isAndroid) {
       var androidInfo = await DeviceInfoPlugin().androidInfo;
 
@@ -442,15 +433,13 @@ return allAssets;
           final PermissionState ps =
               await PhotoManager.requestPermissionExtend();
           if (ps.isAuth) {
-            await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
+            await getLocalImages().then((value) {
+              onPressed!(value);
+            });
           } else if (ps.hasAccess) {
-          await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
+            await getLocalImages().then((value) {
+              onPressed!(value);
+            });
           } else {
             PhotoManager.openSetting();
           }
@@ -460,15 +449,13 @@ return allAssets;
             final PermissionState ps =
                 await PhotoManager.requestPermissionExtend();
             if (ps.isAuth) {
-             await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
+              await getLocalImages().then((value) {
+                onPressed!(value);
+              });
             } else if (ps.hasAccess) {
-              await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
+              await getLocalImages().then((value) {
+                onPressed!(value);
+              });
             } else {
               PhotoManager.openSetting();
             }
@@ -479,41 +466,34 @@ return allAssets;
       } else {
         final status = await permission.Permission.photos.request();
         if (status.isGranted) {
-          await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
-          
+          await getLocalImages().then((value) {
+            onPressed!(value);
+          });
         } else if (status.isDenied) {
           final status = await permission.Permission.photos.request();
           if (status.isGranted) {
-           await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
-            
+            await getLocalImages().then((value) {
+              onPressed!(value);
+            });
           } else {
             permission.openAppSettings();
           }
         }
       }
     } else {
-      
       final PermissionState ps = await PhotoManager
           .requestPermissionExtend(); // the method can use optional param `permission`.
       if (ps.isAuth) {
-       await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });
+        await getLocalImages().then((value) {
+          onPressed!(value);
+        });
       } else if (ps.hasAccess) {
-await getLocalImages(
-                ).then((value) {
-                  onPressed!(value);
-                });      } else {
+        await getLocalImages().then((value) {
+          onPressed!(value);
+        });
+      } else {
         PhotoManager.openSetting();
       }
-
     }
   }
 
@@ -529,12 +509,413 @@ await getLocalImages(
     );
   }
 
- static appleButton(ApiCallback callback) {
+  static appleButton(ApiCallback callback) {
     return GestureDetector(
         onTap: () {
           CommonWidgets.initiateAppleSignUp(callback);
         },
-        child: CommonWidgets.buttonView(imagePath: appleImage, title: AppStrings.apple));
+        child: CommonWidgets.buttonView(
+            imagePath: appleImage, title: AppStrings.apple));
   }
 
+  static errorDialog(BuildContext context, String message) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Error',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  message,
+                  style: TextStyle(color: Colors.red, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    // Remove the snackbar after a delay
+    Future.delayed(Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
+  }
+
+  static successDialog(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.green),
+        ),
+        backgroundColor: Colors.white,
+      ),
+    );
+  }
+
+  static String dateRetrun(String value) {
+    return DateFormat("MMM d").format(DateTime.parse(value));
+  }
+
+  static drivePhtotView(
+      List<PhotoDetailModel> photosList, VoidCallback onPressed) {
+    print(photosList);
+
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3, // Number of columns
+        crossAxisSpacing: 10.0,
+        mainAxisSpacing: 10.0,
+        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+      ),
+      itemCount: photosList.length,
+      addAutomaticKeepAlives: false,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            photosList[index].isSelected = !photosList[index].isSelected;
+
+            onPressed();
+          },
+          child: Stack(
+            children: [
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                      imageUrl: photosList[index].webLink!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => SizedBox(
+                            height: 120,
+                            width: MediaQuery.of(context).size.width,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                          )),
+                ),
+              ),
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: photosList[index].isSelected
+                        ? AppColors.primaryColor.withOpacity(.65)
+                        : null),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 4, right: 4),
+                  child: PhysicalModel(
+                    borderRadius: BorderRadius.circular(8),
+                    elevation: 4,
+                    color: Colors.transparent,
+                    child: Container(
+                      height: 21.87,
+                      width: 30.07,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: Colors.white.withOpacity(.5), width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                          color: photosList[index].isSelected
+                              ? Colors.white
+                              : Colors.black.withOpacity(.3)),
+                      child: photosList[index].isSelected
+                          ? Image.asset(
+                              correct,
+                              height: 12,
+                              width: 12,
+                            )
+                          : const IgnorePointer(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static instaPhtotView(
+      List<PhotoDetailModel> photosList, VoidCallback onPressed) {
+    return GridView.builder(
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3, // Number of columns
+        crossAxisSpacing: 10.0,
+        mainAxisSpacing: 10.0,
+        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+      ),
+      itemCount: photosList.length,
+      addAutomaticKeepAlives: false,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            photosList[index].isSelected = !photosList[index].isSelected;
+            onPressed();
+          },
+          child: Stack(
+            children: [
+            Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                      imageUrl: photosList[index].webLink ?? "",
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => SizedBox(
+                            height: 120,
+                            width: MediaQuery.of(context).size.width,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                          )),
+                ),
+              ),
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: photosList[index].isSelected
+                        ? AppColors.primaryColor.withOpacity(.65)
+                        : null),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 4, right: 4),
+                  child: PhysicalModel(
+                    borderRadius: BorderRadius.circular(8),
+                    elevation: 4,
+                    color: Colors.transparent,
+                    child: Container(
+                      height: 21.87,
+                      width: 30.07,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: Colors.white.withOpacity(.5), width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                          color: photosList[index].isSelected
+                              ? Colors.white
+                              : Colors.black.withOpacity(.3)),
+                      child: photosList[index].isSelected
+                          ? Image.asset(
+                              correct,
+                              height: 12,
+                              width: 12,
+                            )
+                          : const IgnorePointer(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static fbPhtotView(
+      List<PhotoDetailModel> photosList, VoidCallback onPressed) {
+    return GridView.builder(
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3, // Number of columns
+        crossAxisSpacing: 10.0,
+        mainAxisSpacing: 10.0,
+        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+      ),
+      itemCount: photosList.length,
+      addAutomaticKeepAlives: false,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            photosList[index].isSelected = !photosList[index].isSelected;
+            onPressed();
+          },
+          child: Stack(
+            children: [
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child:  CachedNetworkImage(
+                      imageUrl: photosList[index].webLink ?? "",
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => SizedBox(
+                            height: 120,
+                            width: MediaQuery.of(context).size.width,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryColor,
+                              ),
+                            ),
+                          )),
+                ),
+              ),
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: photosList[index].isSelected
+                        ? AppColors.primaryColor.withOpacity(.65)
+                        : null),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 4, right: 4),
+                  child: PhysicalModel(
+                    borderRadius: BorderRadius.circular(8),
+                    elevation: 4,
+                    color: Colors.transparent,
+                    child: Container(
+                      height: 21.87,
+                      width: 30.07,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: Colors.white.withOpacity(.5), width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                          color: photosList[index].isSelected
+                              ? Colors.white
+                              : Colors.black.withOpacity(.3)),
+                      child: photosList[index].isSelected
+                          ? Image.asset(
+                              correct,
+                              height: 12,
+                              width: 12,
+                            )
+                          : const IgnorePointer(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static albumView(List<Future<Uint8List?>> future, List<PhotoModel> photosList,
+      VoidCallback onPressed) {
+    return GridView.builder(
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3, // Number of columns
+        crossAxisSpacing: 10.0,
+        mainAxisSpacing: 10.0,
+        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+      ),
+      itemCount: photosList.length,
+      addAutomaticKeepAlives: false,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            photosList[index].selectedValue = !photosList[index].selectedValue;
+
+            onPressed();
+          },
+          child: Stack(
+            children: [
+              MyGridItem(future[index]),
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: photosList[index].selectedValue
+                        ? AppColors.primaryColor.withOpacity(.65)
+                        : null),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 4, right: 4),
+                  child: PhysicalModel(
+                    borderRadius: BorderRadius.circular(8),
+                    elevation: 4,
+                    color: Colors.transparent,
+                    child: Container(
+                      height: 21.87,
+                      width: 30.07,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: Colors.white.withOpacity(.5), width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                          color: photosList[index].selectedValue
+                              ? Colors.white
+                              : Colors.black.withOpacity(.3)),
+                      child: photosList[index].selectedValue
+                          ? Image.asset(
+                              correct,
+                              height: 12,
+                              width: 12,
+                            )
+                          : const IgnorePointer(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

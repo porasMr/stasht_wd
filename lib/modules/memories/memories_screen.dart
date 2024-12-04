@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:stasht/modules/memories/model/category_memory_model.dart';
@@ -22,11 +23,10 @@ class MemoriesScreen extends StatefulWidget {
   const MemoriesScreen({super.key});
 
   @override
-  State<MemoriesScreen> createState() => _MemoriesScreenState();
+  MemoriesScreenState createState() => MemoriesScreenState();
 }
 
-class _MemoriesScreenState extends State<MemoriesScreen>
-    implements ApiCallback {
+class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
   //final MemoriesController controller = Get.put(MemoriesController());
   CategoryModel categoryModel = CategoryModel();
   MemoriesModel memoriesModel = MemoriesModel();
@@ -34,11 +34,38 @@ class _MemoriesScreenState extends State<MemoriesScreen>
   int selectedId = 0; // Default selected ID
   int selectedIndex = 0;
   bool isAll = false;
-  int? subId;
+  int? subIdIndex;
+  int _currentPage = 1;
+
+  bool _isLoading = false;
+  bool _hasMore = false;
+  String subCategoriesId = '';
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    refrehScreen();
+  }
+
+  refrehScreen() {
     ApiCall.category(api: ApiUrl.categories, callack: this);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        if (_hasMore) {
+          _isLoading = true;
+          _currentPage = _currentPage + 1;
+          _hasMore = false;
+          setState(() {});
+          if (subIdIndex == null) {
+            nextPageSubCategory('');
+          } else {
+            nextPageSubCategory(subCategoriesId);
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -114,7 +141,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                                 return GestureDetector(
                                   onTap: () {
                                     selectedCategory(index);
-                                    subId=null;
+                                    subIdIndex = null;
                                   },
                                   onLongPressStart: (details) {
                                     if (categoryModel.categories![index].name !=
@@ -191,7 +218,9 @@ class _MemoriesScreenState extends State<MemoriesScreen>
     } else {
       return
           // Call fetchTabs first, and then return the UI
-          categoryMemoryModel.subCategories == null ? Container() :  myMemoriesUI();
+          categoryMemoryModel.subCategories == null
+              ? Container()
+              : myMemoriesUI();
     }
   }
 
@@ -223,6 +252,7 @@ class _MemoriesScreenState extends State<MemoriesScreen>
         id: categoryModel.categories![index].id.toString(),
         sub_category_id: '',
         type: '',
+        page: '1',
         callack: this);
   }
 
@@ -230,20 +260,35 @@ class _MemoriesScreenState extends State<MemoriesScreen>
     print(subId);
     for (int i = 0; i < categoryModel.categories!.length; i++) {
       if (categoryModel.categories![i].isSelected) {
-         setState(() {});
-    EasyLoading.show();
-    ApiCall.memoryByCategory(
-        api: ApiUrl.memoryByCategory,
-        id: categoryModel.categories![i].id.toString(),
-        sub_category_id: subId,
-        type: '',
-        callack: this);
+        setState(() {});
+        EasyLoading.show();
+        ApiCall.memoryByCategory(
+            api: ApiUrl.memoryByCategory,
+            id: categoryModel.categories![i].id.toString(),
+            sub_category_id: subId,
+            type: '',
+            page: "$_currentPage",
+            callack: this);
       }
       break;
     }
-   
   }
 
+  nextPageSubCategory(String subId) {
+    for (int i = 0; i < categoryModel.categories!.length; i++) {
+      if (categoryModel.categories![i].isSelected) {
+        setState(() {});
+        ApiCall.memoryByCategory(
+            api: ApiUrl.memoryByCategory,
+            id: categoryModel.categories![i].id.toString(),
+            sub_category_id: subId,
+            type: '',
+            page: "$_currentPage",
+            callack: this);
+      }
+      break;
+    }
+  }
 
   allCategory() {
     for (int i = 0; i < categoryModel.categories!.length; i++) {
@@ -356,6 +401,19 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                                   ),
                                 ],
                               ),
+                              GestureDetector(
+                                  onTap: () {
+                                    categoryModel
+                                        .categories![index].isSelected = true;
+                                    _currentPage = 1;
+                                    selectedCategory(index);
+                                    subIdIndex = null;
+                                  },
+                                  child: const Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.black,
+                                    size: 25,
+                                  ))
                             ],
                           ),
                           const SizedBox(
@@ -490,182 +548,205 @@ class _MemoriesScreenState extends State<MemoriesScreen>
       height: MediaQuery.of(context).size.height * .8,
       child: Column(
         children: [
-          categoryMemoryModel.subCategories!.isEmpty?Container():
-          Container(
-            height: 49,
-            margin: const EdgeInsets.only(top: 8),
-            width: MediaQuery.of(context).size.width,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: const BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(color: AppColors.textfieldFillColor)),
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.selectedTabColor, // Start color
-                  Colors.white, // End color
-                ],
-                begin: Alignment.topCenter,
-                // Starting point of the gradient
-                end: Alignment.bottomCenter, // Ending point of the gradient
-              ),
-            ),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    allSubCategory();
-                    refershSubCategory('');
-                  },
-                  onLongPressStart: (details) {},
-                  child: Align(
-                    alignment: Alignment.center, // Center each subTitle
-                    child: Container(
-                      alignment: Alignment.center,
-                      width: 40,
-                      height: 27,
-                      // Reduced height
-                      margin: const EdgeInsets.only(right: 8),
-                      // Reduced margin
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      // Reduced padding
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: anySubValueSelected()
-                              ? AppColors.black
-                              : Colors.transparent,
-                        ),
-                        borderRadius: BorderRadius.circular(13),
-                        // Slightly reduced border radius
-                        color: anySubValueSelected()
-                            ? Colors.white
-                            : AppColors.subTitleColor,
-                      ),
-                      child: Text(
-                        "All",
-                        style: appTextStyle(
-                          fm: interMedium,
-                          height: 24 / 14, // Adjusted line height
-                          fz: 12, // Reduced font size
-                          color: AppColors.black,
-                        ),
-                      ),
-                    ), // Call the subTitle method
-                  ),
-                ),
-                categoryMemoryModel.subCategories==null?Container():
-                Expanded(
-                  child: Container(
-                    child: ListView.builder(
-                      itemCount: categoryMemoryModel.subCategories!.length,
-
-                      itemBuilder: (context, index) {
-                        return GestureDetector(
-                          onTap: () {
-                            for (int i = 0;
-                                i < categoryMemoryModel.subCategories!.length;
-                                i++) {
-                              if (i == index) {
-                                categoryMemoryModel
-                                    .subCategories![index].isSelected = true;
-                              } else {
-                                categoryMemoryModel
-                                    .subCategories![i].isSelected = false;
-                              }
-                            }
-                            subId=index;
-                                    setState(() {
-                                      
-                                    });
-                    refershSubCategory(categoryMemoryModel
-                                    .subCategories![index].id.toString());
-                          },
-                          onLongPressStart: (details) {},
-                          child: Align(
-                            alignment: Alignment.center, // Center each subTitle
-                            child: subTitle(
-                                title: categoryMemoryModel
-                                    .subCategories![index].name,
-                                index: index), // Call the subTitle method
-                          ),
-                        );
-                      },
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      physics:
-                          const BouncingScrollPhysics(), // Optional: adds bounce effect on scroll
+          categoryMemoryModel.subCategories!.isEmpty
+              ? Container()
+              : Container(
+                  height: 49,
+                  margin: const EdgeInsets.only(top: 8),
+                  width: MediaQuery.of(context).size.width,
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                        bottom:
+                            BorderSide(color: AppColors.textfieldFillColor)),
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.selectedTabColor, // Start color
+                        Colors.white, // End color
+                      ],
+                      begin: Alignment.topCenter,
+                      // Starting point of the gradient
+                      end: Alignment
+                          .bottomCenter, // Ending point of the gradient
                     ),
                   ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          _currentPage = 1;
+                          subIdIndex = null;
+
+                          allSubCategory();
+                          refershSubCategory('');
+                        },
+                        onLongPressStart: (details) {},
+                        child: Align(
+                          alignment: Alignment.center, // Center each subTitle
+                          child: Container(
+                            alignment: Alignment.center,
+                            width: 40,
+                            height: 27,
+                            // Reduced height
+                            margin: const EdgeInsets.only(right: 8),
+                            // Reduced margin
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            // Reduced padding
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: anySubValueSelected()
+                                    ? AppColors.black
+                                    : Colors.transparent,
+                              ),
+                              borderRadius: BorderRadius.circular(13),
+                              // Slightly reduced border radius
+                              color: anySubValueSelected()
+                                  ? Colors.white
+                                  : AppColors.subTitleColor,
+                            ),
+                            child: Text(
+                              "All",
+                              style: appTextStyle(
+                                fm: interMedium,
+                                height: 24 / 14, // Adjusted line height
+                                fz: 12, // Reduced font size
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ), // Call the subTitle method
+                        ),
+                      ),
+                      categoryMemoryModel.subCategories == null
+                          ? Container()
+                          : Expanded(
+                              child: Container(
+                                child: ListView.builder(
+                                  itemCount:
+                                      categoryMemoryModel.subCategories!.length,
+
+                                  itemBuilder: (context, index) {
+                                    return GestureDetector(
+                                      onTap: () {
+                                        for (int i = 0;
+                                            i <
+                                                categoryMemoryModel
+                                                    .subCategories!.length;
+                                            i++) {
+                                          if (i == index) {
+                                            categoryMemoryModel
+                                                .subCategories![index]
+                                                .isSelected = true;
+                                          } else {
+                                            categoryMemoryModel
+                                                .subCategories![i]
+                                                .isSelected = false;
+                                          }
+                                        }
+                                        subIdIndex = index;
+                                        setState(() {});
+                                        _currentPage = 1;
+                                        subCategoriesId = categoryMemoryModel
+                                            .subCategories![index].id
+                                            .toString();
+                                        refershSubCategory(subCategoriesId);
+                                      },
+                                      onLongPressStart: (details) {},
+                                      child: Align(
+                                        alignment: Alignment
+                                            .center, // Center each subTitle
+                                        child: subTitle(
+                                            title: categoryMemoryModel
+                                                .subCategories![index].name,
+                                            index:
+                                                index), // Call the subTitle method
+                                      ),
+                                    );
+                                  },
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                  physics:
+                                      const BouncingScrollPhysics(), // Optional: adds bounce effect on scroll
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
           Expanded(
-            child: SingleChildScrollView(
-              child: categoryMemoryModel.data!.data!.isEmpty
-                  ? Container()
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(top: 0),
-                      itemCount: categoryMemoryModel.data!.data!.length,
-                      shrinkWrap: true,
-                      primary: false,
-                      addAutomaticKeepAlives: true,
-                      scrollDirection: Axis.vertical,
-                      itemBuilder: (BuildContext context, int index) {
-                        return InkWell(
-                      onTap: () {
-                       
-                      },
-                      child: Container(
-                        height: 90,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        width: MediaQuery.of(context).size.width,
-                        decoration: const BoxDecoration(
-                            border: Border(
-                                // top: BorderSide(
-                                //     color: AppColors.textfieldFillColor),
-                                bottom: BorderSide(
-                                    color: AppColors.textfieldFillColor))),
-                        child: SizedBox(
-                          height: 71,
-                          child: Row(
-                            children: [
-                              Stack(
-                                alignment: Alignment.centerRight,
-                                children: [
-                                  Container(
-                                    alignment: Alignment.centerLeft,
-                                    height: 51,
-                                    width: 70,
-                                    child: Container(
-                                      height: 51,
-                                      width: 55,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color:categoryMemoryModel.data!.data![index].lastUpdateImg!=''?AppColors.black:Colors.transparent),
-                                        borderRadius: BorderRadius.circular(12),
-                                        color: Colors.white,
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child:categoryMemoryModel.data!.data![index].lastUpdateImg==''?
-                                          Image.asset("assets/images/placeHolder.png"): CachedNetworkImage(
-                                          imageUrl: categoryMemoryModel.data!.data![index].lastUpdateImg!,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                   Container(
-                                          height: 32,
-                                          width: 32,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                              border: Border.all(
-                                                  color: Colors.white),
-                                              shape: BoxShape.circle,
-                                              color: 
-                                                  
+            child: categoryMemoryModel.data!.data!.isEmpty
+                ? Container()
+                : ListView(
+                    shrinkWrap: true,
+                    controller: _scrollController,
+                    padding: EdgeInsets.zero,
+                    children: [
+                      ...categoryMemoryModel.data!.data!
+                          .map((memory) => InkWell(
+                              onTap: () {},
+                              child: Container(
+                                height: 90,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                width: MediaQuery.of(context).size.width,
+                                decoration: const BoxDecoration(
+                                    border: Border(
+                                        // top: BorderSide(
+                                        //     color: AppColors.textfieldFillColor),
+                                        bottom: BorderSide(
+                                            color:
+                                                AppColors.textfieldFillColor))),
+                                child: SizedBox(
+                                  height: 71,
+                                  child: Row(
+                                    children: [
+                                      Stack(
+                                        alignment: Alignment.centerRight,
+                                        children: [
+                                          Container(
+                                            alignment: Alignment.centerLeft,
+                                            height: 51,
+                                            width: 70,
+                                            child: Container(
+                                              height: 51,
+                                              width: 55,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color:
+                                                        memory.lastUpdateImg !=
+                                                                ''
+                                                            ? AppColors.black
+                                                            : Colors
+                                                                .transparent),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                color: Colors.white,
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                child: memory.lastUpdateImg ==
+                                                        ''
+                                                    ? Image.asset(
+                                                        "assets/images/placeHolder.png")
+                                                    : CachedNetworkImage(
+                                                        imageUrl: memory
+                                                            .lastUpdateImg!,
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                              height: 32,
+                                              width: 32,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                  border: Border.all(
+                                                      color: Colors.white),
+                                                  shape: BoxShape.circle,
+                                                  color:
                                                       AppColors.primaryColor),
-                                          child:  Container(
+                                              child: Container(
                                                   decoration: BoxDecoration(
                                                       borderRadius:
                                                           BorderRadius.circular(
@@ -679,10 +760,13 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                             50.0),
-                                                    child: categoryMemoryModel.data!.data![index].user!.profileImage!=''
+                                                    child: memory.user!
+                                                                .profileImage !=
+                                                            ''
                                                         ? CachedNetworkImage(
-                                                            imageUrl:
-                                                                categoryMemoryModel.data!.data![index].user!.profileImage,
+                                                            imageUrl: memory
+                                                                .user!
+                                                                .profileImage,
                                                             fit: BoxFit.cover,
                                                             height: 30,
                                                             width: 30,
@@ -694,7 +778,9 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                                                                         .progress))
                                                         : Center(
                                                             child: Text(
-                                                              categoryMemoryModel.data!.data![index].user!.name![0].toUpperCase(),
+                                                              memory.user!
+                                                                  .name![0]
+                                                                  .toUpperCase(),
                                                               textAlign:
                                                                   TextAlign
                                                                       .center,
@@ -706,89 +792,99 @@ class _MemoriesScreenState extends State<MemoriesScreen>
                                                                       robotoRegular),
                                                             ),
                                                           ),
-                                                  ))
-                                           
-                                        ),
-                                ],
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              Expanded(
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          categoryMemoryModel.data!.data![index].user!.name!,
-                                          style: appTextStyle(
-                                            fm: robotoRegular,
-                                            fz: 12,
-                                            color: AppColors.black,
-                                            height: 19.2 / 12,
-                                          ),
-                                        ),
-                                        Row(
+                                                  ))),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
+                                      ),
+                                      Expanded(
+                                        child: Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(
-                                              categoryMemoryModel.data!.data![index].title!.length >
-                                                      20
-                                                  ? categoryMemoryModel.data!.data![index].title!
-                                                          .substring(0, 20) +
-                                                      "...."
-                                                  :categoryMemoryModel.data!.data![index].title!,
-                                              style: appTextStyle(
-                                                fm: robotoMedium,
-                                                fz: 16,
-                                                color: AppColors.black,
-                                                height: 19 / 16,
+                                            Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  memory.user!.name!,
+                                                  style: appTextStyle(
+                                                    fm: robotoRegular,
+                                                    fz: 12,
+                                                    color: AppColors.black,
+                                                    height: 19.2 / 12,
+                                                  ),
+                                                ),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      memory.title!.length > 20
+                                                          ? memory.title!
+                                                                  .substring(
+                                                                      0, 20) +
+                                                              "...."
+                                                          : memory.title!,
+                                                      style: appTextStyle(
+                                                        fm: robotoMedium,
+                                                        fz: 16,
+                                                        color: AppColors.black,
+                                                        height: 19 / 16,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Container(
+                                                height: 32,
+                                                width: 43,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                        color: AppColors.black),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            18)),
+                                                child: Text(
+                                                  '${memory.postsCount}',
+                                                  style: appTextStyle(
+                                                    fm: interMedium,
+                                                    fz: 12,
+                                                    color: AppColors.black,
+                                                    height: 26.2 / 12,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ],
-                                    ),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: Container(
-                                        height: 32,
-                                        width: 43,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                            border: Border.all(
-                                                color: AppColors.black),
-                                            borderRadius:
-                                                BorderRadius.circular(18)),
-                                        child: Text(
-                                         '${categoryMemoryModel.data!.data![index].postsCount}',
-                                          style: appTextStyle(
-                                            fm: interMedium,
-                                            fz: 12,
-                                            color: AppColors.black,
-                                            height: 26.2 / 12,
-                                          ),
-                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              )))
+                          .toList(),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(
+                            child: CircularProgressIndicator(),
                           ),
                         ),
-                      ));
-                      },
-                    ),
-            ),
+                      SizedBox(
+                        height: _isLoading ? 150 : 107,
+                      )
+                    ],
+                  ),
           )
         ],
       ),
@@ -853,10 +949,21 @@ class _MemoriesScreenState extends State<MemoriesScreen>
       ApiCall.category(api: ApiUrl.categories, callack: this);
     } else if (apiType == ApiUrl.memoryByCategory) {
       EasyLoading.dismiss();
-      categoryMemoryModel = CategoryMemoryModel.fromJson(jsonDecode(data));
-      if(subId!=null){
-      categoryMemoryModel.subCategories![subId!].isSelected=true;
 
+      if (_isLoading) {
+        CategoryMemoryModel nextMemoryModel =
+            CategoryMemoryModel.fromJson(jsonDecode(data));
+        _isLoading = false;
+        categoryMemoryModel.data!.data!.addAll(nextMemoryModel.data!.data!);
+      } else {
+        categoryMemoryModel = CategoryMemoryModel.fromJson(jsonDecode(data));
+        if (categoryMemoryModel.data!.nextPageUrl != null) {
+          _hasMore = true;
+        }
+      }
+
+      if (subIdIndex != null) {
+        categoryMemoryModel.subCategories![subIdIndex!].isSelected = true;
       }
     }
     setState(() {});

@@ -190,7 +190,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                 children: [
                   GestureDetector(
                       onTap: () {
-                        Navigator.pop(context,true);
+                        Navigator.pop(context);
                       },
                       child: const Icon(Icons.arrow_back)),
                   const SizedBox(
@@ -462,6 +462,8 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                                   .subCategories![i].isselected = false;
                             }
                           }
+                          subCategoryId= categoryMemoryModelWithoutPage
+                                  .subCategories![index].id.toString();
                           setState(() {});
                         },
                         child: Container(
@@ -658,6 +660,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
           id: categoryModel.categories![0].id.toString(),
           sub_category_id: '',
           type: 'no_page',
+          page:"1",
           callack: this);
     } else if (apiType == ApiUrl.memoryByCategory) {
       EasyLoading.dismiss();
@@ -774,7 +777,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         imp.typeId = widget.photosList[i].assetEntity.id;
         imp.type = "image";
         imp.captureDate =
-            _getFormattedDateTime(widget.photosList[i].assetEntity);
+            _getFormattedDateTime(widget.photosList[i].assetEntity.createDateTime);
         imp.description = '';
         imp.link = '';
 
@@ -782,37 +785,117 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         imageFile.add(imp);
       }
     }
+    if(fbModel.isNotEmpty){
+      for(int i=0;i<fbModel.length;i++){
+        if(fbModel[i].isSelected){
+           ImagesFile imp = ImagesFile();
+        imp.typeId = fbModel[i].id;
+        imp.type = fbModel[i].type;
+        imp.captureDate =
+            _getFormattedDateTime(fbModel[i].createdTime!);
+        imp.description = '';
+        imp.link = fbModel[i].webLink;
+
+        imp.location = '';
+        imageFile.add(imp);
+        }
+      }
+    }
+    if(instaModel.isNotEmpty){
+      for(int i=0;i<instaModel.length;i++){
+        if(instaModel[i].isSelected){
+           ImagesFile imp = ImagesFile();
+        imp.typeId = instaModel[i].id;
+        imp.type = instaModel[i].type;
+        imp.captureDate =
+            _getFormattedDateTime(instaModel[i].createdTime!);
+        imp.description = '';
+        imp.link = instaModel[i].webLink;
+
+        imp.location = '';
+        imageFile.add(imp);
+        }
+      }
+    }
+      if(driveModel.isNotEmpty){
+      for(int i=0;i<driveModel.length;i++){
+        if(driveModel[i].isSelected){
+           ImagesFile imp = ImagesFile();
+        imp.typeId = driveModel[i].id;
+        imp.type = driveModel[i].type;
+        imp.captureDate =
+            _getFormattedDateTime(driveModel[i].createdTime!);
+        imp.description = '';
+        imp.link = driveModel[i].webLink;
+
+        imp.location = '';
+        imageFile.add(imp);
+        }
+      }
+    }
     createModel.images = imageFile;
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
+processPhotos();
+    // for (int i = 0; i < widget.photosList.length; i++) {
+    //   if (widget.photosList[i].selectedValue) {
+    //     print(widget.photosList[i].assetEntity.id);
+    //     for (int j = 0; j < createModel.images!.length; j++) {
+    //       if (createModel.images![j].typeId ==
+    //           widget.photosList[i].assetEntity.id) {
 
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].selectedValue) {
-        print(widget.photosList[i].assetEntity.id);
-        for (int j = 0; j < createModel.images!.length; j++) {
-          print(createModel.images![j].typeId);
-          if (createModel.images![j].typeId ==
-              widget.photosList[i].assetEntity.id) {
-            FilePath.getFile(widget.photosList[i].assetEntity)
-                .then((value) async {
-              ApiCall.uploadImageIntoMemory(
-                  api: ApiUrl.uploadImageTomemory,
-                  path: value!.path,
-                  callack: this,
-                  count: j.toString());
-            });
-          }
-        }
-      }
-    }
+    //         FilePath.getFile(widget.photosList[i].assetEntity)
+    //             .then((value) async {
+    //                         print(value);
+
+    //           ApiCall.uploadImageIntoMemory(
+    //               api: ApiUrl.uploadImageTomemory,
+    //               path: value!.path,
+    //               callack: this,
+    //               count: j.toString());
+    //         });
+    //                   print(createModel.images![j].typeId);
+    //                   break;
+
+    //       }
+    //     }
+    //   }
+    // }
 
     print(createModel.images!.length);
   }
 
-  String _getFormattedDateTime(AssetEntity asset) {
+  Future<void> processPhotos() async {
+  for (int i = 0; i < widget.photosList.length; i++) {
+    if (widget.photosList[i].selectedValue) {
+      print(widget.photosList[i].assetEntity.id);
+
+      for (int j = 0; j < createModel.images!.length; j++) {
+        if (createModel.images![j].typeId == widget.photosList[i].assetEntity.id) {
+          // Await the file retrieval and API call
+           await FilePath.getFile(widget.photosList[i].assetEntity).then((value)async {
+print(value!.path);
+            await ApiCall.uploadImageIntoMemory(
+              api: ApiUrl.uploadImageTomemory,
+              path: value.path,
+              callack: this,
+              count: j.toString(),
+            );
+           });
+
+         
+
+          print(createModel.images![j].typeId);
+        }
+      }
+    }
+  }
+}
+
+  String _getFormattedDateTime(DateTime asset) {
     final DateTime creationDate =
-        asset.createDateTime; // Get the creation date of the asset
+        asset; // Get the creation date of the asset
     final DateFormat formatter =
         DateFormat('yyyy-MM-dd HH:mm:ss'); // Define the format
     return formatter.format(creationDate); // Format the date as a string

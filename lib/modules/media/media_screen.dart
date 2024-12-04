@@ -212,6 +212,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   viewRefersh() {
     setState(() {});
+        openAddPillBottomSheet(context);
+
   }
 
   //------------Tab function---------------
@@ -296,6 +298,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
           id: categoryModel.categories![0].id.toString(),
           sub_category_id: '',
           type: 'no_page',
+          page: '1',
           callack: this);
     } else if (apiType == ApiUrl.memoryByCategory) {
       categoryMemoryModelWithoutPage =

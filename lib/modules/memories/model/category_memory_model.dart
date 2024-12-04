@@ -40,8 +40,7 @@ class Data {
   String? firstPageUrl;
   int? from;
   int? lastPage;
-  String? lastPageUrl;
-  List<Links>? links;
+  dynamic lastPageUrl;
   dynamic nextPageUrl;
   String? path;
   int? perPage;
@@ -56,7 +55,6 @@ class Data {
       this.from,
       this.lastPage,
       this.lastPageUrl,
-      this.links,
       this.nextPageUrl,
       this.path,
       this.perPage,
@@ -69,20 +67,19 @@ class Data {
     if (json['data'] != null) {
       data = <MemoryData>[];
       json['data'].forEach((v) {
-        data!.add(new MemoryData.fromJson(v));
+        data!.add( MemoryData.fromJson(v));
       });
     }
     firstPageUrl = json['first_page_url'];
     from = json['from'];
     lastPage = json['last_page'];
-    lastPageUrl = json['last_page_url'];
-    if (json['links'] != null) {
-      links = <Links>[];
-      json['links'].forEach((v) {
-        links!.add(new Links.fromJson(v));
-      });
-    }
-    nextPageUrl = json['next_page_url']??'';
+    
+      lastPageUrl = json['last_page_url']??'';
+    
+    
+    
+      nextPageUrl = json['next_page_url']??"";
+    
     path = json['path'];
     perPage = json['per_page'];
     prevPageUrl = json['prev_page_url'];
@@ -100,9 +97,7 @@ class Data {
     data['from'] = this.from;
     data['last_page'] = this.lastPage;
     data['last_page_url'] = this.lastPageUrl;
-    if (this.links != null) {
-      data['links'] = this.links!.map((v) => v.toJson()).toList();
-    }
+   
     data['next_page_url'] = this.nextPageUrl;
     data['path'] = this.path;
     data['per_page'] = this.perPage;
@@ -162,11 +157,10 @@ class MemoryData {
     categoryId = json['category_id'];
     userId = json['user_id'];
     title = json['title'];
-    if(json['sub_category_id']==null){
-      subCategoryId='';
-    }else{
-    subCategoryId = json['sub_category_id'].toString();
-
+    if (json['sub_category_id'] == null) {
+      subCategoryId = '';
+    } else {
+      subCategoryId = json['sub_category_id'].toString();
     }
     slug = json['slug'];
     published = json['published'];
@@ -181,7 +175,7 @@ class MemoryData {
     postsCount = json['posts_count'];
     collaboratorCount = json['collaborator_count'];
     subCategory = json['sub_category'] != null
-        ? new SubCategory.fromJson(json['sub_category'])
+        ?  SubCategory.fromJson(json['sub_category'])
         : null;
     user = json['user'] != null ? new User.fromJson(json['user']) : null;
     signleCooaborator = json['signle_cooaborator'];
@@ -268,7 +262,7 @@ class User {
   User.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
-    profileImage = json['profile_image']??'';
+    profileImage = json['profile_image'] ?? '';
   }
 
   Map<String, dynamic> toJson() {
@@ -310,7 +304,7 @@ class SubCategories {
   String? createdAt;
   String? updatedAt;
   dynamic deletedAt;
-  bool isSelected=false;
+  bool isSelected = false;
 
   SubCategories(
       {this.id,

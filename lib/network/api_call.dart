@@ -254,11 +254,13 @@ class ApiCall {
       required String id,
       required String sub_category_id,
       required String type,
+      required String page,
       required ApiCallback callack}) async {
     final body = {
       "category_id": id,
       "sub_category_id": sub_category_id,
-      "type": type
+      "type": type,
+      "page":page
     };
     print(body);
 

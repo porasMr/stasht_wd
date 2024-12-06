@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:math';
+
 
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
 
 import 'package:photo_manager/photo_manager.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stasht/bottom_bar_visibility_provider.dart';
 import 'package:stasht/modules/media/image_grid.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
@@ -38,6 +41,7 @@ import 'package:stasht/utils/progress_dialog.dart';
 import 'model/phot_mdoel.dart';
 
 // ignore: must_be_immutable
+
 class MediaScreen extends StatefulWidget {
   MediaScreen({super.key, required this.future, required this.photosList});
   List<Future<Uint8List?>> future = [];
@@ -64,6 +68,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   TextEditingController labelController = TextEditingController();
 
   final FocusNode titleFocusNode = FocusNode();
+  GlobalKey<_MediaScreenState> _titleWidgetKey = GlobalKey();
   bool isExpandedDrop = false;
   bool isLableAvailable = false;
 
@@ -86,6 +91,49 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   List<PhotoDetailModel> photoLinks = [];
   int uploadCount = 0;
   var progressbarValue = 0.0;
+  bool isBottomSheetOpen = false;
+  ValueNotifier<int> selectedCountNotifier = ValueNotifier<int>(0);
+
+  double radians(double degree) {
+    return ((degree * 180) / pi);
+  }
+  void swipe(moveEvent) {
+    double angle = radians(moveEvent.delta.direction);
+    if (angle >= -45 && angle <= 45) {
+      debugPrint("Swipe Right");
+    } else if (angle >= 45 && angle <= 135) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          FocusManager.instance.primaryFocus?.unfocus();
+          titleController.clear();
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            debugPrint("No routes to pop");
+          }
+
+          isBottomSheetOpen = false;
+          Provider.of<BottomBarVisibilityProvider>(
+            context,
+            listen: false,
+          ).showBottomBar();
+          debugPrint("Swipe Down");
+        }
+      });
+    } else if (angle <= -45 && angle >= -135) {
+      debugPrint("Swipe Up");
+    } else {
+      debugPrint("Swipe Left");
+    }
+  }
+
+
+
+  @override
+  void dispose() {
+    titleFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -110,20 +158,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     });
     deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
-
-    // CommonWidgets.requestStoragePermission(((allAssets) {
-    //   for (int i = 0; i < allAssets.length; i++) {
-    //     photosList
-    //         .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false));
-    //         future.add(allAssets[i].thumbnailDataWithSize(ThumbnailSize(300, 300)));
-    //        // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
-    //   }
-    //   if (mounted) {
-    //     setState(() {
-    //       // Update your widget's state
-    //     });
-    //   }
-    // }));
   }
 
   void deselectAll() {
@@ -172,11 +206,14 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   selectedtabView(BuildContext context) {
     if (selectedIndex == 0) {
+      debugPrint("Index is 0");
       return CommonWidgets.albumView(
-          widget.future, widget.photosList, viewRefersh);
+          widget.future, widget.photosList, viewRefersh,
+          selectedCountNotifier: selectedCountNotifier);
     } else if (selectedIndex == 1) {
       return CommonWidgets.albumView(
-          widget.future, widget.photosList, viewRefersh);
+          widget.future, widget.photosList, viewRefersh,
+          selectedCountNotifier: selectedCountNotifier);
     } else if (selectedIndex == 2) {
       if (fbModel.isEmpty) {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
@@ -211,9 +248,9 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   }
 
   viewRefersh() {
+    debugPrint("Refresh Function Count");
     setState(() {});
-        openAddPillBottomSheet(context);
-
+    openAddPillBottomSheet(context);
   }
 
   //------------Tab function---------------
@@ -283,8 +320,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   @override
   void onFailure(String message) {
-                CommonWidgets.errorDialog(context, message);
-
+    CommonWidgets.errorDialog(context, message);
   }
 
   @override
@@ -333,13 +369,16 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   //-----------------bottom sheet-------------------------
   int countSelectedPhotos() {
+    debugPrint("This Invoked Count");
     return widget.photosList.where((photo) => photo.selectedValue).length;
   }
 
   String selectedCategory() {
-    for (var category in categoryModel.categories!) {
-      if (category.isSelected) {
-        return category.name!;
+    if (categoryModel.categories != null) {
+      for (var category in categoryModel.categories!) {
+        if (category.isSelected == true) {
+          return category.name ?? '';
+        }
       }
     }
     return '';
@@ -363,15 +402,25 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     return '';
   }
 
-  void openAddPillBottomSheet(BuildContext context) {
+/*============================================================================  UI Restrict if we used showModalBottomSheet ===================================================================*/
+
+/*  void openAddPillBottomSheet(BuildContext context) {
+    if (isBottomSheetOpen) return;
+
+    isBottomSheetOpen = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(context).requestFocus(titleFocusNode);
+      final titleContext = _titleWidgetKey.currentContext;
+      if (titleContext != null) {
+        FocusScope.of(titleContext).requestFocus(titleFocusNode);
+      }
     });
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor:
-          Colors.transparent, // Optional for transparent background
+      Colors.transparent,
+      isDismissible: false,
+      enableDrag: false,
       builder: (context) {
         return StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
@@ -450,7 +499,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                         FocusManager.instance.primaryFocus
                                             ?.unfocus();
                                         titleController.clear();
-                                        // Trigger state update to close the sheet
+                                        Navigator.pop(context);
+                                        isBottomSheetOpen = false;
                                       },
                                     ),
                                     const SizedBox(width: 5),
@@ -464,16 +514,20 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       ),
                                     ),
                                     const SizedBox(width: 5),
-                                    if (countSelectedPhotos() > 0)
-                                      Text(
-                                        "(${countSelectedPhotos()})",
-                                        style: appTextStyle(
-                                          fm: robotoBold,
-                                          fz: 20,
-                                          color: Colors.black,
-                                          height: 25 / 20,
-                                        ),
-                                      ),
+                                    ValueListenableBuilder<int>(
+                                      valueListenable: selectedCountNotifier,
+                                      builder: (context, selectedCount, child) {
+                                        return Text(
+                                          "($selectedCount)",
+                                          style: appTextStyle(
+                                            fm: robotoBold,
+                                            fz: 20,
+                                            color: Colors.black,
+                                            height: 25 / 20,
+                                          ),
+                                        );
+                                      },
+                                    )
                                   ],
                                 ),
                                 GestureDetector(
@@ -482,6 +536,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       FocusManager.instance.primaryFocus
                                           ?.unfocus();
                                       Navigator.pop(context);
+                                      isBottomSheetOpen = false;
                                       uploadData(selectedCategoryId(), "");
                                     } else {
                                       CommonWidgets.errorDialog(
@@ -512,7 +567,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                               horizontal: 20.0, vertical: 10),
                           child: Row(
                             children: [
-                              if (categoryModel.categories!.length > 1)
+                              if ((categoryModel.categories?.length ?? 0) > 1)
                                 GestureDetector(
                                   onTap: () {
                                     isExpandedDrop = !isExpandedDrop;
@@ -759,7 +814,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                     const EdgeInsets.symmetric(horizontal: 20),
                                 child: ListView.builder(
                                   itemCount: categoryMemoryModelWithoutPage
-                                      .subCategories!.length,
+                                          .subCategories?.length ??
+                                      0,
                                   scrollDirection: Axis.horizontal,
                                   itemBuilder: (context, index) {
                                     print("gdfgdsgsdgds");
@@ -850,6 +906,553 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         });
       },
     );
+  }*/
+
+/*==============================================================================================================================================================================================*/
+
+  void openAddPillBottomSheet(BuildContext context) {
+    if (isBottomSheetOpen) return;
+
+    isBottomSheetOpen = true;
+    Provider.of<BottomBarVisibilityProvider>(context, listen: false)
+        .hideBottomBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final titleContext = _titleWidgetKey.currentContext;
+      if (titleContext != null) {
+        FocusScope.of(titleContext).requestFocus(titleFocusNode);
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 50), () {
+      Scaffold.of(context).showBottomSheet((BuildContext context) {
+        return SafeArea(
+          top: true,
+          bottom: false,
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              debugPrint("Update on bottomSheet");
+              return Listener(
+                onPointerMove: (moveEvent) => swipe(moveEvent),
+                child: SingleChildScrollView(
+                  child: Container(
+                      height: MediaQuery.of(context).size.height / 2,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(25),
+                          topRight: Radius.circular(25),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 2,
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: CustomScrollView(slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: ListView(
+                              shrinkWrap: true,
+                              keyboardDismissBehavior:
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
+                              children: [
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      height: 5,
+                                      width: 36,
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(
+                                  height: 48,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            InkWell(
+                                              child: const Icon(Icons.close),
+                                              onTap: () {
+                                                FocusManager
+                                                    .instance.primaryFocus
+                                                    ?.unfocus();
+                                                titleController.clear();
+                                                Navigator.pop(context);
+                                                isBottomSheetOpen = false;
+                                                Provider.of<BottomBarVisibilityProvider>(
+                                                        context,
+                                                        listen: false)
+                                                    .showBottomBar();
+                                              },
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              AppStrings.addAMemory,
+                                              style: appTextStyle(
+                                                fm: robotoBold,
+                                                fz: 20,
+                                                color: Colors.black,
+                                                height: 25 / 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            ValueListenableBuilder<int>(
+                                              valueListenable:
+                                                  selectedCountNotifier,
+                                              builder: (context, selectedCount,
+                                                  child) {
+                                                return Text(
+                                                  "($selectedCount)",
+                                                  style: appTextStyle(
+                                                    fm: robotoBold,
+                                                    fz: 20,
+                                                    color: Colors.black,
+                                                    height: 25 / 20,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (titleController
+                                                .text.isNotEmpty) {
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              Navigator.pop(context);
+                                              isBottomSheetOpen = false;
+                                              uploadData(
+                                                  selectedCategoryId(), "");
+                                              Provider.of<BottomBarVisibilityProvider>(
+                                                      context,
+                                                      listen: false)
+                                                  .showBottomBar();
+                                            } else {
+                                              CommonWidgets.errorDialog(context,
+                                                  "Please enter memory title");
+                                            }
+                                          },
+                                          child: Text(
+                                            AppStrings.done,
+                                            style: appTextStyle(
+                                              fm: robotoRegular,
+                                              fz: 17,
+                                              color: titleController
+                                                      .text.isNotEmpty
+                                                  ? AppColors.black
+                                                  : const Color(0XFF858484),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 13),
+                                Divider(
+                                  color: AppColors.textfieldFillColor
+                                      .withOpacity(.75),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      if ((categoryModel.categories?.length ??
+                                              0) >
+                                          1)
+                                        GestureDetector(
+                                          onTap: () {
+                                            isExpandedDrop = !isExpandedDrop;
+                                            setState(() {});
+                                          },
+                                          child: Container(
+                                            width: 24.0,
+                                            margin: const EdgeInsets.only(
+                                                top: 8, left: 15, bottom: 10),
+                                            child: Image.asset(isExpandedDrop
+                                                ? chevronDown
+                                                : chevronLeft),
+                                          ),
+                                        ),
+                                      Image.asset(
+                                        book,
+                                        height: 15,
+                                        width: 15,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        selectedCategory(),
+                                        style: appTextStyle(
+                                            fm: robotoMedium,
+                                            fz: 14,
+                                            color: AppColors.black),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                isExpandedDrop
+                                    ? Container(
+                                        height: 40,
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 20),
+                                        child: ListView.builder(
+                                          itemCount: categoryModel.categories!
+                                              .where((test) =>
+                                                  test.name != "Shared" &&
+                                                  test.name != "Published")
+                                              .length,
+                                          scrollDirection: Axis.horizontal,
+                                          itemBuilder: (context, index) {
+                                            return InkWell(
+                                              onTap: () {
+                                                for (int i = 0;
+                                                    i <
+                                                        categoryModel
+                                                            .categories!.length;
+                                                    i++) {
+                                                  if (i == index) {
+                                                    categoryModel
+                                                        .categories![index]
+                                                        .isSelected = true;
+                                                  } else {
+                                                    categoryModel.categories![i]
+                                                        .isSelected = false;
+                                                  }
+                                                }
+                                                setState(() {});
+                                                ApiCall.getSubCategory(
+                                                    api: ApiUrl.subCategory +
+                                                        categoryModel
+                                                            .categories![index]
+                                                            .id
+                                                            .toString(),
+                                                    callack: this);
+                                              },
+                                              child: Container(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  minWidth:
+                                                      90, // Ensure the min width is 90
+                                                ),
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 5),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                  color: selectedCategory() ==
+                                                          categoryModel
+                                                              .categories![
+                                                                  index]
+                                                              .name
+                                                      ? AppColors.subTitleColor
+                                                      : Colors.grey
+                                                          .withOpacity(.2),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 5),
+                                                child: Center(
+                                                  child: Text(
+                                                    categoryModel
+                                                        .categories![index]
+                                                        .name!,
+                                                    style: const TextStyle(
+                                                      fontSize: 15,
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    : const IgnorePointer(),
+                                const SizedBox(height: 10),
+                                Divider(
+                                  color: AppColors.textfieldFillColor
+                                      .withOpacity(.75),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        AppStrings.memoryTitle,
+                                        style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 14,
+                                            height: 19.2 / 14,
+                                            color: AppColors.primaryColor),
+                                      ),
+                                      categoryMemoryModelWithoutPage.data ==
+                                              null
+                                          ? Container()
+                                          : Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.add,
+                                                  size: 20,
+                                                  color: AppColors.greyColor,
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    //  labelFocusNode.unfocus();
+                
+                                                    // }
+                                                  },
+                                                  child: Text(
+                                                    // controller.isLabelTexFormFeildShow.value
+                                                    //     ? AppStrings.done
+                                                    //     :
+                                                    AppStrings.addNew,
+                                                    style: appTextStyle(
+                                                        fm: interRegular,
+                                                        fz: 14,
+                                                        height: 19.2 / 14,
+                                                        color: AppColors
+                                                            .greyColor),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                    ],
+                                  ),
+                                ),
+                                categoryMemoryModelWithoutPage.data != null
+                                    ? Container()
+                                    : Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16.0),
+                                        child: TextFormField(
+                                          controller: titleController,
+                                          focusNode: titleFocusNode,
+                                          cursorColor: AppColors.primaryColor,
+                                          onChanged: (val) {},
+                                          style: appTextStyle(
+                                            fm: robotoRegular,
+                                            fz: 21,
+                                            height: 27 / 21,
+                                            color: AppColors.black,
+                                          ),
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                            hintText: AppStrings.memoryTitle,
+                                            hintStyle: appTextStyle(
+                                              fz: isTitleFocused ? 14 : 21,
+                                              color: isTitleFocused
+                                                  ? AppColors.primaryColor
+                                                  : const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                            labelStyle: appTextStyle(
+                                              fz: isTitleFocused ? 14 : 21,
+                                              height: isTitleFocused
+                                                  ? 19.2 / 21
+                                                  : null,
+                                              color: isTitleFocused
+                                                  ? AppColors.primaryColor
+                                                  : const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                const Divider(
+                                  color: AppColors.textfieldFillColor,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        AppStrings.label,
+                                        style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 14,
+                                            height: 19.2 / 14,
+                                            color: AppColors.primaryColor),
+                                      ),
+                                      (categoryMemoryModelWithoutPage
+                                                      .subCategories ==
+                                                  null ||
+                                              categoryMemoryModelWithoutPage
+                                                  .subCategories!.isEmpty)
+                                          ? Container()
+                                          : Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.add,
+                                                  size: 20,
+                                                  color: AppColors.greyColor,
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    addLable = true;
+                                                    setState(() {});
+                                                  },
+                                                  child: Text(
+                                                    // controller.isLabelTexFormFeildShow.value
+                                                    //     ? AppStrings.done
+                                                    //     :
+                                                    AppStrings.addNew,
+                                                    style: appTextStyle(
+                                                        fm: interRegular,
+                                                        fz: 14,
+                                                        height: 19.2 / 14,
+                                                        color: AppColors
+                                                            .greyColor),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
+                                    ],
+                                  ),
+                                ),
+                                addLable == false
+                                    ? Container(
+                                        height: 40,
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 20),
+                                        child: ListView.builder(
+                                          itemCount:
+                                              categoryMemoryModelWithoutPage
+                                                      .subCategories?.length ??
+                                                  0,
+                                          scrollDirection: Axis.horizontal,
+                                          itemBuilder: (context, index) {
+                                            print("gdfgdsgsdgds");
+                                            return InkWell(
+                                              onTap: () {
+                                                for (int i = 0;
+                                                    i <
+                                                        categoryMemoryModelWithoutPage
+                                                            .subCategories!
+                                                            .length;
+                                                    i++) {
+                                                  if (i == index) {
+                                                    categoryMemoryModelWithoutPage
+                                                        .subCategories![index]
+                                                        .isselected = true;
+                                                  } else {
+                                                    categoryMemoryModelWithoutPage
+                                                        .subCategories![i]
+                                                        .isselected = false;
+                                                  }
+                                                }
+                                                setState(() {});
+                                              },
+                                              child: Container(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  minWidth:
+                                                      90, // Ensure the min width is 90
+                                                ),
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 5),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                  color:
+                                                      categoryMemoryModelWithoutPage
+                                                              .subCategories![
+                                                                  index]
+                                                              .isselected
+                                                          ? AppColors
+                                                              .subTitleColor
+                                                          : Colors.grey
+                                                              .withOpacity(.2),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 5),
+                                                child: Center(
+                                                  child: Text(
+                                                    categoryMemoryModelWithoutPage
+                                                        .subCategories![index]
+                                                        .name!,
+                                                    style: const TextStyle(
+                                                      fontSize: 15,
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    : Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16.0),
+                                        child: TextFormField(
+                                          controller: labelController,
+                                          cursorColor: AppColors.primaryColor,
+                                          onChanged: (val) {},
+                                          style: appTextStyle(
+                                            fm: robotoRegular,
+                                            fz: 21,
+                                            height: 27 / 21,
+                                            color: AppColors.black,
+                                          ),
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                            hintText: AppStrings.label,
+                                            hintStyle: appTextStyle(
+                                              fz: 14,
+                                              color: const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                              ],
+                            ),
+                          ),
+                        )
+                      ])),
+                ),
+              );
+            },
+          ),
+        );
+      }, backgroundColor: Colors.transparent, enableDrag: false,);
+    });
   }
 
   CreateMoemoryModel createModel = CreateMoemoryModel();
@@ -999,7 +1602,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
           }
           uploadCount += 1;
           progressbarValue = uploadCount / data["data"].length;
-          progressNotifier.value=progressbarValue;
+          progressNotifier.value = progressbarValue;
           await Future.delayed(const Duration(seconds: 1));
           setState(() {});
           clossProgressDialog('instagram_synced');
@@ -1007,9 +1610,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
         await Future.delayed(const Duration(seconds: 2), () {});
       } else {
-                    CommonWidgets.errorDialog(context, "No image available in Insta");
+        CommonWidgets.errorDialog(context, "No image available in Insta");
 
-     
         await Future.delayed(const Duration(seconds: 2), () {});
       }
     } else {
@@ -1078,7 +1680,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
           ],
         ));
   }
-final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
+
+  final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
 
   void showProgressDialog(BuildContext context) {
     showDialog(
@@ -1087,7 +1690,6 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
       builder: (context) => ProgressDialog(progressNotifier),
     );
   }
-
 
   clossProgressDialog(String type) {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
@@ -1167,7 +1769,7 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
                       driveApi)));
               uploadCount += 1;
               progressbarValue = uploadCount / allFiles.take(50).length;
-          progressNotifier.value=progressbarValue;
+              progressNotifier.value = progressbarValue;
               await Future.delayed(const Duration(seconds: 1));
               setState(() {});
             }
@@ -1191,7 +1793,7 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
                       driveApi)));
               uploadCount += 1;
               progressbarValue = uploadCount / allFiles.length;
-                        progressNotifier.value=progressbarValue;
+              progressNotifier.value = progressbarValue;
 
               await Future.delayed(const Duration(seconds: 1));
               setState(() {});
@@ -1341,7 +1943,7 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
       print(photoLinks);
       uploadCount += 1;
       progressbarValue = uploadCount / faceBook.length;
-                progressNotifier.value=progressbarValue;
+      progressNotifier.value = progressbarValue;
 
       await Future.delayed(const Duration(seconds: 1));
       setState(() {});

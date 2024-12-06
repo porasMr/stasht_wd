@@ -305,6 +305,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.17.5"
+  firebase_dynamic_links:
+    dependency: "direct main"
+    description:
+      name: firebase_dynamic_links
+      sha256: f4e259d669c15c6002d0d22a80d0a770fff03753a719f290dc3b98499d30aafa
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.5"
+  firebase_dynamic_links_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_dynamic_links_platform_interface
+      sha256: "916ecac68ffe718ff69eb13484c929a91f0b9bf18dcc96bda770796e70dab1a1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6+41"
   fixnum:
     dependency: transitive
     description:
@@ -494,6 +510,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  flutter_social_content_share:
+    dependency: "direct main"
+    description:
+      name: flutter_social_content_share
+      sha256: f67a0d6aa4e6989197018093193ee387d796b64c4648ae8863b66d5f01585197
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   flutter_spinkit:
     dependency: transitive
     description:
@@ -832,6 +856,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.6"
+  nested:
+    dependency: transitive
+    description:
+      name: nested
+      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   numberpicker:
     dependency: "direct main"
     description:
@@ -1016,6 +1048,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+  provider:
+    dependency: "direct main"
+    description:
+      name: provider
+      sha256: c8a055ee5ce3fd98d6fc872478b03823ffdb448699c6ebdbbc71d59b596fd48c
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.2"
   qr:
     dependency: transitive
     description:
@@ -1197,6 +1237,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  timeago:
+    dependency: "direct main"
+    description:
+      name: timeago
+      sha256: "3a38963615f1178531afa7177199e37522cf8dcbd93a144b597e32ec6d84bd9f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.2"
   typed_data:
     dependency: transitive
     description:

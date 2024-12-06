@@ -256,6 +256,7 @@ class User {
   int? id;
   String? name;
   dynamic profileImage;
+  String? email;
 
   User({this.id, this.name, this.profileImage});
 
@@ -263,6 +264,7 @@ class User {
     id = json['id'];
     name = json['name'];
     profileImage = json['profile_image'] ?? '';
+    email=json['email']??'';
   }
 
   Map<String, dynamic> toJson() {
@@ -270,6 +272,7 @@ class User {
     data['id'] = this.id;
     data['name'] = this.name;
     data['profile_image'] = this.profileImage;
+    data['email']=this.email;
     return data;
   }
 }

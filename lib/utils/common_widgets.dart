@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info/device_info.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -27,6 +28,7 @@ import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
+import '../image_preview_widget.dart';
 import 'package:permission_handler/permission_handler.dart' as permission;
 
 class CommonWidgets {
@@ -111,7 +113,7 @@ class CommonWidgets {
   static Future<AccessToken?>? loginWithFacebook() async {
     final LoginResult result = Platform.isAndroid
         ? await FacebookAuth.instance
-            .login(permissions: ['email', 'user_photos'])
+            .login(permissions: ['email', 'user_photos','public_profile'])
         : await FacebookAuth.instance.login();
     if (result.status == LoginStatus.success) {
       // print('Access Token: ${accessToken.tokenString}');
@@ -580,7 +582,9 @@ class CommonWidgets {
   static String dateRetrun(String value) {
     return DateFormat("MMM d").format(DateTime.parse(value));
   }
-
+static String dateFormatRetrun(String value) {
+    return DateFormat("MMM d, yyyy").format(DateTime.parse(value));
+  }
   static drivePhtotView(
       List<PhotoDetailModel> photosList, VoidCallback onPressed) {
     print(photosList);
@@ -850,57 +854,83 @@ class CommonWidgets {
     );
   }
 
-  static albumView(List<Future<Uint8List?>> future, List<PhotoModel> photosList,
-      VoidCallback onPressed) {
-    return GridView.builder(
-      shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // Number of columns
-        crossAxisSpacing: 10.0,
-        mainAxisSpacing: 10.0,
-        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-      ),
-      itemCount: photosList.length,
-      addAutomaticKeepAlives: false,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-            photosList[index].selectedValue = !photosList[index].selectedValue;
-
-            onPressed();
-          },
-          child: Stack(
-            children: [
-              MyGridItem(future[index]),
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: photosList[index].selectedValue
-                        ? AppColors.primaryColor.withOpacity(.65)
-                        : null),
+  static Widget albumView(
+  List<Future<Uint8List?>> future,
+  List<PhotoModel> photosList,
+  VoidCallback onPressed, {
+  ValueNotifier<int>? selectedCountNotifier,
+}) {
+  return GridView.builder(
+    shrinkWrap: true,
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 3, // Number of columns
+      crossAxisSpacing: 10.0,
+      mainAxisSpacing: 10.0,
+      childAspectRatio: 1, // Aspect ratio of each grid item (2 / 2 = 1)
+    ),
+    itemCount: photosList.length,
+    addAutomaticKeepAlives: false,
+    itemBuilder: (context, index) {
+      return GestureDetector(
+        onTap: () {
+          showDialog(
+            context: context,
+            barrierColor: Colors.transparent,
+            builder: (context) {
+              return ImagePreview(assetEntity: photosList[index].assetEntity);
+            },
+          );
+        },
+        child: Stack(
+          children: [
+            MyGridItem(future[index]),
+            Container(
+              height: 120,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: photosList[index].selectedValue
+                    ? AppColors.primaryColor.withOpacity(0.65)
+                    : null,
               ),
-              Positioned(
-                top: 5,
-                right: 5,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 4, right: 4),
-                  child: PhysicalModel(
-                    borderRadius: BorderRadius.circular(8),
-                    elevation: 4,
-                    color: Colors.transparent,
+            ),
+            Positioned(
+              top: 5,
+              right: 5,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4, right: 4),
+                child: PhysicalModel(
+                  borderRadius: BorderRadius.circular(8),
+                  elevation: 4,
+                  color: Colors.transparent,
+                  child: GestureDetector(
+                    onTap: () {
+                      debugPrint("Image Selected");
+                      photosList[index].selectedValue =
+                          !photosList[index].selectedValue;
+
+                      if (selectedCountNotifier != null) {
+                        selectedCountNotifier.value = photosList
+                            .where((photo) => photo.selectedValue)
+                            .length;
+                      }
+
+                      onPressed();
+                    },
                     child: Container(
                       height: 21.87,
                       width: 30.07,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Colors.white.withOpacity(.5), width: 1.5),
-                          borderRadius: BorderRadius.circular(8),
-                          color: photosList[index].selectedValue
-                              ? Colors.white
-                              : Colors.black.withOpacity(.3)),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.5),
+                          width: 1.5,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        color: photosList[index].selectedValue
+                            ? Colors.white
+                            : Colors.black.withOpacity(0.3),
+                      ),
                       child: photosList[index].selectedValue
                           ? Image.asset(
                               correct,
@@ -912,10 +942,67 @@ class CommonWidgets {
                   ),
                 ),
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+   static buttonForShareLink(BuildContext context, {Color? color, String? title}) {
+    return Container(
+      height: 35,
+      width: MediaQuery.of(context).size.width * .6,
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: color ?? AppColors.primaryColor),
+      alignment: Alignment.center,
+      child: Text(title ?? "",
+          style: appTextStyle(
+              height: 19 / 13, fz: 13, fm: robotoBold, color: Colors.white)),
     );
   }
+
+  static Future<void> createDynamicLink(String memoryId
+       ) async {
+  // ignore: deprecated_member_use
+  Uri shareLink = Uri();
+
+  FirebaseDynamicLinksPlatform dynamicLinks = FirebaseDynamicLinksPlatform.instance;
+  String URI_PREFIX_FIREBASE = "https://stashtdev.page.link";
+
+  ///Dev
+  String DEFAULT_FALLBACK_URL_ANDROID = "https://stashtdev.page.link";
+    // if(shareLink.value !=null){
+    //   return;
+    // }
+    String link = "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=$memoryId";
+    final DynamicLinkParameters parameters = DynamicLinkParameters(
+      uriPrefix: URI_PREFIX_FIREBASE,
+      link: Uri.parse(link),
+      androidParameters: const AndroidParameters(
+        /*  packageName: 'com.app.stasht',*/
+        packageName: 'com.app.stasht.dev',
+        minimumVersion: 1,
+      ),
+      iosParameters: const IOSParameters(
+/*        bundleId: 'com.app.stasht2',*/
+        bundleId: 'com.app.stasht.dev',
+        minimumVersion: '1',
+        appStoreId: '6575378856',
+      ),
+    );
+    // if (short) {
+      final ShortDynamicLink shortLink =
+          await dynamicLinks.buildShortLink(parameters);
+      shareLink = shortLink.shortUrl;
+    // } else {
+    //   shareLink = await dynamicLinks.buildLink(parameters);
+    // }
+    
+print(shareLink);
+    
+  }
+
 }

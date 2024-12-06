@@ -13,6 +13,10 @@ import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/pref_utils.dart';
 import 'package:stasht/utils/welcome_screen.dart';
 
+import 'bottom_bar_visibility_provider.dart';
+import 'package:provider/provider.dart';
+
+
 
 void configLoading() {
   EasyLoading.instance
@@ -36,7 +40,12 @@ void main() async {
 
    configLoading();
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => BottomBarVisibilityProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

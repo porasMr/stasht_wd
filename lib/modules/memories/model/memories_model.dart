@@ -164,7 +164,7 @@ class Memoris {
 subCategoryId = json['sub_category_id'].toString();
     }
     slug = json['slug'];
-    published = json['published'];
+    published = json['published']??0;
     commentsCount = json['comments_count'];
     inviteLink = json['invite_link'];
     minUploadedImgDate = json['min_uploaded_img_date'];
@@ -210,13 +210,15 @@ subCategory = json['sub_category'] != null
 class User {
   int? id;
   String? name;
+  String? email;
   dynamic profileImage;
 
-  User({this.id, this.name, this.profileImage});
+  User({this.id, this.name, this.profileImage,this.email});
 
   User.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
+    email=json['email'];
     profileImage = json['profile_image']??'';
   }
 
@@ -224,6 +226,7 @@ class User {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['id'] = this.id;
     data['name'] = this.name;
+    data['email']=this.email;
     data['profile_image'] = this.profileImage;
     return data;
   }

@@ -1,16 +1,18 @@
-
-
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/profile/change_password.dart';
+import 'package:stasht/network/api_call.dart';
+import 'package:stasht/network/api_callback.dart';
+import 'package:stasht/network/api_url.dart';
 
 import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/app_strings.dart';
@@ -19,7 +21,6 @@ import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/pref_utils.dart';
 
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -27,89 +28,96 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileState();
 }
 
-class _ProfileState extends State<ProfileScreen> {
-          UserModel model = UserModel();
-
-  @override
-  void initState() {
-    PrefUtils.instance.getUserFromPrefs().then((value) {
-
-      model = value!;
-      setState(() {});
-    });
-    super.initState();
-  }
-
+class _ProfileState extends State<ProfileScreen> implements ApiCallback {
+  UserModel model = UserModel();
   File? _image;
   final picker = ImagePicker();
 
-    bool changeUserName = false;
+  bool changeUserName = false;
   TextEditingController password1Controller = TextEditingController();
 
   TextEditingController nameController = TextEditingController();
   final formkey = GlobalKey<FormState>();
   bool changePassowrd = false;
 
+  @override
+  void initState() {
+    PrefUtils.instance.getUserFromPrefs().then((value) {
+      model = value!;
+      nameController.text=model.user!.name!;
+      setState(() {});
+    });
+    super.initState();
+  }
+
   Future getImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      _image = File(image.path);
-     // uploadImageToDB(_image);
+     // _image = File(image.path);
+
+      uploadImageToDB(image.path);
     } else {
       debugPrint('No image selected.');
     }
   }
 
-  
+  uploadImageToDB(image) {
+    EasyLoading.show();
+    ApiCall.uploadImageIntoMemory(
+        api: ApiUrl.uploadImageTomemory,
+        path: image,
+        count: "1",
+        callack: this);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return 
-      Scaffold(
+    return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            leading: const IgnorePointer(),
-            leadingWidth: 0,
-            // actions: [
-            //   Padding(
-            //     padding: const EdgeInsets.only(right: 15.0),
-            //     child: Text(
-            //       AppStrings.done,
-            //       style: appTextStyle(
-            //           fz: 17,
-            //           fm: interMedium,
-            //           color: Color(0XFF808080).withOpacity(.55)),
-            //     ),
-            //   )
-            // ],
-            title: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Icon(Icons.arrow_back)),
-                  const SizedBox(
-                    width: 5,
-                  ),
-                  Text(
-                    AppStrings.settings,
-                    style: appTextStyle(
-                        fz: 22,
-                        height: 28 / 22,
-                        fm: robotoRegular,
-                        color: Colors.black),
-                  ),
-                ],
-              ),
+          surfaceTintColor: Colors.white,
+          leading: const IgnorePointer(),
+          leadingWidth: 0,
+          // actions: [
+          //   Padding(
+          //     padding: const EdgeInsets.only(right: 15.0),
+          //     child: Text(
+          //       AppStrings.done,
+          //       style: appTextStyle(
+          //           fz: 17,
+          //           fm: interMedium,
+          //           color: Color(0XFF808080).withOpacity(.55)),
+          //     ),
+          //   )
+          // ],
+          title: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: Row(
+              children: [
+                GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Icon(Icons.arrow_back)),
+                const SizedBox(
+                  width: 5,
+                ),
+                Text(
+                  AppStrings.settings,
+                  style: appTextStyle(
+                      fz: 22,
+                      height: 28 / 22,
+                      fm: robotoRegular,
+                      color: Colors.black),
+                ),
+              ],
             ),
           ),
-          /*  appBar: commonAppbar(
+        ),
+        /*  appBar: commonAppbar(
         context,
         settingsTitle,
         pageSelected: (isMemory, isPhotos, isNotification, isSettings) => {
@@ -126,216 +134,186 @@ class _ProfileState extends State<ProfileScreen> {
             }
         },
       ),*/
-          body: SingleChildScrollView(
-              child: Form(
-             key: formkey,
-            child: SizedBox(
-              height: MediaQuery.of(context).size.height,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 0),
-                child: Column(
-                  children: [
-                Container(
-                width: MediaQuery.of(context).size.width,
-                  height: 90,
-                  alignment: Alignment.center,
-                  child: InkWell(
-                    onTap: () {
-                      getImage();
-                    },
-                    child: ValueListenableBuilder(
-                      builder: (context, value, child) {
-                        return ClipRRect(
-                          borderRadius: const BorderRadius.all(
-                              Radius.circular(100)),
+        body: SingleChildScrollView(
+            child: Form(
+          key: formkey,
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 0),
+              child: Column(
+                children: [
+                  Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: 90,
+                      alignment: Alignment.center,
+                      child: InkWell(
+                        onTap: () {
+                          getImage();
+                        },
+                        child: ClipRRect(
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(100)),
                           child: Container(
-      
                             height: 63,
                             width: 63,
                             decoration: const BoxDecoration(
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(100)),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(100)),
                             ),
                             margin: const EdgeInsets.only(top: 10),
-                            child: userImage.value.isNotEmpty
+                            child: model.user!.profileImage !=''
                                 ? ClipRRect(
-                              borderRadius:
-                              BorderRadius.circular(
-                                  10000.0),
-                              child: CachedNetworkImage(
-                                  imageUrl:
-                                  userImage.value,
-                                  fit: BoxFit.cover,
-                                  height: 63,
-                                  width: 70,
-                                  progressIndicatorBuilder: (context,
-                                      url,
-                                      downloadProgress) =>
-                                      CircularProgressIndicator(
-                                          value: downloadProgress
-                                              .progress)),
-                            )
-                                : 
-                                Padding(
-                              padding:
-                              const EdgeInsets.only(
-                                  top: 0),
-                              child: Container(
-                                height: 63,
-                                width: 70,
-                                alignment:
-                                Alignment.center,
-                                decoration:
-                                BoxDecoration(
-                                  shape:
-                                  BoxShape.circle,
-                                  color: convertColor(
-                                      color: userProfileColor.value
-                                  ), /*??
-                                                          AppColors
-                                                              .primaryColor,*/
-    
-                                  // Color(int.tryParse(controller.userProfileColor.value.replaceAll("#", " "))!),
-                                  border: Border.all(
-                                    color: const Color
-                                        .fromRGBO(207,
-                                        216, 220, 1),
+                                    borderRadius:
+                                        BorderRadius.circular(10000.0),
+                                    child: CachedNetworkImage(
+                                        imageUrl: model.user!.profileImage!,
+                                        fit: BoxFit.cover,
+                                        height: 63,
+                                        width: 70,
+                                        progressIndicatorBuilder: (context,
+                                                url, downloadProgress) =>
+                                            CircularProgressIndicator(
+                                                value: downloadProgress
+                                                    .progress)),
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.only(top: 0),
+                                    child: Container(
+                                      height: 63,
+                                      width: 70,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.primaryColor,
+                                        /*??
+                                                      AppColors
+                                                          .primaryColor,*/
+                        
+                                        // Color(int.tryParse(controller.userProfileColor.value.replaceAll("#", " "))!),
+                                        border: Border.all(
+                                          color: const Color.fromRGBO(
+                                              207, 216, 220, 1),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        "${model.user!.name![0]}",
+                                        style: const TextStyle(
+                                            fontSize: 24,
+                                            color: Colors.white,
+                                            fontFamily: robotoRegular),
+                                      ) /*Image.asset(userIcon)*/,
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                "${model.user!.name![0]}",
-                                  style:const  TextStyle(
-                                      fontSize: 24,
-                                      color:
-                                      Colors.white,
-                                      fontFamily:
-                                      robotoRegular),
-                                ) /*Image.asset(userIcon)*/,
+                          ),
+                        ),
+                      )),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Divider(
+                        indent: 0,
+                        endIndent: 0,
+                        color: AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 13),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    height: 18,
+                                    child: TextFormField(
+                                      cursorColor: changeUserName
+                                          ? Colors.blue
+                                          : Colors.transparent,
+                                      enableInteractiveSelection:
+                                          changeUserName,
+                                      readOnly: !changeUserName,
+                                      // Disable text editing when readOnly is true
+                                      controller: nameController,
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                      ),
+                                      style: appTextStyle(
+                                        fm: robotoRegular,
+                                        fz: 17,
+                                        height: 18 / 17,
+                                      ),
+                                    ),
+                                  ),
+                                  // Text(
+                                  //   model.user!.name!,
+                                  //   style: appTextStyle(
+                                  //     color: AppColors.lightGrey,
+                                  //     fm: robotoRegular,
+                                  //     fz: 14,
+                                  //     height: 18 / 14,
+                                  //   ),
+                                  // ),
+                                ],
                               ),
                             ),
-                          ),
-                        );
-                      },
-                      valueListenable: userImage,
-                    ),
-                  )),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Divider(
-                          indent: 0,
-                          endIndent: 0,
-                          color:
-                              AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 13),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                        height: 18,
-                                        child: TextFormField(
-                                          cursorColor: changeUserName
-                                              ? Colors.blue
-                                              : Colors.transparent,
-                                          enableInteractiveSelection:
-                                              changeUserName,
-                                          readOnly: !
-                                              changeUserName,
-                                          // Disable text editing when readOnly is true
-                                          controller: 
-                                              nameController,
-                                          decoration: const InputDecoration(
-                                            border: InputBorder.none,
-                                          ),
-                                          style: appTextStyle(
-                                            fm: robotoRegular,
-                                            fz: 17,
-                                            height: 18 / 17,
-                                          ),
-                                        ),
-                                      
-                                    ),
-                                    Text(
-                                      model.user!.email!,
-                                      style: appTextStyle(
-                                        color: AppColors.lightGrey,
-                                        fm: robotoRegular,
-                                        fz: 14,
-                                        height: 18 / 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              InkWell(
-                                onTap:  () {
-                                  // Toggle the cursor and editing capability
-                                  if (changeUserName ) {
-                                   if(nameController.value.text.isNotEmpty) {
-                                      changeUserNameFunc();
-                                    } // Save functionality
-                                   else{
-                                    CommonWidgets.errorDialog(context, 'Username can\'t be empty');
+                            InkWell(
+                              onTap: () {
+                                // Toggle the cursor and editing capability
+                                if (changeUserName) {
+                                  if (nameController.value.text.isNotEmpty) {
+                                    changeUserNameFunc();
+                                  } // Save functionality
+                                  else {
+                                    CommonWidgets.errorDialog(
+                                        context, 'Username can\'t be empty');
                                     //  Get.snackbar("Error", "Username can't be empty",
                                     //      colorText: AppColors.redColor);
-                                   }
                                   }
-    
-                                  changeUserName =
-                                      !changeUserName
-                                          ; // Toggle the value
-                                },
-                                child:
-                                 Text(
-                                      changeUserName
-                                          ? "Save"
-                                          : "Change",
-                                      style: const TextStyle(
-                                        color: AppColors.primaryColor,
-                                        fontFamily: robotoRegular,
-                                        fontSize: 14,
-                                        height: 18 / 14,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Divider(
-                          color:
-                              AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 13),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                },
-                                child: Text(
-                                  AppStrings.password,
-                                  style: appTextStyle(
-                                      fm: robotoRegular,
-                                      fz: 17,
-                                      height: 18 / 17),
+                                }else{
+                                  setState(() {
+                                    changeUserName=true;
+                                  });
+                                }
+
+                                 // Toggle the value
+                              },
+                              child: Text(
+                                changeUserName ? "Save" : "Change",
+                                style: const TextStyle(
+                                  color: AppColors.primaryColor,
+                                  fontFamily: robotoRegular,
+                                  fontSize: 14,
+                                  height: 18 / 14,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
-                              /*        Expanded(
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        color: AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 13),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: () {},
+                              child: Text(
+                                AppStrings.password,
+                                style: appTextStyle(
+                                    fm: robotoRegular, fz: 17, height: 18 / 17),
+                              ),
+                            ),
+                            /*        Expanded(
                               child: Obx(() => TextFormField(
                                     controller:
                                         controller.nameController.value,
@@ -360,214 +338,195 @@ class _ProfileState extends State<ProfileScreen> {
                                       return null;
                                     },
                                   ))),*/
-                              InkWell(
-                                  onTap: () {
-Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (BuildContext context) =>
-                       const ChangePassword()));                                   },
-                                  child: Text(
-                                        changePassowrd
-                                            ? "Save"
-                                            : "Change",
-                                        style: const TextStyle(
-                                          color: AppColors.primaryColor,
-                                          fontFamily: robotoRegular,
-                                          fontSize: 14,
-                                          height: 18 / 14,
+                            InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (BuildContext context) =>
+                                              const ChangePassword()));
+                                },
+                                child: Text(
+                                  changePassowrd ? "Save" : "Change",
+                                  style: const TextStyle(
+                                    color: AppColors.primaryColor,
+                                    fontFamily: robotoRegular,
+                                    fontSize: 14,
+                                    height: 18 / 14,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        color: AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 16),
+                        child: Text(
+                          AppStrings.syncAccount,
+                          style: appTextStyle(
+                              fm: robotoRegular, fz: 17, height: 18 / 17),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 36, right: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              AppStrings.instagram,
+                              style: appTextStyle(
+                                  fm: robotoRegular, fz: 17, height: 18 / 17),
+                            ),
+                            /*        Expanded(
+                              child: Obx(() => TextFormField(
+                                    controller:
+                                        controller.nameController.value,
+                                    readOnly:
+                                        !controller.changeUserName.value,
+                                    decoration: const InputDecoration(
+                                        labelText: "Display Name",
+                                        labelStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w400,
                                         ),
-                                      )),
-                            ],
-                          ),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.only(
+                                            bottom: 10, top: 5)),
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 14),
+                                    validator: (userName) {
+                                      if (userName!.isEmpty) {
+                                        return "Please enter username";
+                                      }
+                                      return null;
+                                    },
+                                  ))),*/
+                            switchIcon(type: "insta"),
+                          ],
                         ),
-                        Divider(
-                          color:
-                              AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 36, right: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              AppStrings.facebook,
+                              style: appTextStyle(
+                                  fm: robotoRegular, fz: 17, height: 18 / 17),
+                            ),
+                            /*        Expanded(
+                              child: Obx(() => TextFormField(
+                                    controller:
+                                        controller.nameController.value,
+                                    readOnly:
+                                        !controller.changeUserName.value,
+                                    decoration: const InputDecoration(
+                                        labelText: "Display Name",
+                                        labelStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.only(
+                                            bottom: 10, top: 5)),
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 14),
+                                    validator: (userName) {
+                                      if (userName!.isEmpty) {
+                                        return "Please enter username";
+                                      }
+                                      return null;
+                                    },
+                                  ))),*/
+                            switchIcon(type: "fb"),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 16),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 36, right: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              AppStrings.googleDrive,
+                              style: appTextStyle(
+                                  fm: robotoRegular, fz: 17, height: 18 / 17),
+                            ),
+                            /*        Expanded(
+                              child: Obx(() => TextFormField(
+                                    controller:
+                                        controller.nameController.value,
+                                    readOnly:
+                                        !controller.changeUserName.value,
+                                    decoration: const InputDecoration(
+                                        labelText: "Display Name",
+                                        labelStyle: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.only(
+                                            bottom: 10, top: 5)),
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 14),
+                                    validator: (userName) {
+                                      if (userName!.isEmpty) {
+                                        return "Please enter username";
+                                      }
+                                      return null;
+                                    },
+                                  ))),*/
+                            switchIcon(type: "drive"),
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        color: AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 13),
+                        child: GestureDetector(
+                          onTap: () {
+                             PrefUtils.instance.clearPreferance();
+  Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/SignIn', (Route<dynamic> route) => false);                          },
                           child: Text(
-                            AppStrings.syncAccount,
+                            AppStrings.logout,
                             style: appTextStyle(
                                 fm: robotoRegular, fz: 17, height: 18 / 17),
                           ),
                         ),
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(left: 36, right: 15),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                AppStrings.instagram,
-                                style: appTextStyle(
-                                    fm: robotoRegular,
-                                    fz: 17,
-                                    height: 18 / 17),
-                              ),
-                              /*        Expanded(
-                              child: Obx(() => TextFormField(
-                                    controller:
-                                        controller.nameController.value,
-                                    readOnly:
-                                        !controller.changeUserName.value,
-                                    decoration: const InputDecoration(
-                                        labelText: "Display Name",
-                                        labelStyle: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.only(
-                                            bottom: 10, top: 5)),
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 14),
-                                    validator: (userName) {
-                                      if (userName!.isEmpty) {
-                                        return "Please enter username";
-                                      }
-                                      return null;
-                                    },
-                                  ))),*/
-                              switchIcon(type: "insta"),
-                            ],
+                      ),
+                      Divider(
+                        color: AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 13),
+                        child: GestureDetector(
+                          onTap: () {
+                            deleteAccountAlert(context);
+                          },
+                          child: Text(
+                            deleteAccount,
+                            style: appTextStyle(
+                                fm: robotoRegular, fz: 17, height: 18 / 17),
                           ),
                         ),
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(left: 36, right: 15),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                AppStrings.facebook,
-                                style: appTextStyle(
-                                    fm: robotoRegular,
-                                    fz: 17,
-                                    height: 18 / 17),
-                              ),
-                              /*        Expanded(
-                              child: Obx(() => TextFormField(
-                                    controller:
-                                        controller.nameController.value,
-                                    readOnly:
-                                        !controller.changeUserName.value,
-                                    decoration: const InputDecoration(
-                                        labelText: "Display Name",
-                                        labelStyle: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.only(
-                                            bottom: 10, top: 5)),
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 14),
-                                    validator: (userName) {
-                                      if (userName!.isEmpty) {
-                                        return "Please enter username";
-                                      }
-                                      return null;
-                                    },
-                                  ))),*/
-                              switchIcon(type: "fb"),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(left: 36, right: 15),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                AppStrings.googleDrive,
-                                style: appTextStyle(
-                                    fm: robotoRegular,
-                                    fz: 17,
-                                    height: 18 / 17),
-                              ),
-                              /*        Expanded(
-                              child: Obx(() => TextFormField(
-                                    controller:
-                                        controller.nameController.value,
-                                    readOnly:
-                                        !controller.changeUserName.value,
-                                    decoration: const InputDecoration(
-                                        labelText: "Display Name",
-                                        labelStyle: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.only(
-                                            bottom: 10, top: 5)),
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 14),
-                                    validator: (userName) {
-                                      if (userName!.isEmpty) {
-                                        return "Please enter username";
-                                      }
-                                      return null;
-                                    },
-                                  ))),*/
-                              switchIcon(type: "drive"),
-                            ],
-                          ),
-                        ),
-                        Divider(
-                          color:
-                              AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 13),
-                          child: GestureDetector(
-                            onTap: () {
-                            },
-                            child: Text(
-                              AppStrings.logout,
-                              style: appTextStyle(
-                                  fm: robotoRegular,
-                                  fz: 17,
-                                  height: 18 / 17),
-                            ),
-                          ),
-                        ),
-                        Divider(
-                          color:
-                              AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 15, vertical: 13),
-                          child: GestureDetector(
-                            onTap: () {
-                             deleteAccountAlert(context);
-                            },
-                            child: Text(
-                              deleteAccount,
-                              style: appTextStyle(
-                                  fm: robotoRegular,
-                                  fz: 17,
-                                  height: 18 / 17),
-                            ),
-                          ),
-                        ),
-                        Divider(
-                          color:
-                              AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        /* const SizedBox(
+                      ),
+                      Divider(
+                        color: AppColors.textfieldFillColor.withOpacity(.75),
+                      ),
+                      /* const SizedBox(
                       height: 60,
                     ),
                     Center(
@@ -619,41 +578,42 @@ Navigator.push(
                         textAlign: TextAlign.center,
                       ),
                     ),*/
-                      ],
-                    )
-                  ],
-                ),
+                    ],
+                  )
+                ],
               ),
             ),
-          )));
-    
+          ),
+        )));
   }
 
   switchIcon({String? type}) {
     return Switch(
       value:
-      //  type == "drive"
-      //     ? controller.isDriveSync.value
-      //     : type == "fb"
-      //         ? controller.isFbSync.value
-      //         : type == "insta"
-      //             ? controller.isInstaeSync.value
-      //             : 
-                  false,
+          //  type == "drive"
+          //     ? controller.isDriveSync.value
+          //     : type == "fb"
+          //         ? controller.isFbSync.value
+          //         : type == "insta"
+          //             ? controller.isInstaeSync.value
+          //             :
+          false,
       activeColor: Colors.white,
       trackOutlineColor: borderColorValue(type: type),
       trackColor: activeColorValue(type: type),
       inactiveThumbColor: Color(0XFF79747E),
       activeTrackColor: AppColors.primaryColor,
-      onChanged: (bool value) async {
-       
-       
-      },
+      onChanged: (bool value) async {},
     );
   }
-void changeUserNameFunc() {
+
+  void changeUserNameFunc() {
     if (formkey.currentState!.validate()) {
-     
+            model.user!.profileImage = nameController.text;
+
+      EasyLoading.show();
+            ApiCall.updateProfile(
+          api: ApiUrl.updateProfile, type: "name", value: nameController.text, callack: this);
     }
   }
 
@@ -701,11 +661,8 @@ void changeUserNameFunc() {
     // }
   }
 
-  logoutUser() {
-    
-  }
+  logoutUser() {}
 
-  
   void deleteAccountAlert(
     BuildContext context,
   ) {
@@ -737,63 +694,17 @@ void changeUserNameFunc() {
                         fontFamily: robotoBold),
                   ),
                 ),
-                Container(
-                        margin: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(11.0),
-                            color: Colors.black.withOpacity(0.18)),
-                        child: Container()
-                          // TextFormField(
-                          //   focusNode: focusNode,
-                          //   obscureText: isObscure.value,
-                          //   controller: password1Controller,
-                          //   decoration: InputDecoration(
-                          //       labelText: "Password",
-                          //       labelStyle: const TextStyle(
-                          //         color: Colors.black,
-                          //         fontSize: 14,
-                          //       ),
-                          //       errorStyle: const TextStyle(
-                          //           color: AppColors.errorColor),
-                          //       hintText: 'Password',
-                          //       hintStyle: const TextStyle(
-                          //           color: AppColors.darkColor, fontSize: 21),
-                          //       border: InputBorder.none,
-                          //       contentPadding: const EdgeInsets.symmetric(
-                          //           horizontal: 20.0, vertical: 10),
-                          //       suffixIcon: IconButton(
-                          //         icon: Icon(
-                          //           isObscure.value
-                          //               ? Icons.visibility_outlined
-                          //               : Icons.visibility_off,
-                          //           size: 15,
-                          //           color: AppColors.darkColor,
-                          //         ),
-                          //         onPressed: () {
-                          //           isObscure.value = !isObscure.value;
-                          //         },
-                          //       )),
-                          //   cursorColor: Colors.white,
-                          //   validator: (value) {
-                          //     if (value!.isEmpty) {
-                          //       return "Please enter password";
-                          //     } else if (value.length < 6) {
-                          //       return "Please enter at least 6 characters";
-                          //     }
-                          //     return null;
-                          //   },
-                          //   style: const TextStyle(
-                          //       color: Colors.black, fontSize: 21),
-                          // ),
-                        ),
-                      
+                
                 Row(
                   children: [
                     const SizedBox(width: 20),
                     Expanded(
                         child: InkWell(
                       onTap: () {
-                       
+                        Navigator.pop(context);
+                        EasyLoading.show();
+                         Navigator.of(context).pushNamedAndRemoveUntil(
+                    '/SignIn', (Route<dynamic> route) => false);  
                       },
                       child: Container(
                         padding: const EdgeInsets.all(30),
@@ -816,7 +727,7 @@ void changeUserNameFunc() {
                     Expanded(
                         child: InkWell(
                       onTap: () {
-                        Get.back();
+                       Navigator.pop(context);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(30),
@@ -848,4 +759,38 @@ void changeUserNameFunc() {
     });
   }
 
+  @override
+  void onFailure(String message) {
+    EasyLoading.dismiss();
+
+    CommonWidgets.errorDialog(context, message);
+  }
+
+  @override
+  void onSuccess(String data, String apiType) {
+    print(data);
+    if (apiType == ApiUrl.uploadImageTomemory) {
+      var img = json.decode(data.split("=")[0])['file'].toString();
+      model.user!.profileImage = img;
+      PrefUtils.instance.saveUserToPrefs(model);
+      ApiCall.updateProfile(
+          api: ApiUrl.updateProfile, type: "image", value: img, callack: this);
+    } else if (apiType == ApiUrl.updateProfile) {
+      EasyLoading.dismiss();
+changeUserName=false;
+      setState(() {});
+    }else if(apiType==ApiUrl.deleteUserAccount){
+      EasyLoading.dismiss();
+      PrefUtils.instance.clearPreferance();
+      Navigator.popUntil(context, ModalRoute.withName("/SignIn"));
+    }
+    setState(() {
+      
+    });
+  }
+
+  @override
+  void tokenExpired(String message) {
+    // TODO: implement tokenExpired
+  }
 }

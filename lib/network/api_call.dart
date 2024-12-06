@@ -181,6 +181,33 @@ class ApiCall {
     }
   }
 
+  static Future<void> memoryDetails(
+      {required String api,
+      required String id,
+      required String page,
+      
+      required ApiCallback callack}) async {
+    final body = {
+      "memory_id": id,
+      "page":page
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
   static Future<void> ediCategory(
       {required String api,
       required String name,
@@ -292,11 +319,14 @@ class ApiCall {
         callack.onSuccess(response.body, api);
       } else {
         callack.onFailure(
-          "Something went wrong",
+          json.decode(response.body)['message'],
         );
       }
     } catch (e) {
       print(e);
+        callack.onFailure(
+          json.decode("Something went wrong"),
+        );
     }
   }
 
@@ -361,4 +391,163 @@ class ApiCall {
     }
   }
   
+  static Future<void> updateProfile(
+      {required String api,
+      required String type,
+      required String value,
+    
+      required ApiCallback callack}) async {
+    final body = {
+      "type": type,
+      "value": value,
+     
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  static Future<void> changePassword(
+      {required String api,
+      required String newPassword,
+      required String oldPassword,
+    
+      required ApiCallback callack}) async {
+    final body = {
+      "new_password": newPassword,
+      "old_password": oldPassword,
+     
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  static Future<void> memoryPublished(
+      {required String api,
+      required String status,
+      required String id,
+      required ApiCallback callack}) async {
+    final body = {
+      "memory_id": id,
+      "status": status,
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  static Future<void> deleteMemoryFile(
+      {required String api,
+      required String fileId,
+      required String id,
+      required ApiCallback callack}) async {
+    final body = {
+      "memory_id": id,
+      "file_id": fileId,
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+   static Future<void> deleteMemory(
+      {required String api,
+      required String id,
+      required ApiCallback callack}) async {
+    final body = {
+      "memory_id": id,
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  static Future<void> saveFileDescription(
+      {required String api,
+      required String fileId,
+      required String id,
+      required String description,
+      required ApiCallback callack}) async {
+    final body = {
+      "memory_id": id,
+      "file_id": fileId,
+      "description":description,
+    };
+    print(body);
+
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
 }

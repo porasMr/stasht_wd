@@ -77,7 +77,13 @@ dependencies:
   flutter_facebook_auth:
   flutter_image_compress: ^2.3.0
   http_parser: ^4.0.0
-  path_provider: ^2.0.14  
+  path_provider: ^2.0.14 
+  timeago:
+  flutter_social_content_share:
+  firebase_dynamic_links: 
+  provider: ^6.1.2
+  #share_plus: any
+ 
 
   
 dependency_overrides:

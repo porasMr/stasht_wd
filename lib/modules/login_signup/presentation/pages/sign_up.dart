@@ -492,8 +492,13 @@ final formkey = GlobalKey<FormState>();
  Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (BuildContext context) => OnboardScreen()));
+                builder: (BuildContext context) =>const OnboardScreen()));
 
+    }else if(apiType==ApiUrl.socialLogin){
+       Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) =>const OnboardScreen()));
     }
      
 

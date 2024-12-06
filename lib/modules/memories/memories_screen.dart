@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:stasht/modules/memories/model/category_memory_model.dart';
 import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/memories/model/memories_model.dart';
+import 'package:stasht/modules/memory_details/memory_lane.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
 import 'package:stasht/network/api_url.dart';
@@ -373,89 +374,91 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                   itemBuilder: (context, index) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    memoriesModel.data![index].name!,
-                                    style: appTextStyle(
-                                      color: AppColors.monthColor,
-                                      fm: robotoRegular,
-                                      fz: 22,
-                                      height: 28 / 22,
-                                    ),
-                                  ),
-                                  Text(
-                                    " (${memoriesModel.data![index].memorisCount!})",
-                                    style: appTextStyle(
-                                      color: AppColors.monthColor,
-                                      fm: robotoRegular,
-                                      fz: 22,
-                                      height: 28 / 22,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              GestureDetector(
-                                  onTap: () {
-                                    categoryModel
-                                        .categories![index].isSelected = true;
-                                    _currentPage = 1;
-                                    selectedCategory(index);
-                                    subIdIndex = null;
-                                  },
-                                  child: const Icon(
-                                    Icons.arrow_forward,
-                                    color: Colors.black,
-                                    size: 25,
-                                  ))
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          (memoriesModel.data![index].memorisCount == 0 &&
-                                  index == 0)
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
                                   children: [
-                                    Image.asset(
-                                      noMemoriesPlaceholder,
-                                      height: 230,
+                                    Text(
+                                      memoriesModel.data![index].name!,
+                                      style: appTextStyle(
+                                        color: AppColors.monthColor,
+                                        fm: robotoRegular,
+                                        fz: 22,
+                                        height: 28 / 22,
+                                      ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    Text(
+                                      " (${memoriesModel.data![index].memorisCount!})",
+                                      style: appTextStyle(
+                                        color: AppColors.monthColor,
+                                        fm: robotoRegular,
+                                        fz: 22,
+                                        height: 28 / 22,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                GestureDetector(
+                                    onTap: () {
+                                      categoryModel
+                                          .categories![index].isSelected = true;
+                                      _currentPage = 1;
+                                      selectedCategory(index);
+                                      subIdIndex = null;
+                                    },
+                                    child: const Icon(
+                                      Icons.arrow_forward,
+                                      color: Colors.black,
+                                      size: 25,
+                                    ))
+                              ],
+                            ),
+                            const SizedBox(
+                              height: 20,
+                            ),
+                            (memoriesModel.data![index].memorisCount == 0 &&
+                                    index == 0)
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        noMemoriesPlaceholder,
+                                        height: 230,
+                                      ),
+                                      const SizedBox(height: 16),
 
-                                    // No memory text
-                                    const Text(
-                                      "You haven't created a memory yet!",
-                                      style: TextStyle(
-                                          color: Colors.black, fontSize: 16),
-                                    ),
+                                      // No memory text
+                                      const Text(
+                                        "You haven't created a memory yet!",
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 20),
+                                    ],
+                                  )
+                                : listView(memoriesModel.data![index].memoris!),
+                            if (memoriesModel.data!.length == 1)
+                              Container(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Add category title view
+                                    _addCategoryTitleView(),
                                     const SizedBox(height: 20),
                                   ],
-                                )
-                              : listView(memoriesModel.data![index].memoris!),
-                          if (memoriesModel.data!.length == 1)
-                            Container(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Add category title view
-                                  _addCategoryTitleView(),
-                                  const SizedBox(height: 20),
-                                ],
+                                ),
                               ),
-                            )
 
-                          /*   listView(controller
-                                                  .modelList[index].memoryList),*/
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   }),
@@ -478,7 +481,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                 height: 28 / 22,
                               ),
                             ),
-                            Text(
+                            Text(memoriesModel.shared!.isNotEmpty?" (${memoriesModel.shared![0].memorisCount})":
                               " (0)",
                               style: appTextStyle(
                                 color: AppColors.monthColor,
@@ -494,8 +497,9 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                     const SizedBox(
                       height: 20,
                     ),
-                    /*   listView(controller
-                                                  .modelList[index].memoryList),*/
+                    if(memoriesModel.shared!.isNotEmpty)
+                                               listView(memoriesModel.shared![0].memoris!),
+
                   ],
                 ),
               ),
@@ -518,7 +522,8 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                 height: 28 / 22,
                               ),
                             ),
-                            Text(
+                            
+                               Text(memoriesModel.published!.isNotEmpty?" (${memoriesModel.published![0].memorisCount})":
                               " (0)",
                               style: appTextStyle(
                                 color: AppColors.monthColor,
@@ -534,8 +539,10 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                     const SizedBox(
                       height: 20,
                     ),
-                    /*   listView(controller
-                                                  .modelList[index].memoryList),*/
+                                        if(memoriesModel.published!.isNotEmpty)
+
+                                               listView(memoriesModel.published![0].memoris!),
+
                   ],
                 ),
               )
@@ -681,8 +688,26 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                     padding: EdgeInsets.zero,
                     children: [
                       ...categoryMemoryModel.data!.data!
-                          .map((memory) => InkWell(
-                              onTap: () {},
+                          .map((memory) => GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (BuildContext context) =>
+                                  MemoryDetailPage(
+                                    memoryTtile: memory.title!,
+                                    memoryId: memory.id.toString(),
+                                    userName: memory.user!.name!,
+                                    sharedCount: "0",
+                                    email:memory.user!.email!,
+                                    imageCaptions:
+                                        memory.user!.profileImage,
+                                        pubLished: memory.published.toString()
+                                  ))).then((value) {
+                                                                  allCategory();
+
+                                  });
+                              },
                               child: Container(
                                 height: 90,
                                 padding:
@@ -1418,7 +1443,25 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (BuildContext context) =>
+                                  MemoryDetailPage(
+                                    memoryTtile: memoriesList[index].title!,
+                                    memoryId: memoriesList[index].id.toString(),
+                                    userName: memoriesList[index].user!.name!,
+                                    sharedCount: "0",
+                                    email: memoriesList[index].user!.id.toString(),
+                                    imageCaptions:
+                                        memoriesList[index].user!.profileImage,
+                                        pubLished: memoriesList[index].published.toString()
+                                  ))).then((value) {
+                              allCategory();
+
+                                  });
+                    },
                     child: SizedBox(
                       height: deviceHeight * .237,
                       child: Stack(

@@ -18,6 +18,8 @@ import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/pref_utils.dart';
+import '../../bottom_bar_visibility_provider.dart';
+import 'package:provider/provider.dart';
 
 class PhotosView extends StatefulWidget {
   PhotosView({super.key, required this.photosList});
@@ -76,163 +78,179 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        backgroundColor: Colors.white,
-        appBar:
-            commonAppbar(context, selectedIndex == 0 ? 'Memories' : "Media"),
-        bottomNavigationBar: BottomAppBar(
-          height: 107,
-          surfaceTintColor: Colors.white,
-          color: Colors.white,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    selectedIndex = 0;
-                    
-                            setState(() {});
-                            if(_scaffoldKey.currentState!.mounted){
-                     _scaffoldKey.currentState!.refrehScreen();
-
-                    }
-                  },
-                  child: Column(
+  return Scaffold(
+    backgroundColor: Colors.white,
+    appBar: commonAppbar(
+      context,
+      selectedIndex == 0 ? 'Memories' : "Media",
+    ),
+    bottomNavigationBar: Consumer<BottomBarVisibilityProvider>(
+      builder: (context, bottomBarVisibilityProvider, child) {
+        return bottomBarVisibilityProvider.isBottomBarVisible
+            ? BottomAppBar(
+                height: 107,
+                surfaceTintColor: Colors.white,
+                color: Colors.white,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        height: 50,
-                        width: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: selectedIndex == 0
-                                ? AppColors.textfieldFillColor
-                                : Colors.white),
-                        child: Image.asset(home, height: 27),
-                      ),
-                      Text(
-                        "MEMORIES",
-                        style: appTextStyle(
-                            fz: 10,
-                            fw: FontWeight.w600,
-                            fm: interMedium,
-                            height: 20 / 10),
-                      )
-                    ],
-                  ),
-                ),
-                // Image.asset(home,height:63),
-                GestureDetector(
-                  onTap: () {
-                    print("dfsfaf");
-                    selectedIndex = 1;
-                    // mediaController.refershCategory();
-
-                    setState(() {});
-                  },
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 50,
-                        width: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: selectedIndex == 1
-                                ? AppColors.textfieldFillColor
-                                : Colors.white),
-                        child:
-                            Image.asset("assets/images/image.png", height: 32),
-                      ),
-                      Text(
-                        "MEDIA",
-                        style: appTextStyle(
-                            fz: 10,
-                            fw: FontWeight.w600,
-                            fm: interMedium,
-                            height: 20 / 10),
-                      )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        floatingActionButton: Stack(
-          children: [
-            Positioned(
-              bottom: 20,
-              // Keeps the FloatingActionButton fixed at 20px from the bottom
-              right: 0,
-              left: 0,
-              child: Visibility(
-                visible: MediaQuery.of(context).viewInsets.bottom ==
-                    0, // Hides when the keyboard is open
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    CreateMemoryScreen(
-                                      photosList: widget.photosList,
-                                      future: future,
-                                      isBack: true,
-                                    ))).then((value) {
-                          if (value != null) {
+                      GestureDetector(
+                        onTap: () {
+                          selectedIndex = 0;
+                          setState(() {});
+                          if (_scaffoldKey.currentState!.mounted) {
                             _scaffoldKey.currentState!.refrehScreen();
-                            setState(() {});
                           }
-                        });
-                      },
-                      child: Stack(
-                        alignment: Alignment.center,
+                        },
+                        child: Column(
+                          children: [
+                            Container(
+                              height: 50,
+                              width: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: selectedIndex == 0
+                                    ? AppColors.textfieldFillColor
+                                    : Colors.white,
+                              ),
+                              child: Image.asset(home, height: 27),
+                            ),
+                            Text(
+                              "MEMORIES",
+                              style: appTextStyle(
+                                fz: 10,
+                                fw: FontWeight.w600,
+                                fm: interMedium,
+                                height: 20 / 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          selectedIndex = 1;
+                          setState(() {});
+                        },
+                        child: Column(
+                          children: [
+                            Container(
+                              height: 50,
+                              width: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: selectedIndex == 1
+                                    ? AppColors.textfieldFillColor
+                                    : Colors.white,
+                              ),
+                              child: Image.asset(
+                                "assets/images/image.png",
+                                height: 32,
+                              ),
+                            ),
+                            Text(
+                              "MEDIA",
+                              style: appTextStyle(
+                                fz: 10,
+                                fw: FontWeight.w600,
+                                fm: interMedium,
+                                height: 20 / 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : SizedBox.shrink();
+      },
+    ),
+    floatingActionButton: Consumer<BottomBarVisibilityProvider>(
+      builder: (context, bottomBarVisibilityProvider, child) {
+        return bottomBarVisibilityProvider.isBottomBarVisible
+            ? Stack(
+                children: [
+                  Positioned(
+                    bottom: 20,
+                    right: 0,
+                    left: 0,
+                    child: Visibility(
+                      visible: MediaQuery.of(context).viewInsets.bottom == 0,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Image.asset(
-                            "assets/images/fabIcon.png",
-                            height: 67,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (BuildContext context) =>
+                                      CreateMemoryScreen(
+                                    photosList: widget.photosList,
+                                    future: future,
+                                    isBack: true,
+                                  ),
+                                ),
+                              ).then((value) {
+                                if (value != null) {
+                                  _scaffoldKey.currentState!.refrehScreen();
+                                  setState(() {});
+                                }
+                              });
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Image.asset(
+                                  "assets/images/fabIcon.png",
+                                  height: 67,
+                                ),
+                                Image.asset(
+                                  "assets/images/addFabIcon.png",
+                                  height: 29,
+                                ),
+                              ],
+                            ),
                           ),
-                          Image.asset(
-                            "assets/images/addFabIcon.png",
-                            height: 29,
+                          Text(
+                            "ADD",
+                            style: appTextStyle(
+                              fz: 14,
+                              fm: interBold,
+                              height: 29 / 14,
+                              color: AppColors.black,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    Text(
-                      "ADD",
-                      style: appTextStyle(
-                        fz: 14,
-                        fm: interBold,
-                        height: 29 / 14,
-                        color: AppColors.black,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        body: selectedIndex == 0
-            ? MemoriesScreen(
-                key: _scaffoldKey,
+                  ),
+                ],
               )
-            : selectedIndex == 1
-                ? MediaScreen(
-                    future: future,
-                    photosList: widget.photosList,
-                  )
-                : Container());
-  }
+            : SizedBox();
+      },
+    ),
+    floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    body: selectedIndex == 0
+        ? MemoriesScreen(
+            key: _scaffoldKey,
+          )
+        : selectedIndex == 1
+            ? MediaScreen(
+                future: future,
+                photosList: widget.photosList,
+              )
+            : Container(),
+  );
+}
 
+  
   PreferredSizeWidget commonAppbar(
     BuildContext context,
     String title,
@@ -321,7 +339,11 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                       context,
                       MaterialPageRoute(
                           builder: (BuildContext context) =>
-                              const ProfileScreen()));
+                              const ProfileScreen())).then((value) {
+                                setState(() {
+                                  
+                                });
+                              });
                 },
                 child: Container(
                   alignment: Alignment.center,

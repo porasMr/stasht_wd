@@ -60,7 +60,7 @@ List<PhotoModel> photosList = [];
      CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
-            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false));
+            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
            // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
       }
      
@@ -96,11 +96,8 @@ List<PhotoModel> photosList = [];
                       ),
                       GestureDetector(
                         onTap: () {
-                         
-                          // controller.fetchFirstHundredImages();
-                          /* Get.offNamedUntil(AppRoutes.memories,
-                                  (route) => false,
-                              arguments: {"fromSignupAndShare": false});*/
+                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList,isSkip: true,)));
+
                         },
                         child: Align(
                             alignment: Alignment.centerRight,
@@ -766,6 +763,7 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
   }
   @override
   void onFailure(String message) {
+    
             CommonWidgets.errorDialog(context, message);
 
 
@@ -774,7 +772,7 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
   @override
   void onSuccess(String data, String apiType) {
     if(apiType==ApiUrl.syncAccount){
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList)));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList,isSkip: false,)));
 
    }
   }

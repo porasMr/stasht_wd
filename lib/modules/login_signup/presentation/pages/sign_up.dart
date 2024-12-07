@@ -24,24 +24,23 @@ class Signup extends StatefulWidget {
   State<Signup> createState() => _SignupState();
 }
 
-class _SignupState extends State<Signup> implements ApiCallback{
+class _SignupState extends State<Signup> implements ApiCallback {
   int val = -1;
   bool isEmail = false;
 
   bool isLoggedIn = false;
   var profileData;
-    final bool isObscure = true;
+  bool isObscure = true;
   final bool isLoginObscure = true;
   final bool isObscureCP = true;
   var isLoadingDriveImages = false.obs;
   //var controller = Get.put(SignupController());
-final formkey = GlobalKey<FormState>();
+  final formkey = GlobalKey<FormState>();
   final formkeySignin = GlobalKey<FormState>();
   TextEditingController userNameController = TextEditingController();
- TextEditingController emailController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
- TextEditingController confirmPasswordController =
-      TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
 
   final FocusNode nameFocusNode = FocusNode();
   final FocusNode emailFocusNode = FocusNode();
@@ -53,8 +52,35 @@ final formkey = GlobalKey<FormState>();
 
   @override
   void initState() {
-  
+    nameFocusNode.addListener(() {
+      setState(() {
+        isNameFocused = nameFocusNode.hasFocus;
+      });
+    });
+
+    emailFocusNode.addListener(() {
+      setState(() {
+        isEmailFocused = emailFocusNode.hasFocus;
+      });
+    });
+
+    passwordFocusNode.addListener(() {
+      setState(() {
+        isPasswordFocused = passwordFocusNode.hasFocus;
+      });
+    });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    userNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    nameFocusNode.dispose();
+    emailFocusNode.dispose();
+    passwordFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -116,9 +142,9 @@ final formkey = GlobalKey<FormState>();
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                             CommonWidgets.googleButton(this),
-                              if (Platform.isIOS) const SizedBox(width: 60),
-                              if (Platform.isIOS) CommonWidgets.appleButton(this)
+                            CommonWidgets.googleButton(this),
+                            if (Platform.isIOS) const SizedBox(width: 60),
+                            if (Platform.isIOS) CommonWidgets.appleButton(this)
                           ],
                         ),
                         Container(
@@ -156,239 +182,216 @@ final formkey = GlobalKey<FormState>();
                           height: 20,
                         ),
                         Container(
-                            height: 50,
-                          
-                            decoration: BoxDecoration(
-                                border: Border.all(
-                                    width: isNameFocused ||
-                                            userNameController.text
-                                                .isNotEmpty
-                                        ? 1
-                                        : 0,
-                                    color: isNameFocused ||
-                                            userNameController.text
-                                                .isNotEmpty
-                                        ? AppColors.primaryColor
-                                        : Colors.transparent),
-                                borderRadius: BorderRadius.circular(16),
-                                color: isNameFocused ||
-                                        userNameController.text.isNotEmpty
-                                    ? Colors.white
-                                    : AppColors.textfieldFillColor
-                                        .withOpacity(0.75)),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    focusNode: nameFocusNode,
-                                    controller: userNameController,
-                                    textInputAction: TextInputAction.next,
-                                    decoration: InputDecoration(
-                                                       prefixIcon: 
-                                                  isNameFocused ||
-                                              userNameController.text
-                                                  .isNotEmpty
-                                          ? null
-                                          : const SizedBox(
-                                              height: 16,
-                                              width: 16,
-                                              child: Icon(
-                                                Icons.person_outline,
-                                                color: AppColors.primaryColor,
-                                              ),
+                          height: 50,
+                          decoration: BoxDecoration(
+                              border: Border.all(
+                                  width: isNameFocused ||
+                                          userNameController.text.isNotEmpty
+                                      ? 1
+                                      : 0,
+                                  color: isNameFocused ||
+                                          userNameController.text.isNotEmpty
+                                      ? AppColors.primaryColor
+                                      : Colors.transparent),
+                              borderRadius: BorderRadius.circular(16),
+                              color: isNameFocused ||
+                                      userNameController.text.isNotEmpty
+                                  ? Colors.white
+                                  : AppColors.textfieldFillColor
+                                      .withOpacity(0.75)),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  focusNode: nameFocusNode,
+                                  controller: userNameController,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: InputDecoration(
+                                    prefixIcon: isNameFocused ||
+                                            userNameController.text.isNotEmpty
+                                        ? null
+                                        : const SizedBox(
+                                            height: 16,
+                                            width: 16,
+                                            child: Icon(
+                                              Icons.person_outline,
+                                              color: AppColors.primaryColor,
                                             ),
-                                      border: InputBorder.none,
-                                     
-                                      contentPadding: const EdgeInsets.fromLTRB(
-                                          20, 5, 20, 10),
-                                      labelText: AppStrings.fullName,
-
-                                      labelStyle: appTextStyle(
-                                        fz: isNameFocused
-                                            ? 13
-                                            : 17,
-                                        color: AppColors.primaryColor,
-                                        fm: interRegular,
-                                      ),
-                                      hintStyle: appTextStyle(
-                                        fz: 17,
-                                        color: AppColors.primaryColor,
-                                        fm: interRegular,
-                                      ),
-                                      errorStyle: const TextStyle(
-                                          color: AppColors.errorColor),
+                                          ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.fromLTRB(
+                                        20, 5, 20, 10),
+                                    labelText: AppStrings.fullName,
+                                    labelStyle: appTextStyle(
+                                      fz: isNameFocused ? 13 : 17,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
                                     ),
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 17),
-                                    
+                                    hintStyle: appTextStyle(
+                                      fz: 17,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    errorStyle: const TextStyle(
+                                        color: AppColors.errorColor),
                                   ),
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 17),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        
-                        const SizedBox(
-                          height: 15,
                         ),
-                         Container(
-                            height: 50,
-                            // padding:   EdgeInsets.fromLTRB(10, 0, 10, 0),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                    width: isEmailFocused ||
-                                            emailController
-                                                .text.isNotEmpty
-                                        ? 1
-                                        : 0,
-                                    color: isEmailFocused ||
-                                            emailController
-                                                .text.isNotEmpty
-                                        ? AppColors.primaryColor
-                                        : Colors.transparent),
-                                color: isEmailFocused ||
-                                        emailController.text
-                                            .isNotEmpty
-                                    ? Colors.white
-                                    : AppColors.textfieldFillColor
-                                        .withOpacity(0.75)),
-                            // padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    focusNode: emailFocusNode,
-                                    controller:
-                                        emailController,
-                                    textInputAction: TextInputAction.next,
-                                    keyboardType: TextInputType.emailAddress,
-                                    decoration: InputDecoration(
-                                      prefixIcon:isEmailFocused ||
-                                             emailController
-                                                  .text.isNotEmpty
-                                          ? null
-                                          : const SizedBox(
-                                              height: 16,
-                                              width: 16,
-                                              child: Icon(
-                                                Icons.mail_outline,
-                                                color: AppColors.primaryColor,
-                                              ),
-                                            ),
-
-                                      labelText: AppStrings.email,
-                                      hintStyle: appTextStyle(
-                                        fz: 17,
-                                        color: AppColors.primaryColor,
-                                        fm: interRegular,
-                                      ),
-                                      labelStyle: appTextStyle(
-                                        fz: isEmailFocused
-                                            ? 13
-                                            : 17,
-                                        color: AppColors.primaryColor,
-                                        fm: interRegular,
-                                      ),
-
-                                      errorStyle: const TextStyle(
-                                          color: AppColors.errorColor),
-                                      border: InputBorder.none,
-                                      contentPadding: const EdgeInsets.fromLTRB(
-                                          20, 5, 20, 10),
-                                    ),
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 17),
-                                   
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        
                         const SizedBox(
                           height: 15,
                         ),
                         Container(
-                              alignment: Alignment.center,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                  border: Border.all(
-                                      width:
-                                          isPasswordFocused ||
-                                                  passwordController.
-                                                      text.isNotEmpty
-                                              ? 1
-                                              : 0,
-                                      color:
-                                          isPasswordFocused ||
-                                                  passwordController
-                                                      .text.isNotEmpty
-                                              ? AppColors.primaryColor
-                                              : Colors.transparent),
-                                  borderRadius: BorderRadius.circular(16),
-                                  color: isPasswordFocused ||
-                                          passwordController.text
-                                              .isNotEmpty
-                                      ? Colors.white
-                                      : AppColors.textfieldFillColor
-                                          .withOpacity(0.75)),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      focusNode: passwordFocusNode,
-                                      obscureText: isObscure,
-                                      controller: passwordController,
-                                      decoration: InputDecoration(
-                                        prefixIcon: isPasswordFocused ||
-                                                passwordController
-                                                    .text.isNotEmpty
-                                            ? null
-                                            : const SizedBox(
-                                                height: 16,
-                                                width: 16,
-                                                child: Icon(
-                                                  Icons.lock_outline,
-                                                  color: AppColors.primaryColor,
-                                                ),
-                                              ),
-                                        labelText: AppStrings.password,
-                                        hintStyle: appTextStyle(
-                                          fz: 17,
-                                          color: AppColors.primaryColor,
-                                          fm: interRegular,
-                                        ),
-                                        labelStyle: appTextStyle(
-                                          fz: isPasswordFocused
-                                              ? 13
-                                              : 17,
-                                          color: AppColors.primaryColor,
-                                          fm: interRegular,
-                                        ),
-                                        suffixIcon: GestureDetector(
-                                            behavior:
-                                                HitTestBehavior.translucent,
-                                            onTap: () {},
+                          height: 50,
+                          // padding:   EdgeInsets.fromLTRB(10, 0, 10, 0),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                  width: isEmailFocused ||
+                                          emailController.text.isNotEmpty
+                                      ? 1
+                                      : 0,
+                                  color: isEmailFocused ||
+                                          emailController.text.isNotEmpty
+                                      ? AppColors.primaryColor
+                                      : Colors.transparent),
+                              color: isEmailFocused ||
+                                      emailController.text.isNotEmpty
+                                  ? Colors.white
+                                  : AppColors.textfieldFillColor
+                                      .withOpacity(0.75)),
+                          // padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  focusNode: emailFocusNode,
+                                  controller: emailController,
+                                  textInputAction: TextInputAction.next,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: InputDecoration(
+                                    prefixIcon: isEmailFocused ||
+                                            emailController.text.isNotEmpty
+                                        ? null
+                                        : const SizedBox(
+                                            height: 16,
+                                            width: 16,
                                             child: Icon(
-                                              Icons.visibility_off,
+                                              Icons.mail_outline,
                                               color: AppColors.primaryColor,
-                                            )),
-                                        errorStyle: const TextStyle(
-                                            color: AppColors.errorColor),
-                                        border: InputBorder.none,
-                                        contentPadding:
-                                            const EdgeInsets.fromLTRB(
-                                                20, 5, 20, 10),
-                                      
-                                      ),
-                                      
-                                      style: const TextStyle(
-                                          color: Colors.black, fontSize: 17),
+                                            ),
+                                          ),
+                                    labelText: AppStrings.email,
+                                    hintStyle: appTextStyle(
+                                      fz: 17,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
                                     ),
+                                    labelStyle: appTextStyle(
+                                      fz: isEmailFocused ? 13 : 17,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    errorStyle: const TextStyle(
+                                        color: AppColors.errorColor),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.fromLTRB(
+                                        20, 5, 20, 10),
                                   ),
-                                ],
-                              )),
-                        
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 17),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 15,
+                        ),
+                        Container(
+                          alignment: Alignment.center,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              width: isPasswordFocused ||
+                                      passwordController.text.isNotEmpty
+                                  ? 1
+                                  : 0,
+                              color: isPasswordFocused ||
+                                      passwordController.text.isNotEmpty
+                                  ? AppColors.primaryColor
+                                  : Colors
+                                      .transparent, // Border only when focused or text present
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            color: isPasswordFocused ||
+                                    passwordController.text.isNotEmpty
+                                ? Colors.white
+                                : AppColors.textfieldFillColor.withOpacity(
+                                    0.75), // Set a consistent background color
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  focusNode: passwordFocusNode,
+                                  obscureText: isObscure,
+                                  controller: passwordController,
+                                  decoration: InputDecoration(
+                                    prefixIcon: isPasswordFocused ||
+                                            passwordController.text.isNotEmpty
+                                        ? null
+                                        : const SizedBox(
+                                            height: 16,
+                                            width: 16,
+                                            child: Icon(
+                                              Icons.lock_outline,
+                                              color: AppColors.primaryColor,
+                                            ),
+                                          ),
+                                    labelText: AppStrings.password,
+                                    hintStyle: appTextStyle(
+                                      fz: 17,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    labelStyle: appTextStyle(
+                                      fz: isPasswordFocused ? 13 : 17,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    suffixIcon: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        setState(() {
+                                          isObscure = !isObscure;
+                                        });
+                                      },
+                                      child: Icon(
+                                        isObscure
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                        color: AppColors.primaryColor,
+                                      ),
+                                    ),
+                                    errorStyle: const TextStyle(
+                                        color: AppColors.errorColor),
+                                    border: InputBorder
+                                        .none, // No border inside TextFormField
+                                    contentPadding: const EdgeInsets.fromLTRB(
+                                        20, 5, 20, 10),
+                                  ),
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 17),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 20),
                         GestureDetector(
                             onTap: () {
@@ -405,10 +408,11 @@ final formkey = GlobalKey<FormState>();
                         ),
                         InkWell(
                           onTap: () async {
-                               Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) =>const SignIn()));
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (BuildContext context) =>
+                                        const SignIn()));
                           },
                           child: Center(
                             child: Padding(
@@ -441,30 +445,29 @@ final formkey = GlobalKey<FormState>();
           ],
         ));
   }
+
   bool checkSignUpValidation() {
     if (userNameController.value.text.isEmpty) {
-      Get.snackbar("Warning", "Username can't be empty!",
-          colorText: Colors.red);
-
+      CommonWidgets.errorDialog(context, "Username can't be empty!");
       return false;
     } else if (emailController.value.text.isEmpty) {
-      Get.snackbar("Warning", "Enter a email!", colorText: Colors.red);
+      CommonWidgets.errorDialog(context, "Enter a email!");
       return false;
     } else if (!RegExp(
             r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
         .hasMatch(emailController.value.text)) {
-      Get.snackbar("Warning", "Enter a valid email!", colorText: Colors.red);
+      CommonWidgets.errorDialog(context, "Enter a valid email!");
       return false;
     } else if (passwordController.value.text.isEmpty) {
-      Get.snackbar("Warning", "Password field can't be empty!",
-          colorText: Colors.red);
+      CommonWidgets.errorDialog(context, "Password field can't be empty!");
       return false;
     } else {
       return true;
     }
   }
+
   signUp(BuildContext context) async {
-     CommonWidgets. progressDialog();
+    CommonWidgets.progressDialog();
 
     ApiCall.registerUserAccount(
         api: ApiUrl.register,
@@ -473,41 +476,34 @@ final formkey = GlobalKey<FormState>();
         name: userNameController.value.text,
         callack: this);
   }
+
   @override
   void onFailure(String message) {
-          Get.snackbar("Error",message, colorText: Colors.red);
-
+    
+    CommonWidgets.errorDialog(context, message);
   }
 
   @override
   void onSuccess(String data, String apiType) {
-        print(data);
+    print(data);
 
     print(apiType);
     UserModel model = UserModel.fromJson(jsonDecode(data));
     PrefUtils.instance.saveUserToPrefs(model);
     PrefUtils.instance.authToken(model.token!);
     if (apiType == ApiUrl.register) {
-      
- Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) =>const OnboardScreen()));
-
-    }else if(apiType==ApiUrl.socialLogin){
-       Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) =>const OnboardScreen()));
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (BuildContext context) => const OnboardScreen()));
+    } else if (apiType == ApiUrl.socialLogin) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (BuildContext context) => const OnboardScreen()));
     }
-     
-
-    
   }
 
   @override
   void tokenExpired(String message) {}
-
-   
-
 }

@@ -28,13 +28,13 @@ class _SplashScreenState extends State<SplashScreen> {
       CommonWidgets.requestStoragePermission(((allAssets) {
         for (int i = 0; i < allAssets.length; i++) {
           photosList
-              .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false));
+            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
           if (allAssets.length - 1 == i) {
             Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                     builder: (BuildContext context) =>
-                        PhotosView(photosList: photosList)));
+                        PhotosView(photosList: photosList,isSkip: false,)));
           }
           // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
         }

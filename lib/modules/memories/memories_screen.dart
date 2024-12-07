@@ -1,11 +1,14 @@
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/model/category_memory_model.dart';
 import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/memories/model/memories_model.dart';
@@ -21,7 +24,10 @@ import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/shimmer_widget.dart';
 
 class MemoriesScreen extends StatefulWidget {
-  const MemoriesScreen({super.key});
+   MemoriesScreen({super.key,required this.isSkip,required this.photosList});
+  VoidCallback isSkip;
+    List<PhotoModel> photosList = [];
+
 
   @override
   MemoriesScreenState createState() => MemoriesScreenState();
@@ -42,11 +48,17 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
   bool _hasMore = false;
   String subCategoriesId = '';
   final ScrollController _scrollController = ScrollController();
+  List<Future<Uint8List?>> future = [];
 
   @override
   void initState() {
     super.initState();
     refrehScreen();
+      for (int i = 0; i < widget.photosList.length; i++) {
+      future.add(widget.photosList[i].assetEntity
+          .thumbnailDataWithSize(ThumbnailSize(300, 300)));
+      // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
+    }
   }
 
   refrehScreen() {
@@ -699,10 +711,15 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                     memoryId: memory.id.toString(),
                                     userName: memory.user!.name!,
                                     sharedCount: "0",
-                                    email:memory.user!.email!,
+                                    email:memory.user!.id.toString(),
+                                                                           imageLink:memory.lastUpdateImg!,
+
                                     imageCaptions:
                                         memory.user!.profileImage,
-                                        pubLished: memory.published.toString()
+                                        pubLished: memory.published.toString(),
+                                        future: future,
+                                        photosList: widget.photosList,
+                                      
                                   ))).then((value) {
                                                                   allCategory();
 
@@ -951,7 +968,8 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
 
   @override
   void onFailure(String message) {
-    Get.snackbar("Error", message, colorText: AppColors.redColor);
+        EasyLoading.show();
+CommonWidgets.errorDialog(context, message);
   }
 
   @override
@@ -963,6 +981,10 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
       ApiCall.getMomories(api: ApiUrl.memories, callack: this);
     } else if (apiType == ApiUrl.memories) {
       memoriesModel = MemoriesModel.fromJson(jsonDecode(data));
+      if(memoriesModel.data!.isEmpty){
+      widget.isSkip();
+
+      }
     } else if (apiType == ApiUrl.createCategory) {
       EasyLoading.dismiss();
       ApiCall.category(api: ApiUrl.categories, callack: this);
@@ -1454,9 +1476,13 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                     userName: memoriesList[index].user!.name!,
                                     sharedCount: "0",
                                     email: memoriesList[index].user!.id.toString(),
+                                       imageLink:memoriesList[index].lastUpdateImg!,
+
                                     imageCaptions:
                                         memoriesList[index].user!.profileImage,
-                                        pubLished: memoriesList[index].published.toString()
+                                        pubLished: memoriesList[index].published.toString(),
+                                         future: future,
+                                        photosList: widget.photosList,
                                   ))).then((value) {
                               allCategory();
 

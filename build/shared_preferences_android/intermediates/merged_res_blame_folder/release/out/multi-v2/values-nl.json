@@ -1,0 +1,34 @@
+{
+    "logs": [
+        {
+            "outputFile": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/shared_preferences_android/intermediates/incremental/mergeReleaseResources/merged.dir/values-nl/values-nl.xml",
+            "map": [
+                {
+                    "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/values-nl/values-nl.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/shared_preferences_android/intermediates/merged_res/release/values-nl/values-nl.xml",
+            "map": [
+                {
+                    "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/values-nl/values-nl.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        }
+    ]
+}

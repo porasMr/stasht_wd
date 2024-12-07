@@ -16,6 +16,7 @@ import 'package:stasht/modules/media/model/create_memory_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/memories/model/subcategory.dart';
+import 'package:stasht/modules/memory_details/model/memory_detail_model.dart';
 import 'package:stasht/modules/onboarding/domain/model/favebook_photo.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
 import 'package:stasht/network/api_call.dart';
@@ -40,9 +41,14 @@ class CreateMemoryScreen extends StatefulWidget {
       {super.key,
       required this.future,
       required this.photosList,
-      required this.isBack});
+      required this.isBack,
+      this.isEdit,
+      this.memoryListData});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
+  List<MemoryListData>? memoryListData = [];
+
+  bool? isEdit;
   bool isBack;
 
   @override
@@ -69,6 +75,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   final FocusNode titleFocusNode = FocusNode();
   bool isExpandedDrop = false;
   bool isLableAvailable = false;
+  bool isRealOnly = false;
 
   CategoryMemoryModelWithoutPage categoryMemoryModelWithoutPage =
       CategoryMemoryModelWithoutPage();
@@ -83,11 +90,14 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   String categoryId = '';
   String subCategoryId = '';
+  String memoryId = '';
 
   List<PhotoDetailModel> driveModel = [];
   List<PhotoDetailModel> fbModel = [];
   List<PhotoDetailModel> instaModel = [];
+
   List<PhotoDetailModel> photoLinks = [];
+
   int uploadCount = 0;
   var progressbarValue = 0.0;
 
@@ -116,9 +126,90 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     ApiCall.category(api: ApiUrl.categories, callack: this);
   }
 
+  selectionOfAllPhoto() {
+    for (int p = 0; p < widget.memoryListData!.length; p++) {
+      if (widget.memoryListData![p].type == "image") {
+        updateSelectedValue(widget.memoryListData![p].typeId!);
+      } else if (widget.memoryListData![p].type == "insta") {
+        updateInstaSelectedValue(widget.memoryListData![p].typeId!.toString());
+      } else if (widget.memoryListData![p].type == "fb") {
+        updateFbSelectedValue(widget.memoryListData![p].typeId!.toString());
+      } else if (widget.memoryListData![p].type == "drive") {
+        updateDriveSelectedValue(widget.memoryListData![p].typeId!.toString());
+      }
+      titleController.text = widget.memoryListData![p].memory!.title!;
+      categoryId = widget.memoryListData![p].memory!.categoryId.toString();
+      memoryId = widget.memoryListData![p].memory!.id!.toString();
+      if (widget.memoryListData![p].memory!.subCategoryId != null) {
+        subCategoryId =
+            widget.memoryListData![p].memory!.subCategoryId.toString();
+        for (int sub = 0;
+            sub < categoryMemoryModelWithoutPage.subCategories!.length;
+            sub++) {
+          if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
+              widget.memoryListData![p].memory!.subCategoryId) {
+            categoryMemoryModelWithoutPage.subCategories![sub].isselected =
+                true;
+          }
+        }
+      }
+      for (int i = 0; i < categoryModel.categories!.length; i++) {
+        if (categoryModel.categories![i].id ==
+            widget.memoryListData![p].memory!.categoryId) {
+          categoryModel.categories![i].isSelected = true;
+          categoryId = categoryModel.categories![i].id.toString();
+        }
+      }
+    }
+    setState(() {});
+  }
+
+  void updateSelectedValue(String selectedId) {
+    for (int i = 0; i < widget.photosList.length; i++) {
+      if (widget.photosList[i].assetEntity.id == selectedId) {
+        widget.photosList[i].selectedValue = true;
+        widget.photosList[i].isEditmemory = true;
+      }
+    }
+
+    setState(() {});
+  }
+
+  void updateFbSelectedValue(String selectedId) {
+    for (int i = 0; i < fbModel.length; i++) {
+      if (fbModel[i].id == selectedId) {
+        fbModel[i].isSelected = true;
+        fbModel[i].isEdit = true;
+      }
+    }
+
+    setState(() {});
+  }
+
+  void updateInstaSelectedValue(String selectedId) {
+    for (int i = 0; i < instaModel.length; i++) {
+      if (instaModel[i].id == selectedId) {
+        instaModel[i].isSelected = true;
+        fbModel[i].isEdit = true;
+      }
+    }
+    setState(() {});
+  }
+
+  void updateDriveSelectedValue(String selectedId) {
+    for (int i = 0; i < driveModel.length; i++) {
+      if (instaModel[i].id == selectedId) {
+        driveModel[i].isSelected = true;
+        fbModel[i].isEdit = true;
+      }
+    }
+    setState(() {});
+  }
+
   void deselectAll() {
     for (var photoList in widget.photosList) {
       photoList.selectedValue = false;
+      photoList.isEditmemory = false;
     }
   }
 
@@ -155,7 +246,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                       CommonWidgets.errorDialog(context, "Enter memory title");
 
                       //Get.snackbar("Error", "Enter memory title", colorText: AppColors.redColor);
-                    } else if (countSelectedPhotos() == 0) {
+                    } else if (allSelectedPhotos() == 0) {
                       CommonWidgets.errorDialog(context, "Please select photo");
                     } else {
                       uploadCount = 1;
@@ -197,7 +288,9 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                     width: 5,
                   ),
                   Text(
-                    "Add ${AppStrings.addMemory}",
+                    widget.isEdit != null
+                        ? "Edit ${AppStrings.addMemory}"
+                        : "Add ${AppStrings.addMemory}",
                     style: appTextStyle(
                         fz: 22,
                         height: 28 / 22,
@@ -326,67 +419,68 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                       height: 19.2 / 14,
                       color: AppColors.primaryColor),
                 ),
-                categoryMemoryModelWithoutPage.data == null
-                    ? Container()
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.add,
-                            size: 20,
-                            color: AppColors.greyColor,
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              //  labelFocusNode.unfocus();
+                // categoryMemoryModelWithoutPage.data == null
+                //     ? Container()
+                //     : Row(
+                //         mainAxisSize: MainAxisSize.min,
+                //         children: [
+                //           const Icon(
+                //             Icons.add,
+                //             size: 20,
+                //             color: AppColors.greyColor,
+                //           ),
+                //           TextButton(
+                //             onPressed: () {
+                //               //  labelFocusNode.unfocus();
 
-                              // }
-                            },
-                            child: Text(
-                              // controller.isLabelTexFormFeildShow.value
-                              //     ? AppStrings.done
-                              //     :
-                              AppStrings.addNew,
-                              style: appTextStyle(
-                                  fm: interRegular,
-                                  fz: 14,
-                                  height: 19.2 / 14,
-                                  color: AppColors.greyColor),
-                            ),
-                          ),
-                        ],
-                      )
+                //               // }
+                //             },
+                //             child: Text(
+                //               // controller.isLabelTexFormFeildShow.value
+                //               //     ? AppStrings.done
+                //               //     :
+                //               AppStrings.addNew,
+                //               style: appTextStyle(
+                //                   fm: interRegular,
+                //                   fz: 14,
+                //                   height: 19.2 / 14,
+                //                   color: AppColors.greyColor),
+                //             ),
+                //           ),
+                //         ],
+                //       )
               ],
             ),
           ),
-          categoryMemoryModelWithoutPage.data != null
-              ? Container()
-              : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: TextFormField(
-                    controller: titleController,
-                    focusNode: titleFocusNode,
-                    cursorColor: AppColors.primaryColor,
-                    onChanged: (val) {},
-                    style: appTextStyle(
-                      fm: robotoRegular,
-                      fz: 21,
-                      height: 27 / 21,
-                      color: AppColors.black,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: AppStrings.memoryTitle,
-                      hintStyle: appTextStyle(
-                        fz: isTitleFocused ? 14 : 21,
-                        color: isTitleFocused
-                            ? AppColors.primaryColor
-                            : const Color(0XFF999999),
-                        fm: robotoRegular,
-                      ),
-                    ),
-                  ),
+          // categoryMemoryModelWithoutPage.data != null
+          //     ? Container()
+          //     :
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextFormField(
+              controller: titleController,
+              focusNode: titleFocusNode,
+              cursorColor: AppColors.primaryColor,
+              onChanged: (val) {},
+              style: appTextStyle(
+                fm: robotoRegular,
+                fz: 21,
+                height: 27 / 21,
+                color: AppColors.black,
+              ),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: AppStrings.memoryTitle,
+                hintStyle: appTextStyle(
+                  fz: isTitleFocused ? 14 : 21,
+                  color: isTitleFocused
+                      ? AppColors.primaryColor
+                      : const Color(0XFF999999),
+                  fm: robotoRegular,
                 ),
+              ),
+            ),
+          ),
           const Divider(
             color: AppColors.textfieldFillColor,
           ),
@@ -462,8 +556,9 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                                   .subCategories![i].isselected = false;
                             }
                           }
-                          subCategoryId= categoryMemoryModelWithoutPage
-                                  .subCategories![index].id.toString();
+                          subCategoryId = categoryMemoryModelWithoutPage
+                              .subCategories![index].id
+                              .toString();
                           setState(() {});
                         },
                         child: Container(
@@ -536,10 +631,27 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     );
   }
 
+  int allSelectedPhotos() {
+    int value = 0;
+    value = value +
+        widget.photosList
+            .where(
+                (photo) => (photo.selectedValue && photo.isEditmemory == false))
+            .length;
+    value = value + fbModel.where((photo) => photo.isSelected).length;
+    value = value + instaModel.where((photo) => photo.isSelected).length;
+    value = value + driveModel.where((photo) => photo.isSelected).length;
+
+    return value;
+  }
+
   selectedtabView(BuildContext context) {
     if (selectedIndex == 0) {
       return CommonWidgets.albumView(
-          widget.future, widget.photosList, viewRefersh);
+        widget.future,
+        widget.photosList,
+        viewRefersh,
+      );
     } else if (selectedIndex == 1) {
       return CommonWidgets.albumView(
           widget.future, widget.photosList, viewRefersh);
@@ -645,6 +757,8 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   @override
   void onFailure(String message) {
+        EasyLoading.show();
+
     CommonWidgets.errorDialog(context, message);
   }
 
@@ -660,13 +774,16 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
           id: categoryModel.categories![0].id.toString(),
           sub_category_id: '',
           type: 'no_page',
-          page:"1",
+          page: "1",
           callack: this);
     } else if (apiType == ApiUrl.memoryByCategory) {
       EasyLoading.dismiss();
 
       categoryMemoryModelWithoutPage =
           CategoryMemoryModelWithoutPage.fromJson(jsonDecode(data));
+      if (widget.isEdit!) {
+        selectionOfAllPhoto();
+      }
 
       setState(() {
         if (categoryMemoryModelWithoutPage.subCategories!.isNotEmpty) {
@@ -692,18 +809,20 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
       if (valueNotEmpty()) {
         clossProgressDialog('');
-
-        ApiCall.createMemory(
-            api: ApiUrl.createMemory,
-            model: createModel,
-            callack: this); // Dismiss the dialog
+        if (createModel.memoryId != null) {
+          ApiCall.createMemory(
+              api: ApiUrl.updateMemory, model: createModel, callack: this);
+        } else {
+          ApiCall.createMemory(
+              api: ApiUrl.createMemory, model: createModel, callack: this);
+        } // Dismiss the dialog
       }
     } else if (apiType == ApiUrl.createMemory) {
       deselectAll();
       titleController.text = "";
       labelController.text = "";
-      
-      Navigator.pop(context,true);
+      CommonWidgets.successDialog(context, json.decode(data)['message']);
+      Navigator.pop(context, true);
 
       print(data);
     } else if (apiType == ApiUrl.createSubCategory) {
@@ -727,7 +846,11 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   //-----------------bottom sheet-------------------------
   int countSelectedPhotos() {
-    return widget.photosList.where((photo) => photo.selectedValue).length;
+    int i = widget.photosList
+        .where((photo) => (photo.selectedValue && photo.isEditmemory == false))
+        .length;
+    print("dfasf$i");
+    return i;
   }
 
   String selectedCategory() {
@@ -766,18 +889,23 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   CreateMoemoryModel createModel = CreateMoemoryModel();
 
   uploadData(String categoryId, String subCategoryId) {
+    print('fsafasf');
+    if (memoryId != '') {
+      createModel.memoryId = memoryId;
+    }
     createModel.categoryId = categoryId;
     createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
 
     for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].selectedValue) {
+      if (widget.photosList[i].selectedValue &&
+          widget.photosList[i].isEditmemory == false) {
         ImagesFile imp = ImagesFile();
         imp.typeId = widget.photosList[i].assetEntity.id;
         imp.type = "image";
-        imp.captureDate =
-            _getFormattedDateTime(widget.photosList[i].assetEntity.createDateTime);
+        imp.captureDate = _getFormattedDateTime(
+            widget.photosList[i].assetEntity.createDateTime);
         imp.description = '';
         imp.link = '';
 
@@ -785,51 +913,48 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         imageFile.add(imp);
       }
     }
-    if(fbModel.isNotEmpty){
-      for(int i=0;i<fbModel.length;i++){
-        if(fbModel[i].isSelected){
-           ImagesFile imp = ImagesFile();
-        imp.typeId = fbModel[i].id;
-        imp.type = fbModel[i].type;
-        imp.captureDate =
-            _getFormattedDateTime(fbModel[i].createdTime!);
-        imp.description = '';
-        imp.link = fbModel[i].webLink;
+    if (fbModel.isNotEmpty) {
+      for (int i = 0; i < fbModel.length; i++) {
+        if (fbModel[i].isSelected && fbModel[i].isEdit == false) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = fbModel[i].id;
+          imp.type = fbModel[i].type;
+          imp.captureDate = _getFormattedDateTime(fbModel[i].createdTime!);
+          imp.description = '';
+          imp.link = fbModel[i].webLink;
 
-        imp.location = '';
-        imageFile.add(imp);
+          imp.location = '';
+          imageFile.add(imp);
         }
       }
     }
-    if(instaModel.isNotEmpty){
-      for(int i=0;i<instaModel.length;i++){
-        if(instaModel[i].isSelected){
-           ImagesFile imp = ImagesFile();
-        imp.typeId = instaModel[i].id;
-        imp.type = instaModel[i].type;
-        imp.captureDate =
-            _getFormattedDateTime(instaModel[i].createdTime!);
-        imp.description = '';
-        imp.link = instaModel[i].webLink;
+    if (instaModel.isNotEmpty) {
+      for (int i = 0; i < instaModel.length; i++) {
+        if (instaModel[i].isSelected && instaModel[i].isEdit == false) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = instaModel[i].id;
+          imp.type = instaModel[i].type;
+          imp.captureDate = _getFormattedDateTime(instaModel[i].createdTime!);
+          imp.description = '';
+          imp.link = instaModel[i].webLink;
 
-        imp.location = '';
-        imageFile.add(imp);
+          imp.location = '';
+          imageFile.add(imp);
         }
       }
     }
-      if(driveModel.isNotEmpty){
-      for(int i=0;i<driveModel.length;i++){
-        if(driveModel[i].isSelected){
-           ImagesFile imp = ImagesFile();
-        imp.typeId = driveModel[i].id;
-        imp.type = driveModel[i].type;
-        imp.captureDate =
-            _getFormattedDateTime(driveModel[i].createdTime!);
-        imp.description = '';
-        imp.link = driveModel[i].webLink;
+    if (driveModel.isNotEmpty) {
+      for (int i = 0; i < driveModel.length; i++) {
+        if (driveModel[i].isSelected && driveModel[i].isEdit == false) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = driveModel[i].id;
+          imp.type = driveModel[i].type;
+          imp.captureDate = _getFormattedDateTime(driveModel[i].createdTime!);
+          imp.description = '';
+          imp.link = driveModel[i].webLink;
 
-        imp.location = '';
-        imageFile.add(imp);
+          imp.location = '';
+          imageFile.add(imp);
         }
       }
     }
@@ -837,65 +962,41 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-processPhotos();
-    // for (int i = 0; i < widget.photosList.length; i++) {
-    //   if (widget.photosList[i].selectedValue) {
-    //     print(widget.photosList[i].assetEntity.id);
-    //     for (int j = 0; j < createModel.images!.length; j++) {
-    //       if (createModel.images![j].typeId ==
-    //           widget.photosList[i].assetEntity.id) {
-
-    //         FilePath.getFile(widget.photosList[i].assetEntity)
-    //             .then((value) async {
-    //                         print(value);
-
-    //           ApiCall.uploadImageIntoMemory(
-    //               api: ApiUrl.uploadImageTomemory,
-    //               path: value!.path,
-    //               callack: this,
-    //               count: j.toString());
-    //         });
-    //                   print(createModel.images![j].typeId);
-    //                   break;
-
-    //       }
-    //     }
-    //   }
-    // }
+    processPhotos();
 
     print(createModel.images!.length);
   }
 
   Future<void> processPhotos() async {
-  for (int i = 0; i < widget.photosList.length; i++) {
-    if (widget.photosList[i].selectedValue) {
-      print(widget.photosList[i].assetEntity.id);
+    for (int i = 0; i < widget.photosList.length; i++) {
+      if (widget.photosList[i].selectedValue &&
+          widget.photosList[i].isEditmemory == false) {
+        print(widget.photosList[i].assetEntity.id);
 
-      for (int j = 0; j < createModel.images!.length; j++) {
-        if (createModel.images![j].typeId == widget.photosList[i].assetEntity.id) {
-          // Await the file retrieval and API call
-           await FilePath.getFile(widget.photosList[i].assetEntity).then((value)async {
-print(value!.path);
-            await ApiCall.uploadImageIntoMemory(
-              api: ApiUrl.uploadImageTomemory,
-              path: value.path,
-              callack: this,
-              count: j.toString(),
-            );
-           });
+        for (int j = 0; j < createModel.images!.length; j++) {
+          if (createModel.images![j].typeId ==
+              widget.photosList[i].assetEntity.id) {
+            // Await the file retrieval and API call
+            await FilePath.getFile(widget.photosList[i].assetEntity)
+                .then((value) async {
+              print(value!.path);
+              await ApiCall.uploadImageIntoMemory(
+                api: ApiUrl.uploadImageTomemory,
+                path: value.path,
+                callack: this,
+                count: j.toString(),
+              );
+            });
 
-         
-
-          print(createModel.images![j].typeId);
+            print(createModel.images![j].typeId);
+          }
         }
       }
     }
   }
-}
 
   String _getFormattedDateTime(DateTime asset) {
-    final DateTime creationDate =
-        asset; // Get the creation date of the asset
+    final DateTime creationDate = asset; // Get the creation date of the asset
     final DateFormat formatter =
         DateFormat('yyyy-MM-dd HH:mm:ss'); // Define the format
     return formatter.format(creationDate); // Format the date as a string

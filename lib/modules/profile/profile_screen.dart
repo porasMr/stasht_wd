@@ -39,12 +39,43 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
   TextEditingController nameController = TextEditingController();
   final formkey = GlobalKey<FormState>();
   bool changePassowrd = false;
+  bool isDriveSync = false;
+  bool isFbSync = false;
 
+  bool isInstaeSync = false;
+  String selectedType = "";
   @override
   void initState() {
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
-      nameController.text=model.user!.name!;
+      nameController.text = model.user!.name!;
+      if (model.user!.googleDriveSynced == 1) {
+        isDriveSync = true;
+      }
+      if (model.user!.facebookSynced == 1) {
+        isFbSync = true;
+      }
+      if (model.user!.googleDriveSynced == 1) {
+        isDriveSync = true;
+      }
+      setState(() {});
+    });
+    PrefUtils.instance.getDrivePrefs().then((value) {
+      if (value.isNotEmpty) {
+        isDriveSync = true;
+      }
+      setState(() {});
+    });
+    PrefUtils.instance.getFacebookPrefs().then((value) {
+      if (value.isNotEmpty) {
+        isFbSync = true;
+      }
+      setState(() {});
+    });
+    PrefUtils.instance.getInstaPrefs().then((value) {
+      if (value.isNotEmpty) {
+        isInstaeSync = true;
+      }
       setState(() {});
     });
     super.initState();
@@ -55,7 +86,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-     // _image = File(image.path);
+      // _image = File(image.path);
 
       uploadImageToDB(image.path);
     } else {
@@ -162,7 +193,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                   BorderRadius.all(Radius.circular(100)),
                             ),
                             margin: const EdgeInsets.only(top: 10),
-                            child: model.user!.profileImage !=''
+                            child: model.user!.profileImage != ''
                                 ? ClipRRect(
                                     borderRadius:
                                         BorderRadius.circular(10000.0),
@@ -171,11 +202,11 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                         fit: BoxFit.cover,
                                         height: 63,
                                         width: 70,
-                                        progressIndicatorBuilder: (context,
-                                                url, downloadProgress) =>
+                                        progressIndicatorBuilder: (context, url,
+                                                downloadProgress) =>
                                             CircularProgressIndicator(
-                                                value: downloadProgress
-                                                    .progress)),
+                                                value:
+                                                    downloadProgress.progress)),
                                   )
                                 : Padding(
                                     padding: const EdgeInsets.only(top: 0),
@@ -189,7 +220,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                         /*??
                                                       AppColors
                                                           .primaryColor,*/
-                        
+
                                         // Color(int.tryParse(controller.userProfileColor.value.replaceAll("#", " "))!),
                                         border: Border.all(
                                           color: const Color.fromRGBO(
@@ -249,15 +280,15 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                       ),
                                     ),
                                   ),
-                                  // Text(
-                                  //   model.user!.name!,
-                                  //   style: appTextStyle(
-                                  //     color: AppColors.lightGrey,
-                                  //     fm: robotoRegular,
-                                  //     fz: 14,
-                                  //     height: 18 / 14,
-                                  //   ),
-                                  // ),
+                                  Text(
+                                    model.user!.email!,
+                                    style: appTextStyle(
+                                      color: AppColors.lightGrey,
+                                      fm: robotoRegular,
+                                      fz: 14,
+                                      height: 18 / 14,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -274,13 +305,13 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                     //  Get.snackbar("Error", "Username can't be empty",
                                     //      colorText: AppColors.redColor);
                                   }
-                                }else{
+                                } else {
                                   setState(() {
-                                    changeUserName=true;
+                                    changeUserName = true;
                                   });
                                 }
 
-                                 // Toggle the value
+                                // Toggle the value
                               },
                               child: Text(
                                 changeUserName ? "Save" : "Change",
@@ -496,9 +527,10 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                             horizontal: 15, vertical: 13),
                         child: GestureDetector(
                           onTap: () {
-                             PrefUtils.instance.clearPreferance();
-  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/SignIn', (Route<dynamic> route) => false);                          },
+                            PrefUtils.instance.clearPreferance();
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/SignIn', (Route<dynamic> route) => false);
+                          },
                           child: Text(
                             AppStrings.logout,
                             style: appTextStyle(
@@ -589,31 +621,53 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
 
   switchIcon({String? type}) {
     return Switch(
-      value:
-          //  type == "drive"
-          //     ? controller.isDriveSync.value
-          //     : type == "fb"
-          //         ? controller.isFbSync.value
-          //         : type == "insta"
-          //             ? controller.isInstaeSync.value
-          //             :
-          false,
+      value: type == "drive"
+          ? isDriveSync
+          : type == "fb"
+              ? isFbSync
+              : type == "insta"
+                  ? isInstaeSync
+                  : false,
       activeColor: Colors.white,
       trackOutlineColor: borderColorValue(type: type),
       trackColor: activeColorValue(type: type),
       inactiveThumbColor: Color(0XFF79747E),
       activeTrackColor: AppColors.primaryColor,
-      onChanged: (bool value) async {},
+      onChanged: (bool value) async {
+        if (type == "drive") {
+          isDriveSync = false;
+          selectedType = "facebook_synced";
+        } else if (type == "fb") {
+          isFbSync = false;
+          selectedType = "facebook_synced";
+        } else {
+          isInstaeSync = false;
+          selectedType = "instagram_synced";
+        }
+        if (value == false) {
+          EasyLoading.show();
+
+          ApiCall.syncAccount(
+              api: ApiUrl.syncAccount,
+              type: selectedType,
+              status: "0",
+              callack: this);
+        }
+        setState(() {});
+      },
     );
   }
 
   void changeUserNameFunc() {
     if (formkey.currentState!.validate()) {
-            model.user!.profileImage = nameController.text;
+      model.user!.profileImage = nameController.text;
 
       EasyLoading.show();
-            ApiCall.updateProfile(
-          api: ApiUrl.updateProfile, type: "name", value: nameController.text, callack: this);
+      ApiCall.updateProfile(
+          api: ApiUrl.updateProfile,
+          type: "name",
+          value: nameController.text,
+          callack: this);
     }
   }
 
@@ -694,7 +748,6 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                         fontFamily: robotoBold),
                   ),
                 ),
-                
                 Row(
                   children: [
                     const SizedBox(width: 20),
@@ -703,8 +756,8 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                       onTap: () {
                         Navigator.pop(context);
                         EasyLoading.show();
-                         Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/SignIn', (Route<dynamic> route) => false);  
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                            '/SignIn', (Route<dynamic> route) => false);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(30),
@@ -727,7 +780,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                     Expanded(
                         child: InkWell(
                       onTap: () {
-                       Navigator.pop(context);
+                        Navigator.pop(context);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(30),
@@ -777,16 +830,31 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
           api: ApiUrl.updateProfile, type: "image", value: img, callack: this);
     } else if (apiType == ApiUrl.updateProfile) {
       EasyLoading.dismiss();
-changeUserName=false;
+      changeUserName = false;
       setState(() {});
-    }else if(apiType==ApiUrl.deleteUserAccount){
+    } else if (apiType == ApiUrl.deleteUserAccount) {
       EasyLoading.dismiss();
       PrefUtils.instance.clearPreferance();
       Navigator.popUntil(context, ModalRoute.withName("/SignIn"));
+    } else if (apiType == ApiUrl.syncAccount) {
+      EasyLoading.dismiss();
+      if (selectedType == "facebook_synced") {
+        model.user!.facebookSynced = 0;
+        isFbSync = false;
+        PrefUtils.instance.saveFacebookPhotoLinks([]);
+      } else if (selectedType == "google_drive_synced") {
+        isDriveSync = false;
+        model.user!.googleDriveSynced = 0;
+        PrefUtils.instance.saveDrivePhotoLinks([]);
+      } else {
+        PrefUtils.instance.saveInstaPhotoLinks([]);
+
+        isInstaeSync = false;
+        model.user!.instagramSynced = 0;
+      }
+      PrefUtils.instance.saveUserToPrefs(model);
     }
-    setState(() {
-      
-    });
+    setState(() {});
   }
 
   @override

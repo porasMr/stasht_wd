@@ -82,6 +82,7 @@ dependencies:
   flutter_social_content_share:
   firebase_dynamic_links: 
   provider: ^6.1.2
+  #share_plus: ^10.0.0
   #share_plus: any
  
 

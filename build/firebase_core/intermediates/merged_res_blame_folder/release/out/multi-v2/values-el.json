@@ -1,0 +1,82 @@
+{
+    "logs": [
+        {
+            "outputFile": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/firebase_core/intermediates/merged_res/release/values-el/values-el.xml",
+            "map": [
+                {
+                    "source": "/Users/worksdelight/.gradle/caches/transforms-3/560e5df6a793e7e50fc3aad9d0b81350/transformed/jetified-play-services-basement-18.3.0/res/values-el/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "159",
+                        "endOffsets": "354"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "163",
+                        "endOffsets": "214"
+                    }
+                },
+                {
+                    "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/values-el/values-el.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "219",
+                        "endColumns": "100",
+                        "endOffsets": "315"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/firebase_core/intermediates/incremental/mergeReleaseResources/merged.dir/values-el/values-el.xml",
+            "map": [
+                {
+                    "source": "/Users/worksdelight/.gradle/caches/transforms-3/560e5df6a793e7e50fc3aad9d0b81350/transformed/jetified-play-services-basement-18.3.0/res/values-el/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "159",
+                        "endOffsets": "354"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "163",
+                        "endOffsets": "214"
+                    }
+                },
+                {
+                    "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/values-el/values-el.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "219",
+                        "endColumns": "100",
+                        "endOffsets": "315"
+                    }
+                }
+            ]
+        }
+    ]
+}

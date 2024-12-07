@@ -1,5 +1,6 @@
 class CreateMoemoryModel {
   String? title;
+  String? memoryId;
   String? categoryId;
   String? subCategoryId;
   List<ImagesFile>? images;
@@ -22,6 +23,19 @@ class CreateMoemoryModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['title'] = this.title;
+
+    data['category_id'] = this.categoryId;
+    data['sub_category_id'] = this.subCategoryId;
+    if (this.images != null) {
+      data['images'] = this.images!.map((v) => v.toJson()).toList();
+    }
+    return data;
+  }
+   Map<String, dynamic> toWithMemoryIdJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['title'] = this.title;
+        data['memory_id'] = this.memoryId;
+
     data['category_id'] = this.categoryId;
     data['sub_category_id'] = this.subCategoryId;
     if (this.images != null) {

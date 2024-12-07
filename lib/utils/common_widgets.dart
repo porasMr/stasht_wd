@@ -27,6 +27,7 @@ import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
+import 'package:stasht/utils/web_image_preview.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import '../image_preview_widget.dart';
 import 'package:permission_handler/permission_handler.dart' as permission;
@@ -113,7 +114,7 @@ class CommonWidgets {
   static Future<AccessToken?>? loginWithFacebook() async {
     final LoginResult result = Platform.isAndroid
         ? await FacebookAuth.instance
-            .login(permissions: ['email', 'user_photos','public_profile'])
+            .login(permissions: ['email', 'user_photos', 'public_profile'])
         : await FacebookAuth.instance.login();
     if (result.status == LoginStatus.success) {
       // print('Access Token: ${accessToken.tokenString}');
@@ -568,25 +569,65 @@ class CommonWidgets {
   }
 
   static successDialog(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(color: Colors.green),
+     final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 50,
+        left: 20,
+        right: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Success',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  message,
+                  style: TextStyle(color: Colors.green, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
         ),
-        backgroundColor: Colors.white,
       ),
     );
+
+    overlay.insert(overlayEntry);
+
+    // Remove the snackbar after a delay
+    Future.delayed(Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 
   static String dateRetrun(String value) {
     return DateFormat("MMM d").format(DateTime.parse(value));
   }
-static String dateFormatRetrun(String value) {
+
+  static String dateFormatRetrun(String value) {
     return DateFormat("MMM d, yyyy").format(DateTime.parse(value));
   }
+
   static drivePhtotView(
-      List<PhotoDetailModel> photosList, VoidCallback onPressed) {
+    List<PhotoDetailModel> photosList,
+    VoidCallback onPressed, {
+    ValueNotifier<int>? selectedCountNotifier,
+  }) {
     print(photosList);
 
     return GridView.builder(
@@ -601,9 +642,14 @@ static String dateFormatRetrun(String value) {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
-            photosList[index].isSelected = !photosList[index].isSelected;
-
-            onPressed();
+              showDialog(
+              context: context,
+              barrierColor: Colors.transparent,
+              builder: (context) {
+                return WebImagePreview(path:photosList[index].webLink!);
+              },
+            );
+           
           },
           child: Stack(
             children: [
@@ -647,24 +693,43 @@ static String dateFormatRetrun(String value) {
                     borderRadius: BorderRadius.circular(8),
                     elevation: 4,
                     color: Colors.transparent,
-                    child: Container(
-                      height: 21.87,
-                      width: 30.07,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Colors.white.withOpacity(.5), width: 1.5),
-                          borderRadius: BorderRadius.circular(8),
-                          color: photosList[index].isSelected
-                              ? Colors.white
-                              : Colors.black.withOpacity(.3)),
-                      child: photosList[index].isSelected
-                          ? Image.asset(
-                              correct,
-                              height: 12,
-                              width: 12,
-                            )
-                          : const IgnorePointer(),
+                    child: GestureDetector(
+                      onTap: (){
+                         photosList[index].isSelected = !photosList[index].isSelected;
+                                                                         photosList[index].isEdit =false;
+
+            if (selectedCountNotifier != null) {
+            
+                          if (photosList[index].isSelected) {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value + 1;
+                          } else {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value - 1;
+                          }
+                        
+            }
+            onPressed();
+                      },
+                      child: Container(
+                        height: 21.87,
+                        width: 30.07,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            border: Border.all(
+                                color: Colors.white.withOpacity(.5), width: 1.5),
+                            borderRadius: BorderRadius.circular(8),
+                            color: photosList[index].isSelected
+                                ? Colors.white
+                                : Colors.black.withOpacity(.3)),
+                        child: photosList[index].isSelected
+                            ? Image.asset(
+                                correct,
+                                height: 12,
+                                width: 12,
+                              )
+                            : const IgnorePointer(),
+                      ),
                     ),
                   ),
                 ),
@@ -677,7 +742,10 @@ static String dateFormatRetrun(String value) {
   }
 
   static instaPhtotView(
-      List<PhotoDetailModel> photosList, VoidCallback onPressed) {
+    List<PhotoDetailModel> photosList,
+    VoidCallback onPressed, {
+    ValueNotifier<int>? selectedCountNotifier,
+  }) {
     return GridView.builder(
       shrinkWrap: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -691,20 +759,27 @@ static String dateFormatRetrun(String value) {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
-            photosList[index].isSelected = !photosList[index].isSelected;
-            onPressed();
+  showDialog(
+              context: context,
+              barrierColor: Colors.transparent,
+              builder: (context) {
+                return WebImagePreview(path:photosList[index].webLink!);
+              },
+            );
+            
+           
           },
           child: Stack(
             children: [
-            Container(
+              Container(
                 height: 120,
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
                       imageUrl: photosList[index].webLink ?? "",
                       fit: BoxFit.cover,
                       placeholder: (context, url) => SizedBox(
@@ -736,24 +811,43 @@ static String dateFormatRetrun(String value) {
                     borderRadius: BorderRadius.circular(8),
                     elevation: 4,
                     color: Colors.transparent,
-                    child: Container(
-                      height: 21.87,
-                      width: 30.07,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Colors.white.withOpacity(.5), width: 1.5),
-                          borderRadius: BorderRadius.circular(8),
-                          color: photosList[index].isSelected
-                              ? Colors.white
-                              : Colors.black.withOpacity(.3)),
-                      child: photosList[index].isSelected
-                          ? Image.asset(
-                              correct,
-                              height: 12,
-                              width: 12,
-                            )
-                          : const IgnorePointer(),
+                    child: GestureDetector(
+                      onTap: (){
+                         photosList[index].isSelected = !photosList[index].isSelected;
+                                                                         photosList[index].isEdit =false;
+
+            if (selectedCountNotifier != null) {
+            
+                          if (photosList[index].isSelected) {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value + 1;
+                          } else {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value - 1;
+                          }
+                        
+            }
+            onPressed();
+                      },
+                      child: Container(
+                        height: 21.87,
+                        width: 30.07,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            border: Border.all(
+                                color: Colors.white.withOpacity(.5), width: 1.5),
+                            borderRadius: BorderRadius.circular(8),
+                            color: photosList[index].isSelected
+                                ? Colors.white
+                                : Colors.black.withOpacity(.3)),
+                        child: photosList[index].isSelected
+                            ? Image.asset(
+                                correct,
+                                height: 12,
+                                width: 12,
+                              )
+                            : const IgnorePointer(),
+                      ),
                     ),
                   ),
                 ),
@@ -766,7 +860,10 @@ static String dateFormatRetrun(String value) {
   }
 
   static fbPhtotView(
-      List<PhotoDetailModel> photosList, VoidCallback onPressed) {
+    List<PhotoDetailModel> photosList,
+    VoidCallback onPressed, {
+    ValueNotifier<int>? selectedCountNotifier,
+  }) {
     return GridView.builder(
       shrinkWrap: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -780,8 +877,14 @@ static String dateFormatRetrun(String value) {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
-            photosList[index].isSelected = !photosList[index].isSelected;
-            onPressed();
+            showDialog(
+              context: context,
+              barrierColor: Colors.transparent,
+              builder: (context) {
+                return WebImagePreview(path:photosList[index].webLink!);
+              },
+            );
+          
           },
           child: Stack(
             children: [
@@ -792,8 +895,8 @@ static String dateFormatRetrun(String value) {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child:  CachedNetworkImage(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
                       imageUrl: photosList[index].webLink ?? "",
                       fit: BoxFit.cover,
                       placeholder: (context, url) => SizedBox(
@@ -825,24 +928,40 @@ static String dateFormatRetrun(String value) {
                     borderRadius: BorderRadius.circular(8),
                     elevation: 4,
                     color: Colors.transparent,
-                    child: Container(
-                      height: 21.87,
-                      width: 30.07,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Colors.white.withOpacity(.5), width: 1.5),
-                          borderRadius: BorderRadius.circular(8),
-                          color: photosList[index].isSelected
-                              ? Colors.white
-                              : Colors.black.withOpacity(.3)),
-                      child: photosList[index].isSelected
-                          ? Image.asset(
-                              correct,
-                              height: 12,
-                              width: 12,
-                            )
-                          : const IgnorePointer(),
+                    child: GestureDetector(onTap: (){
+                        photosList[index].isSelected = !photosList[index].isSelected;
+                                                photosList[index].isEdit =false;
+
+            if (selectedCountNotifier != null) {
+               if (photosList[index].isSelected) {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value + 1;
+                          } else {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value - 1;
+                          }
+            }
+            onPressed();
+                    },
+                      child: Container(
+                        height: 21.87,
+                        width: 30.07,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            border: Border.all(
+                                color: Colors.white.withOpacity(.5), width: 1.5),
+                            borderRadius: BorderRadius.circular(8),
+                            color: photosList[index].isSelected
+                                ? Colors.white
+                                : Colors.black.withOpacity(.3)),
+                        child: photosList[index].isSelected
+                            ? Image.asset(
+                                correct,
+                                height: 12,
+                                width: 12,
+                              )
+                            : const IgnorePointer(),
+                      ),
                     ),
                   ),
                 ),
@@ -854,103 +973,511 @@ static String dateFormatRetrun(String value) {
     );
   }
 
-  static Widget albumView(
-  List<Future<Uint8List?>> future,
-  List<PhotoModel> photosList,
-  VoidCallback onPressed, {
-  ValueNotifier<int>? selectedCountNotifier,
-}) {
-  return GridView.builder(
-    shrinkWrap: true,
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 3, // Number of columns
-      crossAxisSpacing: 10.0,
-      mainAxisSpacing: 10.0,
-      childAspectRatio: 1, // Aspect ratio of each grid item (2 / 2 = 1)
-    ),
-    itemCount: photosList.length,
-    addAutomaticKeepAlives: false,
-    itemBuilder: (context, index) {
-      return GestureDetector(
-        onTap: () {
-          showDialog(
-            context: context,
-            barrierColor: Colors.transparent,
-            builder: (context) {
-              return ImagePreview(assetEntity: photosList[index].assetEntity);
-            },
-          );
-        },
-        child: Stack(
-          children: [
-            MyGridItem(future[index]),
-            Container(
-              height: 120,
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: photosList[index].selectedValue
-                    ? AppColors.primaryColor.withOpacity(0.65)
-                    : null,
-              ),
-            ),
-            Positioned(
-              top: 5,
-              right: 5,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4, right: 4),
-                child: PhysicalModel(
-                  borderRadius: BorderRadius.circular(8),
-                  elevation: 4,
-                  color: Colors.transparent,
-                  child: GestureDetector(
-                    onTap: () {
-                      debugPrint("Image Selected");
-                      photosList[index].selectedValue =
-                          !photosList[index].selectedValue;
+static Widget allAlbumView(
+    List<Future<Uint8List?>> future,
+    List<PhotoModel> photosList,
+    List<PhotoDetailModel> fbList,
+        List<PhotoDetailModel> driveList,
+        List<PhotoDetailModel> instaList,
 
-                      if (selectedCountNotifier != null) {
-                        selectedCountNotifier.value = photosList
-                            .where((photo) => photo.selectedValue)
-                            .length;
-                      }
 
-                      onPressed();
-                    },
-                    child: Container(
-                      height: 21.87,
-                      width: 30.07,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.5),
-                          width: 1.5,
-                        ),
+
+    VoidCallback onPressed, {
+    ValueNotifier<int>? selectedCountNotifier,
+  }) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics:const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3, // Number of columns
+            crossAxisSpacing: 10.0,
+            mainAxisSpacing: 10.0,
+            childAspectRatio: 1, // Aspect ratio of each grid item (2 / 2 = 1)
+          ),
+          itemCount: photosList.length,
+          addAutomaticKeepAlives: false,
+          itemBuilder: (context, index) {
+            return GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  barrierColor: Colors.transparent,
+                  builder: (context) {
+                    return ImagePreview(assetEntity: photosList[index].assetEntity);
+                  },
+                );
+              },
+              child: Stack(
+                children: [
+                  MyGridItem(future[index]),
+                  Container(
+                    height: 120,
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: photosList[index].selectedValue
+                          ? AppColors.primaryColor.withOpacity(0.65)
+                          : null,
+                    ),
+                  ),
+                  Positioned(
+                    top: 5,
+                    right: 5,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4, right: 4),
+                      child: PhysicalModel(
                         borderRadius: BorderRadius.circular(8),
-                        color: photosList[index].selectedValue
-                            ? Colors.white
-                            : Colors.black.withOpacity(0.3),
+                        elevation: 4,
+                        color: Colors.transparent,
+                        child: GestureDetector(
+                          onTap: () {
+                            debugPrint("Image Selected");
+                            photosList[index].selectedValue =
+                                !photosList[index].selectedValue;
+        
+                            if (selectedCountNotifier != null) {
+                              if (photosList[index].selectedValue) {
+                                selectedCountNotifier.value =
+                                    selectedCountNotifier.value + 1;
+                              } else {
+                                selectedCountNotifier.value =
+                                    selectedCountNotifier.value - 1;
+                              }
+                            }
+        
+                            onPressed();
+                          },
+                          child: Container(
+                            height: 21.87,
+                            width: 30.07,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.5),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              color: photosList[index].selectedValue
+                                  ? Colors.white
+                                  : Colors.black.withOpacity(0.3),
+                            ),
+                            child: photosList[index].selectedValue
+                                ? Image.asset(
+                                    correct,
+                                    height: 12,
+                                    width: 12,
+                                  )
+                                : const IgnorePointer(),
+                          ),
+                        ),
                       ),
-                      child: photosList[index].selectedValue
-                          ? Image.asset(
-                              correct,
-                              height: 12,
-                              width: 12,
-                            )
-                          : const IgnorePointer(),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+    //     if(fbList.isNotEmpty)
+    //     GridView.builder(
+    //   shrinkWrap: true,
+    //   physics:const NeverScrollableScrollPhysics(),
+    //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    //     crossAxisCount: 3, // Number of columns
+    //     crossAxisSpacing: 10.0,
+    //     mainAxisSpacing: 10.0,
+    //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+    //   ),
+    //   itemCount: fbList.length,
+    //   addAutomaticKeepAlives: false,
+    //   itemBuilder: (context, index) {
+    //     return GestureDetector(
+    //       onTap: () {
+    //         fbList[index].isSelected = !fbList[index].isSelected;
+    //         if (selectedCountNotifier != null) {
+    //            if (fbList[index].isSelected) {
+    //                         selectedCountNotifier.value =
+    //                             selectedCountNotifier.value + 1;
+    //                       } else {
+    //                         selectedCountNotifier.value =
+    //                             selectedCountNotifier.value - 1;
+    //                       }
+    //         }
+    //         onPressed();
+    //       },
+    //       child: Stack(
+    //         children: [
+    //           Container(
+    //             height: 120,
+    //             width: MediaQuery.of(context).size.width,
+    //             decoration: BoxDecoration(
+    //               borderRadius: BorderRadius.circular(12),
+    //             ),
+    //             child: ClipRRect(
+    //               borderRadius: BorderRadius.circular(12),
+    //               child: CachedNetworkImage(
+    //                   imageUrl: fbList[index].webLink ?? "",
+    //                   fit: BoxFit.cover,
+    //                   placeholder: (context, url) => SizedBox(
+    //                         height: 120,
+    //                         width: MediaQuery.of(context).size.width,
+    //                         child: const Center(
+    //                           child: CircularProgressIndicator(
+    //                             color: AppColors.primaryColor,
+    //                           ),
+    //                         ),
+    //                       )),
+    //             ),
+    //           ),
+    //           Container(
+    //             height: 120,
+    //             width: MediaQuery.of(context).size.width,
+    //             decoration: BoxDecoration(
+    //                 borderRadius: BorderRadius.circular(12),
+    //                 color: fbList[index].isSelected
+    //                     ? AppColors.primaryColor.withOpacity(.65)
+    //                     : null),
+    //           ),
+    //           Positioned(
+    //             top: 5,
+    //             right: 5,
+    //             child: Padding(
+    //               padding: EdgeInsets.only(top: 4, right: 4),
+    //               child: PhysicalModel(
+    //                 borderRadius: BorderRadius.circular(8),
+    //                 elevation: 4,
+    //                 color: Colors.transparent,
+    //                 child: Container(
+    //                   height: 21.87,
+    //                   width: 30.07,
+    //                   alignment: Alignment.center,
+    //                   decoration: BoxDecoration(
+    //                       border: Border.all(
+    //                           color: Colors.white.withOpacity(.5), width: 1.5),
+    //                       borderRadius: BorderRadius.circular(8),
+    //                       color: fbList[index].isSelected
+    //                           ? Colors.white
+    //                           : Colors.black.withOpacity(.3)),
+    //                   child: fbList[index].isSelected
+    //                       ? Image.asset(
+    //                           correct,
+    //                           height: 12,
+    //                           width: 12,
+    //                         )
+    //                       : const IgnorePointer(),
+    //                 ),
+    //               ),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     );
+    //   },
+    // ),
+    // if(instaList.isNotEmpty)
+    //  GridView.builder(
+    //   shrinkWrap: true,
+    //   physics:const NeverScrollableScrollPhysics(),
+    //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    //     crossAxisCount: 3, // Number of columns
+    //     crossAxisSpacing: 10.0,
+    //     mainAxisSpacing: 10.0,
+    //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+    //   ),
+    //   itemCount: instaList.length,
+    //   addAutomaticKeepAlives: false,
+    //   itemBuilder: (context, index) {
+    //     return GestureDetector(
+    //       onTap: () {
+    //         instaList[index].isSelected = !instaList[index].isSelected;
+    //         if (selectedCountNotifier != null) {
+    //            if (instaList[index].isSelected) {
+    //                         selectedCountNotifier.value =
+    //                             selectedCountNotifier.value + 1;
+    //                       } else {
+    //                         selectedCountNotifier.value =
+    //                             selectedCountNotifier.value - 1;
+    //                       }
+    //         }
+    //         onPressed();
+    //       },
+    //       child: Stack(
+    //         children: [
+    //           Container(
+    //             height: 120,
+    //             width: MediaQuery.of(context).size.width,
+    //             decoration: BoxDecoration(
+    //               borderRadius: BorderRadius.circular(12),
+    //             ),
+    //             child: ClipRRect(
+    //               borderRadius: BorderRadius.circular(12),
+    //               child: CachedNetworkImage(
+    //                   imageUrl: instaList[index].webLink ?? "",
+    //                   fit: BoxFit.cover,
+    //                   placeholder: (context, url) => SizedBox(
+    //                         height: 120,
+    //                         width: MediaQuery.of(context).size.width,
+    //                         child: const Center(
+    //                           child: CircularProgressIndicator(
+    //                             color: AppColors.primaryColor,
+    //                           ),
+    //                         ),
+    //                       )),
+    //             ),
+    //           ),
+    //           Container(
+    //             height: 120,
+    //             width: MediaQuery.of(context).size.width,
+    //             decoration: BoxDecoration(
+    //                 borderRadius: BorderRadius.circular(12),
+    //                 color: instaList[index].isSelected
+    //                     ? AppColors.primaryColor.withOpacity(.65)
+    //                     : null),
+    //           ),
+    //           Positioned(
+    //             top: 5,
+    //             right: 5,
+    //             child: Padding(
+    //               padding: EdgeInsets.only(top: 4, right: 4),
+    //               child: PhysicalModel(
+    //                 borderRadius: BorderRadius.circular(8),
+    //                 elevation: 4,
+    //                 color: Colors.transparent,
+    //                 child: Container(
+    //                   height: 21.87,
+    //                   width: 30.07,
+    //                   alignment: Alignment.center,
+    //                   decoration: BoxDecoration(
+    //                       border: Border.all(
+    //                           color: Colors.white.withOpacity(.5), width: 1.5),
+    //                       borderRadius: BorderRadius.circular(8),
+    //                       color: instaList[index].isSelected
+    //                           ? Colors.white
+    //                           : Colors.black.withOpacity(.3)),
+    //                   child: instaList[index].isSelected
+    //                       ? Image.asset(
+    //                           correct,
+    //                           height: 12,
+    //                           width: 12,
+    //                         )
+    //                       : const IgnorePointer(),
+    //                 ),
+    //               ),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     );
+    //   },
+    // ),
+    // if(driveList.isNotEmpty)
+    // GridView.builder(
+    //   shrinkWrap: true,
+    //   physics:const NeverScrollableScrollPhysics(),
+    //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    //     crossAxisCount: 3, // Number of columns
+    //     crossAxisSpacing: 10.0,
+    //     mainAxisSpacing: 10.0,
+    //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+    //   ),
+    //   itemCount: driveList.length,
+    //   addAutomaticKeepAlives: false,
+    //   itemBuilder: (context, index) {
+    //     return GestureDetector(
+    //       onTap: () {
+    //         driveList[index].isSelected = !driveList[index].isSelected;
+    //         if (selectedCountNotifier != null) {
+    //            if (driveList[index].isSelected) {
+    //                         selectedCountNotifier.value =
+    //                             selectedCountNotifier.value + 1;
+    //                       } else {
+    //                         selectedCountNotifier.value =
+    //                             selectedCountNotifier.value - 1;
+    //                       }
+    //         }
+    //         onPressed();
+    //       },
+    //       child: Stack(
+    //         children: [
+    //           Container(
+    //             height: 120,
+    //             width: MediaQuery.of(context).size.width,
+    //             decoration: BoxDecoration(
+    //               borderRadius: BorderRadius.circular(12),
+    //             ),
+    //             child: ClipRRect(
+    //               borderRadius: BorderRadius.circular(12),
+    //               child: CachedNetworkImage(
+    //                   imageUrl: driveList[index].webLink ?? "",
+    //                   fit: BoxFit.cover,
+    //                   placeholder: (context, url) => SizedBox(
+    //                         height: 120,
+    //                         width: MediaQuery.of(context).size.width,
+    //                         child: const Center(
+    //                           child: CircularProgressIndicator(
+    //                             color: AppColors.primaryColor,
+    //                           ),
+    //                         ),
+    //                       )),
+    //             ),
+    //           ),
+    //           Container(
+    //             height: 120,
+    //             width: MediaQuery.of(context).size.width,
+    //             decoration: BoxDecoration(
+    //                 borderRadius: BorderRadius.circular(12),
+    //                 color: driveList[index].isSelected
+    //                     ? AppColors.primaryColor.withOpacity(.65)
+    //                     : null),
+    //           ),
+    //           Positioned(
+    //             top: 5,
+    //             right: 5,
+    //             child: Padding(
+    //               padding: EdgeInsets.only(top: 4, right: 4),
+    //               child: PhysicalModel(
+    //                 borderRadius: BorderRadius.circular(8),
+    //                 elevation: 4,
+    //                 color: Colors.transparent,
+    //                 child: Container(
+    //                   height: 21.87,
+    //                   width: 30.07,
+    //                   alignment: Alignment.center,
+    //                   decoration: BoxDecoration(
+    //                       border: Border.all(
+    //                           color: Colors.white.withOpacity(.5), width: 1.5),
+    //                       borderRadius: BorderRadius.circular(8),
+    //                       color: driveList[index].isSelected
+    //                           ? Colors.white
+    //                           : Colors.black.withOpacity(.3)),
+    //                   child: driveList[index].isSelected
+    //                       ? Image.asset(
+    //                           correct,
+    //                           height: 12,
+    //                           width: 12,
+    //                         )
+    //                       : const IgnorePointer(),
+    //                 ),
+    //               ),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     );
+    //   },
+    // )
+      ],
+    );
+  }
+
+
+
+  static Widget albumView(
+    List<Future<Uint8List?>> future,
+    List<PhotoModel> photosList,
+    VoidCallback onPressed, {
+    ValueNotifier<int>? selectedCountNotifier,
+  }) {
+    return GridView.builder(
+      shrinkWrap: true,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3, // Number of columns
+        crossAxisSpacing: 10.0,
+        mainAxisSpacing: 10.0,
+        childAspectRatio: 1, // Aspect ratio of each grid item (2 / 2 = 1)
+      ),
+      itemCount: photosList.length,
+      addAutomaticKeepAlives: false,
+      itemBuilder: (context, index) {
+        return GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              barrierColor: Colors.transparent,
+              builder: (context) {
+                return ImagePreview(assetEntity: photosList[index].assetEntity);
+              },
+            );
+          },
+          child: Stack(
+            children: [
+              MyGridItem(future[index]),
+              Container(
+                height: 120,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: photosList[index].selectedValue
+                      ? AppColors.primaryColor.withOpacity(0.65)
+                      : null,
+                ),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4, right: 4),
+                  child: PhysicalModel(
+                    borderRadius: BorderRadius.circular(8),
+                    elevation: 4,
+                    color: Colors.transparent,
+                    child: GestureDetector(
+                      onTap: () {
+                        debugPrint("Image Selected");
+                        photosList[index].selectedValue =
+                            !photosList[index].selectedValue;
+                        photosList[index].isEditmemory =false;
+
+                        if (selectedCountNotifier != null) {
+                          if (photosList[index].selectedValue) {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value + 1;
+                          } else {
+                            selectedCountNotifier.value =
+                                selectedCountNotifier.value - 1;
+                          }
+                        }
+
+                        onPressed();
+                      },
+                      child: Container(
+                        height: 21.87,
+                        width: 30.07,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          color: photosList[index].selectedValue
+                              ? Colors.white
+                              : Colors.black.withOpacity(0.3),
+                        ),
+                        child: photosList[index].selectedValue
+                            ? Image.asset(
+                                correct,
+                                height: 12,
+                                width: 12,
+                              )
+                            : const IgnorePointer(),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-   static buttonForShareLink(BuildContext context, {Color? color, String? title}) {
+  static buttonForShareLink(BuildContext context,
+      {Color? color, String? title}) {
     return Container(
       height: 35,
       width: MediaQuery.of(context).size.width * .6,
@@ -964,45 +1491,45 @@ static String dateFormatRetrun(String value) {
     );
   }
 
-  static Future<void> createDynamicLink(String memoryId
-       ) async {
-  // ignore: deprecated_member_use
-  Uri shareLink = Uri();
-
+  static Future<String> createDynamicLink(
+  String memoryId,
+  String title,
+  String imageLink,
+) async {
+  String shareLink = "";
   FirebaseDynamicLinksPlatform dynamicLinks = FirebaseDynamicLinksPlatform.instance;
-  String URI_PREFIX_FIREBASE = "https://stashtdev.page.link";
 
-  ///Dev
-  String DEFAULT_FALLBACK_URL_ANDROID = "https://stashtdev.page.link";
-    // if(shareLink.value !=null){
-    //   return;
-    // }
-    String link = "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=$memoryId";
-    final DynamicLinkParameters parameters = DynamicLinkParameters(
-      uriPrefix: URI_PREFIX_FIREBASE,
-      link: Uri.parse(link),
-      androidParameters: const AndroidParameters(
-        /*  packageName: 'com.app.stasht',*/
-        packageName: 'com.app.stasht.dev',
-        minimumVersion: 1,
-      ),
-      iosParameters: const IOSParameters(
-/*        bundleId: 'com.app.stasht2',*/
-        bundleId: 'com.app.stasht.dev',
-        minimumVersion: '1',
-        appStoreId: '6575378856',
-      ),
-    );
-    // if (short) {
-      final ShortDynamicLink shortLink =
-          await dynamicLinks.buildShortLink(parameters);
-      shareLink = shortLink.shortUrl;
-    // } else {
-    //   shareLink = await dynamicLinks.buildLink(parameters);
-    // }
-    
-print(shareLink);
-    
+  const String URI_PREFIX_FIREBASE = "https://stashtdev.page.link";
+  const String DEFAULT_FALLBACK_URL_ANDROID = "https://stashtdev.page.link";
+
+  String link =
+      "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=${Uri.encodeComponent(memoryId)}"
+      "&title=${Uri.encodeComponent(title)}"
+      "&image_link=${Uri.encodeComponent(imageLink)}";
+
+  final DynamicLinkParameters parameters = DynamicLinkParameters(
+    uriPrefix: URI_PREFIX_FIREBASE,
+    link: Uri.parse(link),
+    androidParameters: const AndroidParameters(
+      packageName: 'com.app.stasht.dev',
+      minimumVersion: 1,
+    ),
+    iosParameters: const IOSParameters(
+      bundleId: 'com.app.stasht.dev',
+      minimumVersion: '1',
+      appStoreId: '6575378856',
+    ),
+  );
+
+  try {
+    final ShortDynamicLink shortLink = await dynamicLinks.buildShortLink(parameters);
+    shareLink = shortLink.shortUrl.toString();
+  } catch (error) {
+    debugPrint("Error generating link: $error");
   }
+
+  debugPrint("Link is $shareLink");
+  return shareLink;
+}
 
 }

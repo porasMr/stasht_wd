@@ -1,9 +1,9 @@
-
 import 'dart:convert';
 
 import 'package:http/http.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
 import 'package:stasht/network/api_callback.dart';
+import 'package:stasht/network/api_url.dart';
 
 import 'network_request.dart';
 
@@ -159,7 +159,6 @@ class ApiCall {
   static Future<void> createCategory(
       {required String api,
       required String name,
-      
       required ApiCallback callack}) async {
     final body = {
       "name": name,
@@ -185,12 +184,8 @@ class ApiCall {
       {required String api,
       required String id,
       required String page,
-      
       required ApiCallback callack}) async {
-    final body = {
-      "memory_id": id,
-      "page":page
-    };
+    final body = {"memory_id": id, "page": page};
     print(body);
 
     try {
@@ -287,7 +282,7 @@ class ApiCall {
       "category_id": id,
       "sub_category_id": sub_category_id,
       "type": type,
-      "page":page
+      "page": page
     };
     print(body);
 
@@ -305,16 +300,22 @@ class ApiCall {
       print(e);
     }
   }
+
   static Future<void> createMemory(
       {required String api,
       required CreateMoemoryModel model,
       required ApiCallback callack}) async {
-    final body = model.toJson();
+    var body;
+    if (api == ApiUrl.createMemory) {
+      body = model.toJson();
+    } else {
+      body = model.toWithMemoryIdJson();
+    }
     print(jsonEncode(body));
 
     try {
-      final Response response =
-          await ApiClient.postTypeWithJsonTokenApi(api: api, body:jsonEncode(body) );
+      final Response response = await ApiClient.postTypeWithJsonTokenApi(
+          api: api, body: jsonEncode(body));
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
       } else {
@@ -324,55 +325,48 @@ class ApiCall {
       }
     } catch (e) {
       print(e);
-        callack.onFailure(
-          json.decode("Something went wrong"),
-        );
+      callack.onFailure(
+        json.decode("Something went wrong"),
+      );
     }
   }
-
-
 
   static Future<void> uploadImageIntoMemory(
       {required String api,
       required String path,
       required String count,
       required ApiCallback callack}) async {
-    
     try {
-      
-       final response=   await ApiClient.uploadImageWithAuth(api: api, path: path);
-       // Handle the response
-  if (response.statusCode == 200) {
-    var responseBody = await response.stream.bytesToString();
-        callack.onSuccess(responseBody+"=$count", api);
+      final response =
+          await ApiClient.uploadImageWithAuth(api: api, path: path);
+      // Handle the response
+      if (response.statusCode == 200) {
+        var responseBody = await response.stream.bytesToString();
+        callack.onSuccess(responseBody + "=$count", api);
 
-    // // Convert the response body to a Map or any other format depending on your API
-    // var decodedResponse = json.decode(responseBody);
+        // // Convert the response body to a Map or any other format depending on your API
+        // var decodedResponse = json.decode(responseBody);
 
-    // // You can now use the response data
-    // print('Response Body: $decodedResponse');
-    // print('Image uploaded successfully!');
-    
-  } else {
-            callack.onFailure("Failed to upload image");
-
-  }
+        // // You can now use the response data
+        // print('Response Body: $decodedResponse');
+        // print('Image uploaded successfully!');
+      } else {
+        callack.onFailure("Failed to upload image");
+      }
     } catch (e) {
       print(e);
-            callack.onFailure("Something went wrong");
+      callack.onFailure("Something went wrong");
     }
   }
 
- static Future<void> createSubCategory(
+  static Future<void> createSubCategory(
       {required String api,
       required String name,
       required String id,
-      
       required ApiCallback callack}) async {
     final body = {
       "name": name,
-            "category_id": id,
-
+      "category_id": id,
     };
     print(body);
 
@@ -390,17 +384,15 @@ class ApiCall {
       print(e);
     }
   }
-  
+
   static Future<void> updateProfile(
       {required String api,
       required String type,
       required String value,
-    
       required ApiCallback callack}) async {
     final body = {
       "type": type,
       "value": value,
-     
     };
     print(body);
 
@@ -423,12 +415,10 @@ class ApiCall {
       {required String api,
       required String newPassword,
       required String oldPassword,
-    
       required ApiCallback callack}) async {
     final body = {
       "new_password": newPassword,
       "old_password": oldPassword,
-     
     };
     print(body);
 
@@ -499,7 +489,7 @@ class ApiCall {
     }
   }
 
-   static Future<void> deleteMemory(
+  static Future<void> deleteMemory(
       {required String api,
       required String id,
       required ApiCallback callack}) async {
@@ -532,7 +522,7 @@ class ApiCall {
     final body = {
       "memory_id": id,
       "file_id": fileId,
-      "description":description,
+      "description": description,
     };
     print(body);
 

@@ -120,6 +120,8 @@ Navigator.pop(context);
   
   @override
   void onFailure(String message) {
+        EasyLoading.show();
+
 CommonWidgets.errorDialog(context, message);
   }
   

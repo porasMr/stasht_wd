@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
         '/WelComeScreen': (BuildContext context) =>  WelcomeScreen(),
         '/SignIn': (BuildContext context) => const SignIn(),
         '/Signup': (BuildContext context) => const Signup(),
-        '/PhotosView': (BuildContext context) =>  PhotosView(photosList: [],),
+        '/PhotosView': (BuildContext context) =>  PhotosView(photosList: [],isSkip: false,),
         '/MyProfileScreen': (BuildContext context) => const OnboardScreen(),
                 '/CreateMemoryScreen': (BuildContext context) =>  CreateMemoryScreen(photosList: [], future: [],isBack: false,),
 

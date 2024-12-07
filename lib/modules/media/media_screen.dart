@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -76,6 +76,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       CategoryMemoryModelWithoutPage();
   bool isTitleFocused = false;
   bool addLable = false;
+  bool isLabelTexFormFeildShow = false;
+  String selectedMemoryId = '';
 
   //----------bottom sheet variable------------
 
@@ -97,6 +99,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   double radians(double degree) {
     return ((degree * 180) / pi);
   }
+
   void swipe(moveEvent) {
     double angle = radians(moveEvent.delta.direction);
     if (angle >= -45 && angle <= 45) {
@@ -126,8 +129,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       debugPrint("Swipe Left");
     }
   }
-
-
 
   @override
   void dispose() {
@@ -161,8 +162,24 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   }
 
   void deselectAll() {
+    selectedMemoryId="";
     for (var photoList in widget.photosList) {
       photoList.selectedValue = false;
+    }
+    if (fbModel.isNotEmpty) {
+      for (var photoList in fbModel) {
+        photoList.isSelected = false;
+      }
+    }
+    if (driveModel.isNotEmpty) {
+      for (var photoList in driveModel) {
+        photoList.isSelected = false;
+      }
+    }
+    if (instaModel.isNotEmpty) {
+      for (var photoList in instaModel) {
+        photoList.isSelected = false;
+      }
     }
   }
 
@@ -218,19 +235,22 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       if (fbModel.isEmpty) {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
-        return CommonWidgets.fbPhtotView(fbModel, viewRefersh);
+        return CommonWidgets.fbPhtotView(fbModel, viewRefersh,
+            selectedCountNotifier: selectedCountNotifier);
       }
     } else if (selectedIndex == 3) {
       if (instaModel.isEmpty) {
         return CommonWidgets.instaView(context, getInstaView);
       } else {
-        return CommonWidgets.instaPhtotView(instaModel, viewRefersh);
+        return CommonWidgets.instaPhtotView(instaModel, viewRefersh,
+            selectedCountNotifier: selectedCountNotifier);
       }
     } else if (selectedIndex == 4) {
       if (driveModel.isEmpty) {
         return CommonWidgets.driveView(context, getDriveView);
       } else {
-        return CommonWidgets.drivePhtotView(driveModel, viewRefersh);
+        return CommonWidgets.drivePhtotView(driveModel, viewRefersh,
+            selectedCountNotifier: selectedCountNotifier);
       }
     }
   }
@@ -320,6 +340,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   @override
   void onFailure(String message) {
+        EasyLoading.show();
+
     CommonWidgets.errorDialog(context, message);
   }
 
@@ -350,18 +372,54 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       print(json.decode(data.split("=")[0])['file'].toString());
 
       print(int.parse(count));
+      uploadCount += 1;
+      progressbarValue = uploadCount / countSelectedPhotos();
+      // Ensure progress doesn't exceed 1.0
+      if (progressbarValue > 1.0) {
+        progressbarValue = 1.0;
+      }
 
-      _progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-
-      print(_progress);
+      progressNotifier.value = progressbarValue;
+      print(progressbarValue);
       createModel.images![int.parse(count)].link =
           json.decode(data.split("=")[0])['file'].toString();
-      setState(() {
-        progressDialog(_progress);
-      });
-    } else if (apiType == ApiUrl.syncAccount) {
+
+      if (valueNotEmpty()) {
+        clossProgressDialog('');
+        if (createModel.memoryId != null) {
+          ApiCall.createMemory(
+              api: ApiUrl.updateMemory, model: createModel, callack: this);
+        } else {
+          ApiCall.createMemory(
+              api: ApiUrl.createMemory,
+              model: createModel,
+              callack: this); // Dismiss the dialog
+        }
+      }
+    } else if (apiType == ApiUrl.createMemory) {
+      deselectAll();
+      titleController.text = "";
+      labelController.text = "";
+
+      CommonWidgets.successDialog(context, json.decode(data)['message']);
+      setState(() {});
+    }else if (apiType == ApiUrl.updateMemory) {
+      deselectAll();
+      titleController.text = "";
+      labelController.text = "";
+
+      CommonWidgets.successDialog(context, json.decode(data)['message']);
       setState(() {});
     }
+     else if (apiType == ApiUrl.syncAccount) {
+      setState(() {});
+    }
+  }
+
+  bool valueNotEmpty() {
+    bool allNonEmpty =
+        createModel.images!.every((element) => element.link!.isNotEmpty);
+    return allNonEmpty;
   }
 
   @override
@@ -370,7 +428,19 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   //-----------------bottom sheet-------------------------
   int countSelectedPhotos() {
     debugPrint("This Invoked Count");
+
     return widget.photosList.where((photo) => photo.selectedValue).length;
+  }
+
+  int allSelectedPhotos() {
+    int value = 0;
+    value =
+        value + widget.photosList.where((photo) => photo.selectedValue).length;
+    value = value + fbModel.where((photo) => photo.isSelected).length;
+    value = value + instaModel.where((photo) => photo.isSelected).length;
+    value = value + driveModel.where((photo) => photo.isSelected).length;
+
+    return value;
   }
 
   String selectedCategory() {
@@ -923,18 +993,19 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       }
     });
     Future.delayed(const Duration(milliseconds: 50), () {
-      Scaffold.of(context).showBottomSheet((BuildContext context) {
-        return SafeArea(
-          top: true,
-          bottom: false,
-          child: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              debugPrint("Update on bottomSheet");
-              return Listener(
-                onPointerMove: (moveEvent) => swipe(moveEvent),
-                child: SingleChildScrollView(
+      bool isReadOnly = false;
+
+      Scaffold.of(context).showBottomSheet(
+        (BuildContext context) {
+          return SafeArea(
+            top: true,
+            bottom: false,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                debugPrint("Update on bottomSheet");
+                return SingleChildScrollView(
                   child: Container(
-                      height: MediaQuery.of(context).size.height / 2,
+                      height: MediaQuery.of(context).size.height / 2 +100,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -1033,21 +1104,41 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                         ),
                                         GestureDetector(
                                           onTap: () {
-                                            if (titleController
-                                                .text.isNotEmpty) {
+                                            if (titleController.text.isEmpty) {
+                                              CommonWidgets.errorDialog(context,
+                                                  "Enter memory title");
+
+                                              //Get.snackbar("Error", "Enter memory title", colorText: AppColors.redColor);
+                                            } else if (allSelectedPhotos() ==
+                                                0) {
+                                              CommonWidgets.errorDialog(context,
+                                                  "Please select photo");
+                                            } else {
                                               FocusManager.instance.primaryFocus
                                                   ?.unfocus();
                                               Navigator.pop(context);
                                               isBottomSheetOpen = false;
-                                              uploadData(
-                                                  selectedCategoryId(), "");
+                                              uploadCount = 1;
+                                              progressbarValue = 0.0;
+                                              if (labelController
+                                                  .text.isEmpty) {
+                                                    isLabelTexFormFeildShow=false;
+                                                uploadData(
+                                                    selectedCategoryId(), '');
+                                              } else {
+                                                                                                    isLabelTexFormFeildShow=false;
+
+                                                ApiCall.createSubCategory(
+                                                    api: ApiUrl
+                                                        .createSubCategory,
+                                                    name: labelController.text,
+                                                    id: selectedCategoryId(),
+                                                    callack: this);
+                                              }
                                               Provider.of<BottomBarVisibilityProvider>(
                                                       context,
                                                       listen: false)
                                                   .showBottomBar();
-                                            } else {
-                                              CommonWidgets.errorDialog(context,
-                                                  "Please enter memory title");
                                             }
                                           },
                                           child: Text(
@@ -1211,49 +1302,159 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                             height: 19.2 / 14,
                                             color: AppColors.primaryColor),
                                       ),
-                                      categoryMemoryModelWithoutPage.data ==
-                                              null
-                                          ? Container()
-                                          : Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(
-                                                  Icons.add,
+                                      if (categoryMemoryModelWithoutPage.data !=
+                                          null)
+                                        isLabelTexFormFeildShow
+                                            ? GestureDetector(
+                                                onTap: () {
+                                                  isLabelTexFormFeildShow =
+                                                      false;
+                                                  titleController.text = "";
+                                                  createModel.memoryId =
+                                                      memoryId;
+                                                  selectedMemoryId = '';
+                                                  setState(() {});
+                                                },
+                                                child: const Icon(
+                                                  Icons.close,
                                                   size: 20,
                                                   color: AppColors.greyColor,
                                                 ),
-                                                TextButton(
-                                                  onPressed: () {
-                                                    //  labelFocusNode.unfocus();
-                
-                                                    // }
-                                                  },
-                                                  child: Text(
-                                                    // controller.isLabelTexFormFeildShow.value
-                                                    //     ? AppStrings.done
-                                                    //     :
-                                                    AppStrings.addNew,
-                                                    style: appTextStyle(
-                                                        fm: interRegular,
-                                                        fz: 14,
-                                                        height: 19.2 / 14,
-                                                        color: AppColors
-                                                            .greyColor),
+                                              )
+                                            : Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.add,
+                                                    size: 20,
+                                                    color: AppColors.greyColor,
                                                   ),
-                                                ),
-                                              ],
-                                            )
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      isReadOnly = false;
+                                                      isLabelTexFormFeildShow =
+                                                          true;
+                                                      setState(() {});
+                                                    },
+                                                    child: Text(
+                                                      // controller.isLabelTexFormFeildShow.value
+                                                      //     ? AppStrings.done
+                                                      //     :
+                                                      AppStrings.addNew,
+                                                      style: appTextStyle(
+                                                          fm: interRegular,
+                                                          fz: 14,
+                                                          height: 19.2 / 14,
+                                                          color: AppColors
+                                                              .greyColor),
+                                                    ),
+                                                  ),
+                                                ],
+                                              )
                                     ],
                                   ),
                                 ),
-                                categoryMemoryModelWithoutPage.data != null
-                                    ? Container()
+                                categoryMemoryModelWithoutPage.data != null &&
+                                        isLabelTexFormFeildShow == false
+                                    ? Container(
+                                        height: 100,
+                                        width:
+                                            MediaQuery.of(context).size.width,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(left:10,right: 10),
+                                          child: ListView.builder(
+                                            padding: EdgeInsets.zero,
+                                              itemCount:
+                                                  categoryMemoryModelWithoutPage
+                                                      .data!.length,
+                                              itemBuilder: (context, index) {
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    isLabelTexFormFeildShow =
+                                                        true;
+                                                    isReadOnly = true;
+                                                    selectedMemoryId =
+                                                        categoryMemoryModelWithoutPage
+                                                            .data![index].id
+                                                            .toString();
+                                                            print(selectedMemoryId);
+                                                    titleController.text =
+                                                        categoryMemoryModelWithoutPage
+                                                            .data![index]
+                                                            .title!;
+                                                    setState(() {});
+                                                  },
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      if(index>0)
+                                                     const SizedBox(
+                                                        height: 5,
+                                                      ),
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(left:8.0,right:8.0),
+                                                        child: Row(
+                                                          children: [
+                                                            ClipRRect(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            5.0),
+                                                                child: CachedNetworkImage(
+                                                                    imageUrl: categoryMemoryModelWithoutPage
+                                                                        .data![
+                                                                            index]
+                                                                        .lastUpdateImg!,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    height: 30,
+                                                                    width: 30,
+                                                                    progressIndicatorBuilder: (context,
+                                                                            url,
+                                                                            downloadProgress) =>
+                                                                        CircularProgressIndicator(
+                                                                            value:
+                                                                                downloadProgress.progress))),
+                                                            SizedBox(
+                                                              width: 5,
+                                                            ),
+                                                            Column(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Text(
+                                                                  categoryMemoryModelWithoutPage
+                                                                      .data![
+                                                                          index]
+                                                                      .title!,
+                                                                  style: appTextStyle(
+                                                                      fm:
+                                                                          interRegular,
+                                                                      fz: 14,
+                                                                      height:
+                                                                          19.2 /
+                                                                              14,
+                                                                      color: AppColors
+                                                                          .black),
+                                                                ),
+                                                              ],
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              }),
+                                        ))
                                     : Padding(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 16.0),
                                         child: TextFormField(
                                           controller: titleController,
                                           focusNode: titleFocusNode,
+                                          readOnly: isReadOnly,
                                           cursorColor: AppColors.primaryColor,
                                           onChanged: (val) {},
                                           style: appTextStyle(
@@ -1446,30 +1647,36 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                           ),
                         )
                       ])),
-                ),
-              );
-            },
-          ),
-        );
-      }, backgroundColor: Colors.transparent, enableDrag: false,);
+                );
+              },
+            ),
+          );
+        },
+        backgroundColor: Colors.transparent,
+        enableDrag: false,
+      );
     });
   }
 
   CreateMoemoryModel createModel = CreateMoemoryModel();
 
   uploadData(String categoryId, String subCategoryId) {
+    if (selectedMemoryId != "") {
+      createModel.memoryId = selectedMemoryId;
+    }
+
     createModel.categoryId = categoryId;
-    createModel.categoryId = categoryId;
+    createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
 
     for (int i = 0; i < widget.photosList.length; i++) {
       if (widget.photosList[i].selectedValue) {
         ImagesFile imp = ImagesFile();
-
+        imp.typeId = widget.photosList[i].assetEntity.id;
         imp.type = "image";
-        imp.captureDate =
-            _getFormattedDateTime(widget.photosList[i].assetEntity);
+        imp.captureDate = _getFormattedDateTime(
+            widget.photosList[i].assetEntity.createDateTime);
         imp.description = '';
         imp.link = '';
 
@@ -1477,30 +1684,89 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         imageFile.add(imp);
       }
     }
-    createModel.images = imageFile;
+    if (fbModel.isNotEmpty) {
+      for (int i = 0; i < fbModel.length; i++) {
+        if (fbModel[i].isSelected) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = fbModel[i].id;
+          imp.type = fbModel[i].type;
+          imp.captureDate = _getFormattedDateTime(fbModel[i].createdTime!);
+          imp.description = '';
+          imp.link = fbModel[i].webLink;
 
-    _progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-
-    progressDialog(_progress);
-
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].selectedValue) {
-        FilePath.getFile(widget.photosList[i].assetEntity).then((value) {
-          ApiCall.uploadImageIntoMemory(
-              api: ApiUrl.uploadImageTomemory,
-              path: value!.path,
-              callack: this,
-              count: i.toString());
-        });
+          imp.location = '';
+          imageFile.add(imp);
+        }
       }
     }
+    if (instaModel.isNotEmpty) {
+      for (int i = 0; i < instaModel.length; i++) {
+        if (instaModel[i].isSelected) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = instaModel[i].id;
+          imp.type = instaModel[i].type;
+          imp.captureDate = _getFormattedDateTime(instaModel[i].createdTime!);
+          imp.description = '';
+          imp.link = instaModel[i].webLink;
+
+          imp.location = '';
+          imageFile.add(imp);
+        }
+      }
+    }
+    if (driveModel.isNotEmpty) {
+      for (int i = 0; i < driveModel.length; i++) {
+        if (driveModel[i].isSelected) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = driveModel[i].id;
+          imp.type = driveModel[i].type;
+          imp.captureDate = _getFormattedDateTime(driveModel[i].createdTime!);
+          imp.description = '';
+          imp.link = driveModel[i].webLink;
+
+          imp.location = '';
+          imageFile.add(imp);
+        }
+      }
+    }
+    createModel.images = imageFile;
+    showProgressDialog(context);
+    progressNotifier.value = progressbarValue;
+    //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
+    processPhotos();
 
     print(createModel.images!.length);
   }
 
-  String _getFormattedDateTime(AssetEntity asset) {
-    final DateTime creationDate =
-        asset.createDateTime; // Get the creation date of the asset
+  Future<void> processPhotos() async {
+    for (int i = 0; i < widget.photosList.length; i++) {
+      if (widget.photosList[i].selectedValue) {
+        print(widget.photosList[i].assetEntity.id);
+
+        for (int j = 0; j < createModel.images!.length; j++) {
+          if (createModel.images![j].typeId ==
+              widget.photosList[i].assetEntity.id) {
+            // Await the file retrieval and API call
+            await FilePath.getFile(widget.photosList[i].assetEntity)
+                .then((value) async {
+              print(value!.path);
+              await ApiCall.uploadImageIntoMemory(
+                api: ApiUrl.uploadImageTomemory,
+                path: value.path,
+                callack: this,
+                count: j.toString(),
+              );
+            });
+
+            print(createModel.images![j].typeId);
+          }
+        }
+      }
+    }
+  }
+
+  String _getFormattedDateTime(DateTime asset) {
+    final DateTime creationDate = asset; // Get the creation date of the asset
     final DateFormat formatter =
         DateFormat('yyyy-MM-dd HH:mm:ss'); // Define the format
     return formatter.format(creationDate); // Format the date as a string
@@ -1695,20 +1961,25 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
       progressbarValue = 0.0;
+      uploadCount = 0;
       if (type == "google_drive_synced") {
         driveModel = photoLinks;
         PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+        ApiCall.syncAccount(
+            api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
         fbModel = photoLinks;
 
         PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
-      } else {
+        ApiCall.syncAccount(
+            api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
+      } else if (type == "instagram_synced") {
         instaModel = photoLinks;
 
         PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+        ApiCall.syncAccount(
+            api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
-      ApiCall.syncAccount(
-          api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
     }
   }
 

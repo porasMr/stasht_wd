@@ -1,13 +1,16 @@
 // ignore_for_file: unnecessary_new, prefer_const_constructors
 
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
+import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memory_details/add_caption.dart';
 import 'package:stasht/modules/memory_details/model/memory_detail_model.dart';
 import 'package:stasht/network/api_call.dart';
@@ -34,7 +37,10 @@ class MemoryDetailPage extends StatefulWidget {
       required this.sharedCount,
       required this.email,
       required this.imageCaptions,
-      required this.pubLished});
+      required this.imageLink,
+      required this.pubLished,
+      required this.future,
+      required this.photosList});
   String memoryTtile = '';
   String userName = '';
   String memoryId = '';
@@ -42,6 +48,9 @@ class MemoryDetailPage extends StatefulWidget {
   String email = '';
   String imageCaptions = '';
   String pubLished = '0';
+  String imageLink;
+  List<Future<Uint8List?>> future = [];
+  List<PhotoModel> photosList = [];
 
   @override
   State<MemoryDetailPage> createState() => _MemoryDetailPageState();
@@ -63,8 +72,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
   void initState() {
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
+      print("${widget.email} ${model.user!.id}");
       setState(() {});
     });
+    
     ApiCall.memoryDetails(
         api: ApiUrl.memoryDetail,
         id: widget.memoryId,
@@ -228,8 +239,27 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            CommonWidgets.createDynamicLink(widget.memoryId);
+                          onTap: () async {
+                            String memoryId = widget.memoryId;
+                            String title = widget.memoryTtile;
+                            String fullImageUrl = widget.imageLink;
+                            String baseUrl =
+                                "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
+                            String imageIdentifier =
+                                fullImageUrl.replaceFirst(baseUrl, "");
+
+                            String link = await CommonWidgets.createDynamicLink(
+                                memoryId, title, imageIdentifier);
+
+                            if (link.isNotEmpty) {
+                              try {
+                                // await Share.share(link);
+                              } catch (error) {
+                                debugPrint("Error sharing link: $error");
+                              }
+                            } else {
+                              debugPrint("Error: Link generation failed.");
+                            }
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(top: 15.0),
@@ -324,7 +354,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                   actions: [
                     Padding(
                       padding: EdgeInsets.only(
-                          right: widget.email == model.user!.email! ? 20 : 0.0),
+                          right: widget.email == model.user!.id.toString() ? 20 : 0.0),
                       child: GestureDetector(
                         onTap: () {
                           isSelected = !isSelected;
@@ -355,17 +385,16 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                               ),
                       ),
                     ),
-                    widget.email == model.user!.email!
+                    widget.email == model.user!.id.toString() 
                         ? GestureDetector(
                             onTapDown: (details) {
                               showPopupMenu(context, true, details)
                                   .then((value) {
                                 if (value != null && value == "Delete") {
-                                  EasyLoading.show();
-                                  ApiCall.deleteMemory(
-                                      api: ApiUrl.deleteMemory,
-                                      id: widget.memoryId,
-                                      callack: this);
+                                  deleteMemoryDialog(context);
+
+                                  
+                                  
                                 } else if (value != null && value == "Edit") {
                                 } else {
                                   //  Get.back();
@@ -384,11 +413,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                               showPopupMenu(context, false, details)
                                   .then((value) {
                                 if (value != null && value == "Delete") {
-                                  EasyLoading.show();
-                                  ApiCall.deleteMemory(
-                                      api: ApiUrl.deleteMemory,
-                                      id: widget.memoryId,
-                                      callack: this);
+                                                                   deleteMemoryDialog(context);
+
                                 } else if (value != null && value == "Edit") {
                                 } else {
                                   //  Get.back();
@@ -415,7 +441,30 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                       child: Column(
                         children: [
                           GestureDetector(
-                            onTap: () {},
+                            onTap: () {
+                               Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (BuildContext context) =>
+                                  CreateMemoryScreen(
+                                photosList: widget.photosList,
+                                future: widget.future,
+                                isBack: true,
+                                isEdit: true,
+                                memoryListData: memoriesModel.data!.data!,
+                              ),
+                            ),
+                          ).then((value) {
+                            if (value != null) {
+                              _currentPage = 1;
+                              ApiCall.memoryDetails(
+                                  api: ApiUrl.memoryDetail,
+                                  id: widget.memoryId,
+                                  page: _currentPage.toString(),
+                                  callack: this);
+                            }
+                          });
+                            },
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
@@ -446,19 +495,28 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                 body: memoriesModel.data!.data!.isEmpty
                     ? GestureDetector(
                         onTap: () {
-                          // final addMediaController =
-                          // Get.put(AddMediaController());
-                          // addMediaController.labelController.value.clear();
-                          // addMediaController.titleController.value.clear();
-                          // Get.toNamed(AppRoutes.addMedia, arguments: {
-                          //   "fromAdd": true,
-                          //   "fromHome": true,
-                          //   "data": controller.detailMemoryModel!
-                          // })?.then((value) {
-                          //   addMediaController.isAdd.value = false;
-                          //   addMediaController.update();
-                          //   getMyMemoryData(memoryId);
-                          // });
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (BuildContext context) =>
+                                  CreateMemoryScreen(
+                                photosList: widget.photosList,
+                                future: widget.future,
+                                isBack: true,
+                                isEdit: true,
+                                memoryListData: [],
+                              ),
+                            ),
+                          ).then((value) {
+                            if (value != null) {
+                              _currentPage = 1;
+                              ApiCall.memoryDetails(
+                                  api: ApiUrl.memoryDetail,
+                                  id: widget.memoryId,
+                                  page: _currentPage.toString(),
+                                  callack: this);
+                            }
+                          });
                         },
                         child: SizedBox(
                           height: MediaQuery.of(context).size.height * .6,
@@ -548,7 +606,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                         ),
                                       ),
                                     ),
-                                    widget.email == model.user!.email!
+                                    widget.email == model.user!.id.toString() 
                                         ? GestureDetector(
                                             onTapDown: (details) {
                                               showPopupMenu(
@@ -557,18 +615,36 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                 if (value != null &&
                                                     value.isNotEmpty &&
                                                     value == "Delete") {
-                                                  EasyLoading.show();
-                                                  ApiCall.deleteMemoryFile(
-                                                      api: ApiUrl
-                                                          .deleteMemoryFile,
-                                                      id: widget.memoryId,
-                                                      fileId: memoriesModel
+                                                      deletePostDialog(context ,memoriesModel
                                                           .data!.data![index].id
-                                                          .toString(),
-                                                      callack: this);
+                                                          .toString());
+                                                  
                                                 } else if (value != null &&
                                                     value.isNotEmpty &&
-                                                    value == "Edit") {}
+                                                    value == "Edit") {
+                                                  Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                          builder: (BuildContext
+                                                                  context) =>
+                                                              AddCaption(
+                                                                id: widget
+                                                                    .memoryId,
+                                                                memoriesModel:
+                                                                    memoriesModel
+                                                                            .data!
+                                                                            .data![
+                                                                        index],
+                                                              ))).then((value) {
+                                                    if (value) {
+                                                      memoriesModel
+                                                          .data!
+                                                          .data![index]
+                                                          .description = value;
+                                                      setState(() {});
+                                                    }
+                                                  });
+                                                }
                                               });
                                             },
                                             child: Container(
@@ -592,15 +668,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                 if (value != null &&
                                                     value.isNotEmpty &&
                                                     value == "Delete") {
-                                                  EasyLoading.show();
-                                                  ApiCall.deleteMemoryFile(
-                                                      api: ApiUrl
-                                                          .deleteMemoryFile,
-                                                      id: widget.memoryId,
-                                                      fileId: memoriesModel
+                                                      deletePostDialog(context ,memoriesModel
                                                           .data!.data![index].id
-                                                          .toString(),
-                                                      callack: this);
+                                                          .toString());
+                                                  
                                                 } else if (value != null &&
                                                     value.isNotEmpty &&
                                                     value == "Edit") {}
@@ -843,7 +914,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                 SizedBox(width: 8),
                                                 // Add some spacing between the timestamp and caption
                                                 if (widget.email ==
-                                                    model.user!.email!)
+                                                   model.user!.id.toString() )
                                                   GestureDetector(
                                                     onTap: () {
                                                       Navigator.push(
@@ -1285,7 +1356,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
             ],
           ),
         ),
-        if (widget.email != model.user!.email)
+        if (widget.email != model.user!.id.toString() )
           PopupMenuItem(
             value: 2,
             // row has two child icon and text.
@@ -1619,5 +1690,232 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
       return selectedItem;
     }
     return null;
+  }
+
+   deleteMemoryDialog(BuildContext context,) {
+    showDialog(
+      barrierColor: Colors.transparent,
+       context: context, builder: (BuildContext context) { return Dialog(
+        backgroundColor: AppColors.textfieldFillColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Container(
+          width: 312,
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+          height: 280,
+          // Add padding for spacing
+          decoration: BoxDecoration(
+            color: AppColors.textfieldFillColor,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              // Center content vertically
+              children: [
+                const SizedBox(
+                  height: 25,
+                ),
+                Text(
+                  AppStrings.deleteMemory,
+                  style: appTextStyle(
+                    fz: 24,
+                    height: 32 / 24,
+                    fm: robotoRegular,
+                  ),
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(height: 16),
+                // Add spacing between elements
+                Text(
+                  "By tapping “Delete”, you are choosing to delete this memory permanently including photos and comments.",
+                  style: appTextStyle(
+                    fz: 14,
+                    height: 20 / 14,
+                    fm: robotoRegular,
+                    color: AppColors.dialogMiddleFontColor,
+                  ),
+                  textAlign: TextAlign.justify,
+                ),
+                const SizedBox(height: 40),
+                // Add spacing before the close button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () {
+Navigator.pop(context);                        },
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            AppStrings.cancel,
+                            style: appTextStyle(
+                              fz: 14,
+                              height: 20 / 14,
+                              fm: robotoMedium,
+                              color: AppColors.primaryColor,
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 15),
+                    Container(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                         EasyLoading.show();
+                                  ApiCall.deleteMemory(
+                                      api: ApiUrl.deleteMemory,
+                                      id: widget.memoryId,
+                                      callack: this);
+                        },
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            AppStrings.delete,
+                            style: appTextStyle(
+                              fz: 14,
+                              height: 20 / 14,
+                              fm: robotoMedium,
+                              color: AppColors.primaryColor,
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ); },
+    );
+  }
+
+  deletePostDialog(
+      BuildContext context,
+      String id
+     ) {
+    showDialog(
+      context:context,
+      barrierColor: Colors.transparent, builder: (BuildContext context) { return Dialog(
+        backgroundColor: AppColors.textfieldFillColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Container(
+          width: 312,
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+          height: 280,
+          // Add padding for spacing
+          decoration: BoxDecoration(
+            color: AppColors.textfieldFillColor,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              // Center content vertically
+              children: [
+                const SizedBox(
+                  height: 25,
+                ),
+                Text(
+                  AppStrings.deletePost,
+                  style: appTextStyle(
+                    fz: 24,
+                    height: 32 / 24,
+                    fm: robotoRegular,
+                  ),
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(height: 16),
+                // Add spacing between elements
+                Text(
+                  "By tapping “Delete”, you are choosing to delete this post permanently including comments.",
+                  style: appTextStyle(
+                    fz: 14,
+                    height: 20 / 14,
+                    fm: robotoRegular,
+                    color: AppColors.dialogMiddleFontColor,
+                  ),
+                  textAlign: TextAlign.justify,
+                ),
+                const SizedBox(height: 40),
+                // Add spacing before the close button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            AppStrings.cancel,
+                            style: appTextStyle(
+                              fz: 14,
+                              height: 20 / 14,
+                              fm: robotoMedium,
+                              color: AppColors.primaryColor,
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Container(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () async {
+                                                   Navigator.pop(context);
+
+EasyLoading.show();
+                                                  ApiCall.deleteMemoryFile(
+                                                      api: ApiUrl
+                                                          .deleteMemoryFile,
+                                                      id: widget.memoryId,
+                                                      fileId: id,
+                                                      callack: this);
+                        
+                        },
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            AppStrings.delete,
+                            style: appTextStyle(
+                              fz: 14,
+                              height: 20 / 14,
+                              fm: robotoMedium,
+                              color: AppColors.primaryColor,
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ); },
+      
+    );
   }
 }

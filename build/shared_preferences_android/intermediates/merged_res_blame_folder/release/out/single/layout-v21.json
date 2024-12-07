@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/shared_preferences_android/intermediates/merged_res/release/layout-v21/notification_template_custom_big.xml",
+        "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/layout-v21/notification_template_custom_big.xml"
+    },
+    {
+        "merged": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/shared_preferences_android/intermediates/merged_res/release/layout-v21/notification_template_icon_group.xml",
+        "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/layout-v21/notification_template_icon_group.xml"
+    },
+    {
+        "merged": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/shared_preferences_android/intermediates/merged_res/release/layout-v21/notification_action_tombstone.xml",
+        "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/layout-v21/notification_action_tombstone.xml"
+    },
+    {
+        "merged": "/Users/worksdelight/Documents/poras/Stasht-Flutter-aef6af3bdadb177072d9051d0a0d807eb878b93e/build/shared_preferences_android/intermediates/merged_res/release/layout-v21/notification_action.xml",
+        "source": "/Users/worksdelight/.gradle/caches/transforms-3/64631793e602615559cfb1a271f1cacb/transformed/core-1.6.0/res/layout-v21/notification_action.xml"
+    }
+]

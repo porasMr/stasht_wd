@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
+import 'package:stasht/modules/login_signup/presentation/pages/forgot_password_screen.dart';
 import 'package:stasht/modules/login_signup/presentation/pages/sign_up.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/onboarding/onboarding_screen.dart';
@@ -18,6 +19,7 @@ import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/pref_utils.dart';
+
 
 class SignIn extends StatefulWidget {
   const SignIn({super.key});
@@ -33,7 +35,7 @@ class _SignInState extends State<SignIn> implements ApiCallback {
   bool isEmail = false;
   bool isLoggedIn = false;
   var profileData;
-  final bool isObscure = true;
+  bool isObscure = true;
   final bool isLoginObscure = true;
   final bool isObscureCP = true;
   var isLoadingDriveImages = false.obs;
@@ -58,11 +60,29 @@ class _SignInState extends State<SignIn> implements ApiCallback {
     CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
-            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false));
+            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
         // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
       }
     }));
+    emailFocusNode.addListener(() {
+      setState(() {
+        isEmailFocused = emailFocusNode.hasFocus;
+      });
+    });
+
+    passwordFocusNode.addListener(() {
+      setState(() {
+        isPasswordFocused = passwordFocusNode.hasFocus;
+      });
+    });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   void onLoginStatusChanged(bool isLoggedIn, {profileData}) {
@@ -236,85 +256,102 @@ class _SignInState extends State<SignIn> implements ApiCallback {
                         height: 15,
                       ),
                       Container(
-                          alignment: Alignment.center,
-                          height: 50,
-                          decoration: BoxDecoration(
-                              border: Border.all(
-                                  width: isPasswordFocused ||
+                        alignment: Alignment.center,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            width: isPasswordFocused ||
+                                    passwordController.text.isNotEmpty
+                                ? 1
+                                : 0,
+                            color: isPasswordFocused ||
+                                    passwordController.text.isNotEmpty
+                                ? AppColors.primaryColor
+                                : Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          color: isPasswordFocused ||
+                                  passwordController.text.isNotEmpty
+                              ? Colors.white
+                              : AppColors.textfieldFillColor.withOpacity(0.75),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                focusNode: passwordFocusNode,
+                                obscureText: isObscure, // Toggles visibility
+                                controller: passwordController,
+                                decoration: InputDecoration(
+                                  prefixIcon: isPasswordFocused ||
                                           passwordController.text.isNotEmpty
-                                      ? 1
-                                      : 0,
-                                  color: isPasswordFocused ||
-                                          passwordController.text.isNotEmpty
-                                      ? AppColors.primaryColor
-                                      : Colors.transparent),
-                              borderRadius: BorderRadius.circular(16),
-                              color: isPasswordFocused ||
-                                      passwordController.text.isNotEmpty
-                                  ? Colors.white
-                                  : AppColors.textfieldFillColor
-                                      .withOpacity(0.75)),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  focusNode: passwordFocusNode,
-                                  obscureText: isObscure,
-                                  controller: passwordController,
-                                  decoration: InputDecoration(
-                                    prefixIcon: isPasswordFocused ||
-                                            passwordController.text.isNotEmpty
-                                        ? null
-                                        : const SizedBox(
-                                            height: 16,
-                                            width: 16,
-                                            child: Icon(
-                                              Icons.lock_outline,
-                                              color: AppColors.primaryColor,
-                                            ),
+                                      ? null
+                                      : const SizedBox(
+                                          height: 16,
+                                          width: 16,
+                                          child: Icon(
+                                            Icons.lock_outline,
+                                            color: AppColors.primaryColor,
                                           ),
-                                    labelText: AppStrings.password,
-                                    hintStyle: appTextStyle(
-                                      fz: 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
-                                    ),
-                                    labelStyle: appTextStyle(
-                                      fz: isPasswordFocused ? 13 : 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
-                                    ),
-                                    suffixIcon: GestureDetector(
-                                        behavior: HitTestBehavior.translucent,
-                                        onTap: () {},
-                                        child: const Icon(
-                                          Icons.visibility_off,
-                                          color: AppColors.primaryColor,
-                                        )),
-                                    errorStyle: const TextStyle(
-                                        color: AppColors.errorColor),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.fromLTRB(
-                                        20, 5, 20, 10),
+                                        ),
+                                  labelText: AppStrings.password,
+                                  hintStyle: appTextStyle(
+                                    fz: 17,
+                                    color: AppColors.primaryColor,
+                                    fm: interRegular,
                                   ),
-                                  style: const TextStyle(
-                                      color: Colors.black, fontSize: 17),
+                                  labelStyle: appTextStyle(
+                                    fz: isPasswordFocused ? 13 : 17,
+                                    color: AppColors.primaryColor,
+                                    fm: interRegular,
+                                  ),
+                                  suffixIcon: GestureDetector(
+                                    behavior: HitTestBehavior.translucent,
+                                    onTap: () {
+                                      setState(() {
+                                        isObscure =
+                                            !isObscure; // Toggles the obscure text state
+                                      });
+                                    },
+                                    child: Icon(
+                                      isObscure
+                                          ? Icons
+                                              .visibility_off // Eye closed icon
+                                          : Icons.visibility, // Eye open icon
+                                      color: AppColors.primaryColor,
+                                    ),
+                                  ),
+                                  errorStyle: const TextStyle(
+                                      color: AppColors.errorColor),
+                                  border: InputBorder.none,
+                                  contentPadding:
+                                      const EdgeInsets.fromLTRB(20, 5, 20, 10),
                                 ),
+                                style: const TextStyle(
+                                    color: Colors.black, fontSize: 17),
                               ),
-                            ],
-                          )),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 10),
                       GestureDetector(
                         behavior: HitTestBehavior.translucent,
                         onTap: () {
-                         // Get.toNamed(AppRoutes.forgotPassword);
-                          // if(loginemailController.text.trim().isNotEmpty){
-                          //   resetPassword(email: loginemailController.text.trim());
-                          // }
-                          // else{
-                          //   Get.snackbar("Error", "Please enter email",
-                          //       colorText: Colors.white);
-                          // }
+                          if (emailController.text.trim().isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (BuildContext context) => ForgotPassword(
+                                  email: emailController.text.trim(),
+                                ),
+                              ),
+                            );
+
+                          } else {
+                            CommonWidgets.errorDialog(
+                                context, 'Please enter email');
+                          }
                         },
                         child: Align(
                             alignment: Alignment.centerRight,
@@ -342,9 +379,10 @@ class _SignInState extends State<SignIn> implements ApiCallback {
                       InkWell(
                         onTap: () {
                           Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) =>const Signup()));
+                              context,
+                              MaterialPageRoute(
+                                  builder: (BuildContext context) =>
+                                      const Signup()));
                         },
                         child: Center(
                           child: Center(
@@ -391,16 +429,15 @@ class _SignInState extends State<SignIn> implements ApiCallback {
 
   bool checkSignInValidation() {
     if (emailController.text.isEmpty) {
-      Get.snackbar("Error", "Enter a email!", colorText: Colors.red);
+      CommonWidgets.errorDialog(context, "Enter a email!");
       return false;
     } else if (!RegExp(
             r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
         .hasMatch(emailController.text)) {
-      Get.snackbar("Warning", "Enter a valid email!", colorText: Colors.red);
+      CommonWidgets.errorDialog(context, "Enter a valid email!");
       return false;
     } else if (passwordController.text.isEmpty) {
-      Get.snackbar("Error", "Password field can't be empty!",
-          colorText: Colors.red);
+      CommonWidgets.errorDialog(context, "Password field can't be empty!");
       return false;
     } else {
       return true;
@@ -409,7 +446,8 @@ class _SignInState extends State<SignIn> implements ApiCallback {
 
   @override
   void onFailure(String message) {
-    Get.snackbar("Error", message, colorText: Colors.red);
+
+    CommonWidgets.errorDialog(context, message);
   }
 
   @override
@@ -433,14 +471,14 @@ class _SignInState extends State<SignIn> implements ApiCallback {
             context,
             MaterialPageRoute(
                 builder: (BuildContext context) =>
-                    PhotosView(photosList: photosList)));
+                    PhotosView(photosList: photosList,isSkip: false,)));
       }
     } else {
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
               builder: (BuildContext context) =>
-                  PhotosView(photosList: photosList)));
+                  PhotosView(photosList: photosList, isSkip: false,)));
     }
 
     print(model.token!);

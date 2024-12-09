@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/login_signup/presentation/pages/sign_in.dart';
 import 'package:stasht/modules/onboarding/onboarding_screen.dart';
+import 'package:stasht/modules/photos/photos_screen.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
 import 'package:stasht/network/api_url.dart';
@@ -497,10 +498,12 @@ class _SignupState extends State<Signup> implements ApiCallback {
           MaterialPageRoute(
               builder: (BuildContext context) => const OnboardScreen()));
     } else if (apiType == ApiUrl.socialLogin) {
+      
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
               builder: (BuildContext context) => const OnboardScreen()));
+      
     }
   }
 

@@ -114,7 +114,7 @@ class CommonWidgets {
   static Future<AccessToken?>? loginWithFacebook() async {
     final LoginResult result = Platform.isAndroid
         ? await FacebookAuth.instance
-            .login(permissions: ['email', 'user_photos', 'public_profile'])
+            .login(permissions: ['email', 'user_photos'])
         : await FacebookAuth.instance.login();
     if (result.status == LoginStatus.success) {
       // print('Access Token: ${accessToken.tokenString}');
@@ -194,7 +194,7 @@ class CommonWidgets {
 
   static progressDialog() {
     double _progress = 0.0;
-    Timer.periodic(const Duration(milliseconds: 100), (Timer timer) {
+    Timer.periodic(const Duration(milliseconds: 50), (Timer timer) {
       _progress += 0.03;
 
       EasyLoading.showProgress(

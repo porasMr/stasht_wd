@@ -2,16 +2,13 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:googleapis/mybusinessbusinessinformation/v1.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/media_screen.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/memories_screen.dart';
-import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/profile/profile_screen.dart';
 
 import 'package:stasht/utils/app_colors.dart';
@@ -245,27 +242,14 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
               key: _scaffoldKey,
               photosList: widget.photosList,
               isSkip: (){
-                 Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (BuildContext context) => CreateMemoryScreen(
-          photosList: widget.photosList,
-          future: future,
-          isBack: true,
-        ),
-      ),
-    ).then((value) {
-      if (value != null) {
-        _scaffoldKey.currentState!.refrehScreen();
-        setState(() {});
-      }
-    });
+                
               },
             )
           : selectedIndex == 1
               ? MediaScreen(
                   future: future,
                   photosList: widget.photosList,
+                  isFromSignUp: false,
                 )
               : Container(),
     );

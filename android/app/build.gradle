@@ -92,13 +92,13 @@ signingConfigs {
             dimension "app"
             applicationId "com.app.stasht.dev"
 
-            resValue "string", "app_name", "Stash Dev"
+            resValue "string", "app_name", "Stasht Dev"
         }
         prod {
             dimension "app"
             applicationId "com.app.stasht"
 
-            resValue "string", "app_name", "Stash"
+            resValue "string", "app_name", "Stasht"
         }
     }
 }

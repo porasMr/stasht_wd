@@ -1,12 +1,9 @@
 import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:get/get.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/model/category_memory_model.dart';
@@ -897,7 +894,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                         BorderRadius.circular(
                                                             18)),
                                                 child: Text(
-                                                  '${memory.postsCount}',
+                                                  'Post ${memory.postsCount}',
                                                   style: appTextStyle(
                                                     fm: interMedium,
                                                     fz: 12,

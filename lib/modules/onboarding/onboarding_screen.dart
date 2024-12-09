@@ -8,7 +8,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
+import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stasht/modules/login_signup/domain/user_model.dart';
+import 'package:stasht/modules/media/media_screen.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/onboarding/domain/model/favebook_photo.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
@@ -51,21 +54,37 @@ var fbValue = false;
   var groupedAssets = {};
 List<PhotoModel> photosList = [];
  SharedPreferences? pref;
+   List<Future<Uint8List?>> future = [];
 
+UserModel model=UserModel();
 @override
   void initState() {
-
+PrefUtils.instance.getUserFromPrefs().then((value) {
+      model = value!;
+      setState(() {});
+    });
      SharedPreferences.getInstance().then((value) => pref=value);
     pref?.setBool("isFirstOnBoard", true);
      CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
             .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
+            if(allAssets.length-1==i){
+            getImageFutureData();
+
+            }
            // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
       }
      
     })); 
        super.initState();
+  }
+  getImageFutureData(){
+      for (int i = 0; i < photosList.length; i++) {
+      future.add(photosList[i].assetEntity
+          .thumbnailDataWithSize(ThumbnailSize(300, 300)));
+      // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
+    }
   }
   @override
   Widget build(BuildContext context) {
@@ -772,8 +791,16 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
   @override
   void onSuccess(String data, String apiType) {
     if(apiType==ApiUrl.syncAccount){
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList,isSkip: false,)));
+      if(model.user!.facebookSynced!=0||model.user!.googleDriveSynced!=0||model.user!.instagramSynced!=0){
+                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList,isSkip: false,)));
 
+      }else{
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => MediaScreen(photosList:photosList,future: future,isFromSignUp: true,)));
+
+      }
+
+
+ 
    }
   }
 

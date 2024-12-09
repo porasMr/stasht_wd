@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:stasht/modules/create_memory/create_memory.dart';
 
@@ -21,14 +22,12 @@ import 'package:provider/provider.dart';
 void configLoading() {
   EasyLoading.instance
     ..displayDuration = const Duration(milliseconds: 2000)
-    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
+    ..indicatorType = EasyLoadingIndicatorType.circle
     ..loadingStyle = EasyLoadingStyle.light
     ..indicatorSize = 45.0
     ..radius = 10.0
     ..progressColor = Colors.blue
     ..backgroundColor = Colors.white
-    ..indicatorColor = Colors.yellow
-    ..textColor = Colors.yellow
     ..maskColor = Colors.blue
     ..userInteractions = true
     ..dismissOnTap = false;
@@ -37,6 +36,7 @@ void configLoading() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
          await  PrefUtils.instance.init();
+  await dotenv.load();
 
    configLoading();
 

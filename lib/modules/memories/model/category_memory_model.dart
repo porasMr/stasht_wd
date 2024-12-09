@@ -168,11 +168,11 @@ class MemoryData {
     inviteLink = json['invite_link'];
     minUploadedImgDate = json['min_uploaded_img_date'];
     maxUploadedImgDate = json['max_uploaded_img_date'];
-    lastUpdateImg = json['last_update_img'];
+    lastUpdateImg = json['last_update_img']??'';
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
     deletedAt = json['deleted_at'];
-    postsCount = json['posts_count'];
+    postsCount = json['posts_count']??0;
     collaboratorCount = json['collaborator_count'];
     subCategory = json['sub_category'] != null
         ?  SubCategory.fromJson(json['sub_category'])

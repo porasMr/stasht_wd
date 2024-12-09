@@ -16,6 +16,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/bottom_bar_visibility_provider.dart';
+import 'package:stasht/modules/invite_collaborator/invite_collaborator_screen.dart';
 import 'package:stasht/modules/media/image_grid.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
@@ -23,6 +24,7 @@ import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/memories/model/subcategory.dart';
 import 'package:stasht/modules/onboarding/domain/model/favebook_photo.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
+import 'package:stasht/modules/photos/photos_screen.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
 import 'package:stasht/network/api_url.dart';
@@ -43,9 +45,15 @@ import 'model/phot_mdoel.dart';
 // ignore: must_be_immutable
 
 class MediaScreen extends StatefulWidget {
-  MediaScreen({super.key, required this.future, required this.photosList});
+  MediaScreen(
+      {super.key,
+      required this.future,
+      required this.photosList,
+      required this.isFromSignUp});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
+  List<PhotoModel> isFrom = [];
+  bool isFromSignUp;
 
   @override
   State<MediaScreen> createState() => _MediaScreenState();
@@ -159,10 +167,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     });
     deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
+    if (widget.isFromSignUp) {
+      showFirstMemoryDialog(context);
+    }
   }
 
   void deselectAll() {
-    selectedMemoryId="";
+    selectedMemoryId = "";
     for (var photoList in widget.photosList) {
       photoList.selectedValue = false;
     }
@@ -203,6 +214,56 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
     return Scaffold(
+      appBar: widget.isFromSignUp
+          ? AppBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              leading: const IgnorePointer(),
+              leadingWidth: 0,
+              actions: [
+                GestureDetector(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (BuildContext context) => PhotosView(
+                                    photosList: widget.photosList,
+                                    isSkip: false,
+                                  )));
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 15.0),
+                      child: Text(
+                        AppStrings.skip,
+                        style: appTextStyle(
+                            fz: 17,
+                            fm: interMedium,
+                            color: AppColors.primaryColor),
+                      ),
+                    ))
+              ],
+              title: Row(
+                children: [
+                  GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Icon(Icons.arrow_back)),
+                  const SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    "Photos",
+                    style: appTextStyle(
+                        fz: 22,
+                        height: 28 / 22,
+                        fm: robotoRegular,
+                        color: Colors.black),
+                  ),
+                ],
+              ),
+            )
+          : null,
       body: Column(
         children: [
           const SizedBox(
@@ -340,7 +401,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   @override
   void onFailure(String message) {
-        EasyLoading.show();
+    EasyLoading.show();
 
     CommonWidgets.errorDialog(context, message);
   }
@@ -402,16 +463,28 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       labelController.text = "";
 
       CommonWidgets.successDialog(context, json.decode(data)['message']);
+      if (widget.isFromSignUp) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) => InviteCollaborator(
+                      title: json.decode(data)['memory']['title'].toString(),
+                      memoryId: json.decode(data)['memory']['id'].toString(),
+                      image: json
+                          .decode(data)['memory']['last_update_img']
+                          .toString(),
+                      photosList: widget.photosList,
+                    )));
+      }
       setState(() {});
-    }else if (apiType == ApiUrl.updateMemory) {
+    } else if (apiType == ApiUrl.updateMemory) {
       deselectAll();
       titleController.text = "";
       labelController.text = "";
 
       CommonWidgets.successDialog(context, json.decode(data)['message']);
       setState(() {});
-    }
-     else if (apiType == ApiUrl.syncAccount) {
+    } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
     }
   }
@@ -1005,7 +1078,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height: MediaQuery.of(context).size.height / 2 +100,
+                      height: MediaQuery.of(context).size.height / 2 + 100,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -1122,11 +1195,11 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               progressbarValue = 0.0;
                                               if (labelController
                                                   .text.isEmpty) {
-                                                    isLabelTexFormFeildShow=false;
+                                                isLabelTexFormFeildShow = false;
                                                 uploadData(
                                                     selectedCategoryId(), '');
                                               } else {
-                                                                                                    isLabelTexFormFeildShow=false;
+                                                isLabelTexFormFeildShow = false;
 
                                                 ApiCall.createSubCategory(
                                                     api: ApiUrl
@@ -1303,7 +1376,9 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                             color: AppColors.primaryColor),
                                       ),
                                       if (categoryMemoryModelWithoutPage.data !=
-                                          null)
+                                              null ||
+                                          categoryMemoryModelWithoutPage
+                                              .data!.isNotEmpty)
                                         isLabelTexFormFeildShow
                                             ? GestureDetector(
                                                 onTap: () {
@@ -1354,16 +1429,18 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                     ],
                                   ),
                                 ),
-                                categoryMemoryModelWithoutPage.data != null &&
+                                categoryMemoryModelWithoutPage
+                                            .data!.isNotEmpty &&
                                         isLabelTexFormFeildShow == false
                                     ? Container(
                                         height: 100,
                                         width:
                                             MediaQuery.of(context).size.width,
                                         child: Padding(
-                                          padding: EdgeInsets.only(left:10,right: 10),
+                                          padding: EdgeInsets.only(
+                                              left: 10, right: 10),
                                           child: ListView.builder(
-                                            padding: EdgeInsets.zero,
+                                              padding: EdgeInsets.zero,
                                               itemCount:
                                                   categoryMemoryModelWithoutPage
                                                       .data!.length,
@@ -1377,7 +1454,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                         categoryMemoryModelWithoutPage
                                                             .data![index].id
                                                             .toString();
-                                                            print(selectedMemoryId);
+                                                    print(selectedMemoryId);
                                                     titleController.text =
                                                         categoryMemoryModelWithoutPage
                                                             .data![index]
@@ -1385,14 +1462,19 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                     setState(() {});
                                                   },
                                                   child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
-                                                      if(index>0)
-                                                     const SizedBox(
-                                                        height: 5,
-                                                      ),
+                                                      if (index > 0)
+                                                        const SizedBox(
+                                                          height: 5,
+                                                        ),
                                                       Padding(
-                                                        padding: const EdgeInsets.only(left:8.0,right:8.0),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                left: 8.0,
+                                                                right: 8.0),
                                                         child: Row(
                                                           children: [
                                                             ClipRRect(
@@ -2222,5 +2304,83 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     } else {
       throw Exception('Failed to load photos');
     }
+  }
+
+  showFirstMemoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: AppColors.textfieldFillColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Container(
+            width: 312,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            height: 280,
+            // Add padding for spacing
+            decoration: BoxDecoration(
+              color: AppColors.textfieldFillColor,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              // Center content vertically
+              children: [
+                const SizedBox(
+                  height: 15,
+                ),
+                Text(
+                  AppStrings.addFirstMemory,
+                  style: appTextStyle(
+                    fz: 24,
+                    height: 32 / 24,
+                    fm: robotoRegular,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16), // Add spacing between elements
+                Text(
+                  AppStrings.chooseFewPhotos,
+                  style: appTextStyle(
+                    fz: 14,
+                    height: 20 / 14,
+                    fm: robotoRegular,
+                    color: AppColors.dialogMiddleFontColor,
+                  ),
+                  textAlign: TextAlign.justify,
+                ),
+                const SizedBox(
+                    height: 30), // Add spacing before the close button
+                Container(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () {
+                      Get.back();
+                    },
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        AppStrings.close,
+                        style: appTextStyle(
+                          fz: 14,
+                          height: 20 / 14,
+                          fm: robotoMedium,
+                          color: AppColors.primaryColor,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      barrierColor: Colors.transparent,
+    );
   }
 }

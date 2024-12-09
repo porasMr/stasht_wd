@@ -77,6 +77,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   final FocusNode titleFocusNode = FocusNode();
   GlobalKey<_MediaScreenState> _titleWidgetKey = GlobalKey();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool isExpandedDrop = false;
   bool isLableAvailable = false;
 
@@ -167,9 +168,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     });
     deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
-    if (widget.isFromSignUp) {
-      showFirstMemoryDialog(context);
-    }
   }
 
   void deselectAll() {
@@ -214,6 +212,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
     return Scaffold(
+      key: _scaffoldKey,
       appBar: widget.isFromSignUp
           ? AppBar(
               backgroundColor: Colors.white,
@@ -331,7 +330,12 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   viewRefersh() {
     debugPrint("Refresh Function Count");
     setState(() {});
-    openAddPillBottomSheet(context);
+    if(widget.isFromSignUp){
+      openAddPillBottomSheetForSignUp(context);
+    }else{
+      openAddPillBottomSheet(context);
+
+    }
   }
 
   //------------Tab function---------------
@@ -401,14 +405,19 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   @override
   void onFailure(String message) {
-    EasyLoading.show();
+    EasyLoading.dismiss();
 
     CommonWidgets.errorDialog(context, message);
   }
 
   @override
   void onSuccess(String data, String apiType) {
+    print(data);
     if (apiType == ApiUrl.categories) {
+      if (widget.isFromSignUp) {
+        showFirstMemoryDialog(context);
+      }
+      debugPrint("Data Come now..");
       categoryModel = CategoryModel.fromJson(jsonDecode(data));
       categoryModel.categories![0].isSelected = true;
 
@@ -539,517 +548,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   String selectedSubCategory() {
     for (var category in categoryMemoryModelWithoutPage.subCategories!) {
       if (category.isselected) {
-        return category.name!;
+        return category.id.toString();
       }
     }
     return '';
   }
 
-/*============================================================================  UI Restrict if we used showModalBottomSheet ===================================================================*/
 
-/*  void openAddPillBottomSheet(BuildContext context) {
-    if (isBottomSheetOpen) return;
-
-    isBottomSheetOpen = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final titleContext = _titleWidgetKey.currentContext;
-      if (titleContext != null) {
-        FocusScope.of(titleContext).requestFocus(titleFocusNode);
-      }
-    });
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor:
-      Colors.transparent,
-      isDismissible: false,
-      enableDrag: false,
-      builder: (context) {
-        return StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-          return SafeArea(
-            top: true,
-            bottom: false,
-            child: DraggableScrollableSheet(
-              initialChildSize: initialChildSize,
-              minChildSize: 0.1,
-              maxChildSize: 0.9,
-              builder: (context, scrollController) => PhysicalModel(
-                color: Colors.white,
-                elevation: 10,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
-                ),
-                shadowColor: Colors.black.withOpacity(0.5),
-                child: Container(
-                  height: _bottomSheetHeight,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(25),
-                      topRight: Radius.circular(25),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        spreadRadius: 2,
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  width: MediaQuery.of(context).size.width,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context)
-                          .viewInsets
-                          .bottom, // Avoid keyboard overlap
-                    ),
-                    child: ListView(
-                      controller: scrollController,
-                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior
-                          .onDrag, // Dismiss on scroll
-
-                      children: [
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              height: 5,
-                              width: 36,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(100),
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: 48,
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    InkWell(
-                                      child: const Icon(Icons.close),
-                                      onTap: () {
-                                        FocusManager.instance.primaryFocus
-                                            ?.unfocus();
-                                        titleController.clear();
-                                        Navigator.pop(context);
-                                        isBottomSheetOpen = false;
-                                      },
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      AppStrings.addAMemory,
-                                      style: appTextStyle(
-                                        fm: robotoBold,
-                                        fz: 20,
-                                        color: Colors.black,
-                                        height: 25 / 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 5),
-                                    ValueListenableBuilder<int>(
-                                      valueListenable: selectedCountNotifier,
-                                      builder: (context, selectedCount, child) {
-                                        return Text(
-                                          "($selectedCount)",
-                                          style: appTextStyle(
-                                            fm: robotoBold,
-                                            fz: 20,
-                                            color: Colors.black,
-                                            height: 25 / 20,
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  ],
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    if (titleController.text.isNotEmpty) {
-                                      FocusManager.instance.primaryFocus
-                                          ?.unfocus();
-                                      Navigator.pop(context);
-                                      isBottomSheetOpen = false;
-                                      uploadData(selectedCategoryId(), "");
-                                    } else {
-                                      CommonWidgets.errorDialog(
-                                          context, "Please enter memory title");
-                                    }
-                                  },
-                                  child: Text(
-                                    AppStrings.done,
-                                    style: appTextStyle(
-                                      fm: robotoRegular,
-                                      fz: 17,
-                                      color: titleController.text.isNotEmpty
-                                          ? AppColors.black
-                                          : const Color(0XFF858484),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 13),
-                        Divider(
-                          color: AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20.0, vertical: 10),
-                          child: Row(
-                            children: [
-                              if ((categoryModel.categories?.length ?? 0) > 1)
-                                GestureDetector(
-                                  onTap: () {
-                                    isExpandedDrop = !isExpandedDrop;
-                                    setState(() {});
-                                  },
-                                  child: Container(
-                                    width: 24.0,
-                                    margin: const EdgeInsets.only(
-                                        top: 8, left: 15, bottom: 10),
-                                    child: Image.asset(isExpandedDrop
-                                        ? chevronDown
-                                        : chevronLeft),
-                                  ),
-                                ),
-                              Image.asset(
-                                book,
-                                height: 15,
-                                width: 15,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                selectedCategory(),
-                                style: appTextStyle(
-                                    fm: robotoMedium,
-                                    fz: 14,
-                                    color: AppColors.black),
-                              ),
-                            ],
-                          ),
-                        ),
-                        isExpandedDrop
-                            ? Container(
-                                height: 40,
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: ListView.builder(
-                                  itemCount: categoryModel.categories!
-                                      .where((test) =>
-                                          test.name != "Shared" &&
-                                          test.name != "Published")
-                                      .length,
-                                  scrollDirection: Axis.horizontal,
-                                  itemBuilder: (context, index) {
-                                    return InkWell(
-                                      onTap: () {
-                                        for (int i = 0;
-                                            i <
-                                                categoryModel
-                                                    .categories!.length;
-                                            i++) {
-                                          if (i == index) {
-                                            categoryModel.categories![index]
-                                                .isSelected = true;
-                                          } else {
-                                            categoryModel.categories![i]
-                                                .isSelected = false;
-                                          }
-                                        }
-                                        setState(() {});
-                                        ApiCall.getSubCategory(
-                                            api: ApiUrl.subCategory +
-                                                categoryModel
-                                                    .categories![index].id
-                                                    .toString(),
-                                            callack: this);
-                                      },
-                                      child: Container(
-                                        constraints: const BoxConstraints(
-                                          minWidth:
-                                              90, // Ensure the min width is 90
-                                        ),
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 5),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          color: selectedCategory() ==
-                                                  categoryModel
-                                                      .categories![index].name
-                                              ? AppColors.subTitleColor
-                                              : Colors.grey.withOpacity(.2),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 5),
-                                        child: Center(
-                                          child: Text(
-                                            categoryModel
-                                                .categories![index].name!,
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : const IgnorePointer(),
-                        const SizedBox(height: 10),
-                        Divider(
-                          color: AppColors.textfieldFillColor.withOpacity(.75),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                AppStrings.memoryTitle,
-                                style: appTextStyle(
-                                    fm: interRegular,
-                                    fz: 14,
-                                    height: 19.2 / 14,
-                                    color: AppColors.primaryColor),
-                              ),
-                              categoryMemoryModelWithoutPage.data == null
-                                  ? Container()
-                                  : Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.add,
-                                          size: 20,
-                                          color: AppColors.greyColor,
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            //  labelFocusNode.unfocus();
-
-                                            // }
-                                          },
-                                          child: Text(
-                                            // controller.isLabelTexFormFeildShow.value
-                                            //     ? AppStrings.done
-                                            //     :
-                                            AppStrings.addNew,
-                                            style: appTextStyle(
-                                                fm: interRegular,
-                                                fz: 14,
-                                                height: 19.2 / 14,
-                                                color: AppColors.greyColor),
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                            ],
-                          ),
-                        ),
-                        categoryMemoryModelWithoutPage.data != null
-                            ? Container()
-                            : Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0),
-                                child: TextFormField(
-                                  controller: titleController,
-                                  focusNode: titleFocusNode,
-                                  cursorColor: AppColors.primaryColor,
-                                  onChanged: (val) {},
-                                  style: appTextStyle(
-                                    fm: robotoRegular,
-                                    fz: 21,
-                                    height: 27 / 21,
-                                    color: AppColors.black,
-                                  ),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: AppStrings.memoryTitle,
-                                    hintStyle: appTextStyle(
-                                      fz: isTitleFocused ? 14 : 21,
-                                      color: isTitleFocused
-                                          ? AppColors.primaryColor
-                                          : const Color(0XFF999999),
-                                      fm: robotoRegular,
-                                    ),
-                                    labelStyle: appTextStyle(
-                                      fz: isTitleFocused ? 14 : 21,
-                                      height: isTitleFocused ? 19.2 / 21 : null,
-                                      color: isTitleFocused
-                                          ? AppColors.primaryColor
-                                          : const Color(0XFF999999),
-                                      fm: robotoRegular,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        const Divider(
-                          color: AppColors.textfieldFillColor,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                AppStrings.label,
-                                style: appTextStyle(
-                                    fm: interRegular,
-                                    fz: 14,
-                                    height: 19.2 / 14,
-                                    color: AppColors.primaryColor),
-                              ),
-                              (categoryMemoryModelWithoutPage.subCategories ==
-                                          null ||
-                                      categoryMemoryModelWithoutPage
-                                          .subCategories!.isEmpty)
-                                  ? Container()
-                                  : Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.add,
-                                          size: 20,
-                                          color: AppColors.greyColor,
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            addLable = true;
-                                            setState(() {});
-                                          },
-                                          child: Text(
-                                            // controller.isLabelTexFormFeildShow.value
-                                            //     ? AppStrings.done
-                                            //     :
-                                            AppStrings.addNew,
-                                            style: appTextStyle(
-                                                fm: interRegular,
-                                                fz: 14,
-                                                height: 19.2 / 14,
-                                                color: AppColors.greyColor),
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                            ],
-                          ),
-                        ),
-                        addLable == false
-                            ? Container(
-                                height: 40,
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 20),
-                                child: ListView.builder(
-                                  itemCount: categoryMemoryModelWithoutPage
-                                          .subCategories?.length ??
-                                      0,
-                                  scrollDirection: Axis.horizontal,
-                                  itemBuilder: (context, index) {
-                                    print("gdfgdsgsdgds");
-                                    return InkWell(
-                                      onTap: () {
-                                        for (int i = 0;
-                                            i <
-                                                categoryMemoryModelWithoutPage
-                                                    .subCategories!.length;
-                                            i++) {
-                                          if (i == index) {
-                                            categoryMemoryModelWithoutPage
-                                                .subCategories![index]
-                                                .isselected = true;
-                                          } else {
-                                            categoryMemoryModelWithoutPage
-                                                .subCategories![i]
-                                                .isselected = false;
-                                          }
-                                        }
-                                        setState(() {});
-                                      },
-                                      child: Container(
-                                        constraints: const BoxConstraints(
-                                          minWidth:
-                                              90, // Ensure the min width is 90
-                                        ),
-                                        margin: const EdgeInsets.symmetric(
-                                            horizontal: 5),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(5),
-                                          color: categoryMemoryModelWithoutPage
-                                                  .subCategories![index]
-                                                  .isselected
-                                              ? AppColors.subTitleColor
-                                              : Colors.grey.withOpacity(.2),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 5),
-                                        child: Center(
-                                          child: Text(
-                                            categoryMemoryModelWithoutPage
-                                                .subCategories![index].name!,
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0),
-                                child: TextFormField(
-                                  controller: labelController,
-                                  cursorColor: AppColors.primaryColor,
-                                  onChanged: (val) {},
-                                  style: appTextStyle(
-                                    fm: robotoRegular,
-                                    fz: 21,
-                                    height: 27 / 21,
-                                    color: AppColors.black,
-                                  ),
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: AppStrings.label,
-                                    hintStyle: appTextStyle(
-                                      fz: 14,
-                                      color: const Color(0XFF999999),
-                                      fm: robotoRegular,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        });
-      },
-    );
-  }*/
 
 /*==============================================================================================================================================================================================*/
 
@@ -1068,7 +573,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     Future.delayed(const Duration(milliseconds: 50), () {
       bool isReadOnly = false;
 
-      Scaffold.of(context).showBottomSheet(
+      _scaffoldKey.currentState!.showBottomSheet(
         (BuildContext context) {
           return SafeArea(
             top: true,
@@ -1078,7 +583,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height: MediaQuery.of(context).size.height / 2 + 100,
+                      height:widget.isFromSignUp?MediaQuery.of(context).size.height: MediaQuery.of(context).size.height / 2 + 100,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -1197,7 +702,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                   .text.isEmpty) {
                                                 isLabelTexFormFeildShow = false;
                                                 uploadData(
-                                                    selectedCategoryId(), '');
+                                                    selectedCategoryId(), selectedSubCategory());
                                               } else {
                                                 isLabelTexFormFeildShow = false;
 
@@ -1396,7 +901,9 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                   color: AppColors.greyColor,
                                                 ),
                                               )
-                                            : Row(
+                                            :
+
+                                        Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   const Icon(
@@ -1429,145 +936,154 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                     ],
                                   ),
                                 ),
-                                categoryMemoryModelWithoutPage
-                                            .data!.isNotEmpty &&
-                                        isLabelTexFormFeildShow == false
-                                    ? Container(
-                                        height: 100,
-                                        width:
-                                            MediaQuery.of(context).size.width,
-                                        child: Padding(
-                                          padding: EdgeInsets.only(
-                                              left: 10, right: 10),
-                                          child: ListView.builder(
-                                              padding: EdgeInsets.zero,
-                                              itemCount:
+
+                                  categoryMemoryModelWithoutPage
+                                      .data!.isNotEmpty &&
+                                      isLabelTexFormFeildShow == false
+                                      ? Container(
+
+                                      height:categoryMemoryModelWithoutPage
+                                          .data!.length*50,
+                                      width:
+                                      MediaQuery
+                                          .of(context)
+                                          .size
+                                          .width,
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                            left: 10, right: 10),
+                                        child: ListView.builder(
+                                            padding: EdgeInsets.zero,
+                                            itemCount:
+                                            categoryMemoryModelWithoutPage
+                                                .data!.length,
+                                            itemBuilder: (context, index) {
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  isLabelTexFormFeildShow =
+                                                  true;
+                                                  isReadOnly = true;
+                                                  selectedMemoryId =
+                                                      categoryMemoryModelWithoutPage
+                                                          .data![index].id
+                                                          .toString();
+                                                  print(selectedMemoryId);
+                                                  titleController.text =
                                                   categoryMemoryModelWithoutPage
-                                                      .data!.length,
-                                              itemBuilder: (context, index) {
-                                                return GestureDetector(
-                                                  onTap: () {
-                                                    isLabelTexFormFeildShow =
-                                                        true;
-                                                    isReadOnly = true;
-                                                    selectedMemoryId =
-                                                        categoryMemoryModelWithoutPage
-                                                            .data![index].id
-                                                            .toString();
-                                                    print(selectedMemoryId);
-                                                    titleController.text =
-                                                        categoryMemoryModelWithoutPage
-                                                            .data![index]
-                                                            .title!;
-                                                    setState(() {});
-                                                  },
-                                                  child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      if (index > 0)
-                                                        const SizedBox(
-                                                          height: 5,
-                                                        ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                                left: 8.0,
-                                                                right: 8.0),
-                                                        child: Row(
-                                                          children: [
-                                                            ClipRRect(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            5.0),
-                                                                child: CachedNetworkImage(
-                                                                    imageUrl: categoryMemoryModelWithoutPage
-                                                                        .data![
-                                                                            index]
-                                                                        .lastUpdateImg!,
-                                                                    fit: BoxFit
-                                                                        .cover,
-                                                                    height: 30,
-                                                                    width: 30,
-                                                                    progressIndicatorBuilder: (context,
-                                                                            url,
-                                                                            downloadProgress) =>
-                                                                        CircularProgressIndicator(
-                                                                            value:
-                                                                                downloadProgress.progress))),
-                                                            SizedBox(
-                                                              width: 5,
-                                                            ),
-                                                            Column(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .min,
-                                                              children: [
-                                                                Text(
-                                                                  categoryMemoryModelWithoutPage
-                                                                      .data![
-                                                                          index]
-                                                                      .title!,
-                                                                  style: appTextStyle(
-                                                                      fm:
-                                                                          interRegular,
-                                                                      fz: 14,
-                                                                      height:
-                                                                          19.2 /
-                                                                              14,
-                                                                      color: AppColors
-                                                                          .black),
-                                                                ),
-                                                              ],
-                                                            )
-                                                          ],
-                                                        ),
+                                                      .data![index]
+                                                      .title!;
+                                                  setState(() {});
+                                                },
+                                                child: Column(
+                                                  mainAxisSize:
+                                                  MainAxisSize.min,
+                                                  children: [
+                                                    if (index > 0)
+                                                      const SizedBox(
+                                                        height: 5,
                                                       ),
-                                                    ],
-                                                  ),
-                                                );
-                                              }),
-                                        ))
-                                    : Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16.0),
-                                        child: TextFormField(
-                                          controller: titleController,
-                                          focusNode: titleFocusNode,
-                                          readOnly: isReadOnly,
-                                          cursorColor: AppColors.primaryColor,
-                                          onChanged: (val) {},
-                                          style: appTextStyle(
-                                            fm: robotoRegular,
-                                            fz: 21,
-                                            height: 27 / 21,
-                                            color: AppColors.black,
-                                          ),
-                                          decoration: InputDecoration(
-                                            border: InputBorder.none,
-                                            hintText: AppStrings.memoryTitle,
-                                            hintStyle: appTextStyle(
-                                              fz: isTitleFocused ? 14 : 21,
-                                              color: isTitleFocused
-                                                  ? AppColors.primaryColor
-                                                  : const Color(0XFF999999),
-                                              fm: robotoRegular,
-                                            ),
-                                            labelStyle: appTextStyle(
-                                              fz: isTitleFocused ? 14 : 21,
-                                              height: isTitleFocused
-                                                  ? 19.2 / 21
-                                                  : null,
-                                              color: isTitleFocused
-                                                  ? AppColors.primaryColor
-                                                  : const Color(0XFF999999),
-                                              fm: robotoRegular,
-                                            ),
-                                          ),
+                                                    Padding(
+                                                      padding:
+                                                      const EdgeInsets
+                                                          .only(
+                                                          left: 8.0,
+                                                          right: 8.0),
+                                                      child: Row(
+                                                        children: [
+                                                          ClipRRect(
+                                                              borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                  5.0),
+                                                              child: CachedNetworkImage(
+                                                                  imageUrl: categoryMemoryModelWithoutPage
+                                                                      .data![
+                                                                  index]
+                                                                      .lastUpdateImg!,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  height: 30,
+                                                                  width: 30,
+                                                                  progressIndicatorBuilder: (
+                                                                      context,
+                                                                      url,
+                                                                      downloadProgress) =>
+                                                                      CircularProgressIndicator(
+                                                                          value:
+                                                                          downloadProgress
+                                                                              .progress))),
+                                                          SizedBox(
+                                                            width: 5,
+                                                          ),
+                                                          Column(
+                                                            mainAxisSize:
+                                                            MainAxisSize
+                                                                .min,
+                                                            children: [
+                                                              Text(
+                                                                categoryMemoryModelWithoutPage
+                                                                    .data![
+                                                                index]
+                                                                    .title!,
+                                                                style: appTextStyle(
+                                                                    fm:
+                                                                    interRegular,
+                                                                    fz: 14,
+                                                                    height:
+                                                                    19.2 /
+                                                                        14,
+                                                                    color: AppColors
+                                                                        .black),
+                                                              ),
+                                                            ],
+                                                          )
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }),
+                                      ))
+                                      : Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
+                                    child: TextFormField(
+                                      controller: titleController,
+                                      focusNode: titleFocusNode,
+                                      readOnly: isReadOnly,
+                                      cursorColor: AppColors.primaryColor,
+                                      onChanged: (val) {},
+                                      style: appTextStyle(
+                                        fm: robotoRegular,
+                                        fz: 21,
+                                        height: 27 / 21,
+                                        color: AppColors.black,
+                                      ),
+                                      decoration: InputDecoration(
+                                        border: InputBorder.none,
+                                        hintText: AppStrings.memoryTitle,
+                                        hintStyle: appTextStyle(
+                                          fz: isTitleFocused ? 14 : 21,
+                                          color: isTitleFocused
+                                              ? AppColors.primaryColor
+                                              : const Color(0XFF999999),
+                                          fm: robotoRegular,
+                                        ),
+                                        labelStyle: appTextStyle(
+                                          fz: isTitleFocused ? 14 : 21,
+                                          height: isTitleFocused
+                                              ? 19.2 / 21
+                                              : null,
+                                          color: isTitleFocused
+                                              ? AppColors.primaryColor
+                                              : const Color(0XFF999999),
+                                          fm: robotoRegular,
                                         ),
                                       ),
+                                    ),
+                                  ),
+
                                 const Divider(
                                   color: AppColors.textfieldFillColor,
                                 ),
@@ -1725,6 +1241,373 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                         ),
                                       ),
                               ],
+                            ),
+                          ),
+                        )
+                      ])),
+                );
+              },
+            ),
+          );
+        },
+        backgroundColor: Colors.transparent,
+        enableDrag: false,
+      );
+    });
+  }
+
+  void openAddPillBottomSheetForSignUp(BuildContext context) {
+    if (isBottomSheetOpen) return;
+
+    isBottomSheetOpen = true;
+    Provider.of<BottomBarVisibilityProvider>(context, listen: false)
+        .hideBottomBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final titleContext = _titleWidgetKey.currentContext;
+      if (titleContext != null) {
+        FocusScope.of(titleContext).requestFocus(titleFocusNode);
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 50), () {
+      bool isReadOnly = false;
+
+      _scaffoldKey.currentState!.showBottomSheet(
+            (BuildContext context) {
+          return SafeArea(
+            top: true,
+            bottom: false,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                debugPrint("Update on bottomSheet");
+                return SingleChildScrollView(
+                  child: Container(
+                      height:MediaQuery.of(context).size.height/2,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(25),
+                          topRight: Radius.circular(25),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 2,
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: CustomScrollView(slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: ListView(
+                              shrinkWrap: true,
+                              keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                              children: [
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      height: 5,
+                                      width: 36,
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                        BorderRadius.circular(100),
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(
+                                  height: 48,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            InkWell(
+                                              child: const Icon(Icons.close),
+                                              onTap: () {
+                                                FocusManager
+                                                    .instance.primaryFocus
+                                                    ?.unfocus();
+                                                titleController.clear();
+                                                Navigator.pop(context);
+                                                isBottomSheetOpen = false;
+                                                Provider.of<BottomBarVisibilityProvider>(
+                                                    context,
+                                                    listen: false)
+                                                    .showBottomBar();
+                                              },
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              AppStrings.addAMemory,
+                                              style: appTextStyle(
+                                                fm: robotoBold,
+                                                fz: 20,
+                                                color: Colors.black,
+                                                height: 25 / 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            ValueListenableBuilder<int>(
+                                              valueListenable:
+                                              selectedCountNotifier,
+                                              builder: (context, selectedCount,
+                                                  child) {
+                                                return Text(
+                                                  "($selectedCount)",
+                                                  style: appTextStyle(
+                                                    fm: robotoBold,
+                                                    fz: 20,
+                                                    color: Colors.black,
+                                                    height: 25 / 20,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (titleController.text.isEmpty) {
+                                              CommonWidgets.errorDialog(context,
+                                                  "Enter memory title");
+
+                                              //Get.snackbar("Error", "Enter memory title", colorText: AppColors.redColor);
+                                            } else if (allSelectedPhotos() ==
+                                                0) {
+                                              CommonWidgets.errorDialog(context,
+                                                  "Please select photo");
+                                            } else {
+                                              FocusManager.instance.primaryFocus
+                                                  ?.unfocus();
+                                              Navigator.pop(context);
+                                              isBottomSheetOpen = false;
+                                              uploadCount = 1;
+                                              progressbarValue = 0.0;
+
+                                                uploadData(
+                                                    selectedCategoryId(), '');
+
+                                              Provider.of<BottomBarVisibilityProvider>(
+                                                  context,
+                                                  listen: false)
+                                                  .showBottomBar();
+                                            }
+                                          },
+                                          child: Text(
+                                            AppStrings.done,
+                                            style: appTextStyle(
+                                              fm: robotoRegular,
+                                              fz: 17,
+                                              color: titleController
+                                                  .text.isNotEmpty
+                                                  ? AppColors.black
+                                                  : const Color(0XFF858484),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 13),
+                                Divider(
+                                  color: AppColors.textfieldFillColor
+                                      .withOpacity(.75),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0, vertical: 10),
+                                  child: Row(
+                                    children: [
+                                      if ((categoryModel.categories?.length ??
+                                          0) >
+                                          1)
+                                        GestureDetector(
+                                          onTap: () {
+                                            isExpandedDrop = !isExpandedDrop;
+                                            setState(() {});
+                                          },
+                                          child: Container(
+                                            width: 24.0,
+                                            margin: const EdgeInsets.only(
+                                                top: 8, left: 15, bottom: 10),
+                                            child: Image.asset(isExpandedDrop
+                                                ? chevronDown
+                                                : chevronLeft),
+                                          ),
+                                        ),
+                                      Image.asset(
+                                        book,
+                                        height: 15,
+                                        width: 15,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        selectedCategory(),
+                                        style: appTextStyle(
+                                            fm: robotoMedium,
+                                            fz: 14,
+                                            color: AppColors.black),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                isExpandedDrop
+                                    ? Container(
+                                  height: 40,
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  child: ListView.builder(
+                                    itemCount: categoryModel.categories!
+                                        .where((test) =>
+                                    test.name != "Shared" &&
+                                        test.name != "Published")
+                                        .length,
+                                    scrollDirection: Axis.horizontal,
+                                    itemBuilder: (context, index) {
+                                      return InkWell(
+                                        onTap: () {
+                                          for (int i = 0;
+                                          i <
+                                              categoryModel
+                                                  .categories!.length;
+                                          i++) {
+                                            if (i == index) {
+                                              categoryModel
+                                                  .categories![index]
+                                                  .isSelected = true;
+                                            } else {
+                                              categoryModel.categories![i]
+                                                  .isSelected = false;
+                                            }
+                                          }
+
+                                        },
+                                        child: Container(
+                                          constraints:
+                                          const BoxConstraints(
+                                            minWidth:
+                                            90, // Ensure the min width is 90
+                                          ),
+                                          margin:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 5),
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                            BorderRadius.circular(5),
+                                            color: selectedCategory() ==
+                                                categoryModel
+                                                    .categories![
+                                                index]
+                                                    .name
+                                                ? AppColors.subTitleColor
+                                                : Colors.grey
+                                                .withOpacity(.2),
+                                          ),
+                                          padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 5),
+                                          child: Center(
+                                            child: Text(
+                                              categoryModel
+                                                  .categories![index]
+                                                  .name!,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.black,
+                                                fontWeight:
+                                                FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                                    : const IgnorePointer(),
+                                const SizedBox(height: 10),
+                                Divider(
+                                  color: AppColors.textfieldFillColor
+                                      .withOpacity(.75),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        AppStrings.memoryTitle,
+                                        style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 14,
+                                            height: 19.2 / 14,
+                                            color: AppColors.primaryColor),
+                                      ),
+
+
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
+                                    child: TextFormField(
+                                      controller: titleController,
+                                      focusNode: titleFocusNode,
+                                      readOnly: isReadOnly,
+                                      cursorColor: AppColors.primaryColor,
+                                      onChanged: (val) {},
+                                      style: appTextStyle(
+                                        fm: robotoRegular,
+                                        fz: 21,
+                                        height: 27 / 21,
+                                        color: AppColors.black,
+                                      ),
+                                      decoration: InputDecoration(
+                                        border: InputBorder.none,
+                                        hintText: AppStrings.memoryTitle,
+                                        hintStyle: appTextStyle(
+                                          fz: isTitleFocused ? 14 : 21,
+                                          color: isTitleFocused
+                                              ? AppColors.primaryColor
+                                              : const Color(0XFF999999),
+                                          fm: robotoRegular,
+                                        ),
+                                        labelStyle: appTextStyle(
+                                          fz: isTitleFocused ? 14 : 21,
+                                          height: isTitleFocused
+                                              ? 19.2 / 21
+                                              : null,
+                                          color: isTitleFocused
+                                              ? AppColors.primaryColor
+                                              : const Color(0XFF999999),
+                                          fm: robotoRegular,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                const Divider(
+                                  color: AppColors.textfieldFillColor,
+                                ),
+                               ],
                             ),
                           ),
                         )
@@ -2358,7 +2241,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                   padding: const EdgeInsets.only(right: 8),
                   child: GestureDetector(
                     onTap: () {
-                      Get.back();
+                      Navigator.pop(context);
                     },
                     child: Align(
                       alignment: Alignment.centerRight,

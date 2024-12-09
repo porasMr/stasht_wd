@@ -462,7 +462,11 @@ class _SignupState extends State<Signup> implements ApiCallback {
     } else if (passwordController.value.text.isEmpty) {
       CommonWidgets.errorDialog(context, "Password field can't be empty!");
       return false;
-    } else {
+    } else if (passwordController.value.text.length<6) {
+      CommonWidgets.errorDialog(context, "Password length should be six character");
+      return false;
+    }
+    else {
       return true;
     }
   }

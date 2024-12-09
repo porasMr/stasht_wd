@@ -272,7 +272,7 @@ PrefUtils.instance.getUserFromPrefs().then((value) {
           onChanged: (value) async {
             changeSwitchValue(value, type);
             if (type == "insta" && instaValue) {
-              CommonWidgets.openInstagramPage()!.then((value) {
+              CommonWidgets.openInstagramPage(context)!.then((value) {
                 instaRequestForAccessToken(value);
               });
             } else if (type == "drive" && driveValue) {

@@ -1,0 +1,1 @@
+ /Users/worksdelight/Documents/anmol_workspce/stasht_wd/.dart_tool/flutter_build/6c783dd5950232cd237b88f0f981622b/native_assets.yaml: 

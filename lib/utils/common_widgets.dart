@@ -13,6 +13,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/apigeeregistry/v1.dart';
 import 'package:googleapis/drive/v3.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -163,8 +164,11 @@ class CommonWidgets {
     return null;
   }
 
-  static Future<String>? openInstagramPage() {
-    Get.to(() => InstagramLoginPage())?.then((value) async {
+  static Future<String>? openInstagramPage(BuildContext context) {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (BuildContext context) =>InstagramLoginPage())).then((value) async {
       print("code====>$value");
       if (value != null) {
         return value;
@@ -292,7 +296,8 @@ class CommonWidgets {
             ),
             GestureDetector(
               onTap: () {
-                openInstagramPage()!.then((value) {
+                debugPrint("Instagram is opened this");
+                openInstagramPage(context)!.then((value) {
                   callBack(value);
                 });
                 /* uploadCount=0;

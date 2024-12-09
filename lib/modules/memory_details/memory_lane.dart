@@ -40,7 +40,7 @@ class MemoryDetailPage extends StatefulWidget {
       required this.imageLink,
       required this.pubLished,
       required this.future,
-      required this.photosList});
+      required this.photosList,this.subId,this.catId});
   String memoryTtile = '';
   String userName = '';
   String memoryId = '';
@@ -51,6 +51,10 @@ class MemoryDetailPage extends StatefulWidget {
   String imageLink;
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
+  String? subId='';
+  String? catId='';
+
+
 
   @override
   State<MemoryDetailPage> createState() => _MemoryDetailPageState();
@@ -396,6 +400,33 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                   
                                   
                                 } else if (value != null && value == "Edit") {
+                                  debugPrint("Edit2");
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (BuildContext context) =>
+                                          CreateMemoryScreen(
+                                            photosList: widget.photosList,
+                                            future: widget.future,
+                                            isBack: true,
+                                            isEdit: true,
+                                            title: widget.memoryTtile,
+                                            memoryId: widget.memoryId,
+                                            subId: widget.subId,
+                                            cateId: widget.catId,
+                                            memoryListData: memoriesModel.data!.data!,
+                                          ),
+                                    ),
+                                  ).then((value) {
+                                    if (value != null) {
+                                      _currentPage = 1;
+                                      ApiCall.memoryDetails(
+                                          api: ApiUrl.memoryDetail,
+                                          id: widget.memoryId,
+                                          page: _currentPage.toString(),
+                                          callack: this);
+                                    }
+                                  });
                                 } else {
                                   //  Get.back();
                                 }
@@ -416,6 +447,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                                    deleteMemoryDialog(context);
 
                                 } else if (value != null && value == "Edit") {
+                                  debugPrint(""
+                                      "Edit1");
                                 } else {
                                   //  Get.back();
                                 }
@@ -451,6 +484,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 future: widget.future,
                                 isBack: true,
                                 isEdit: true,
+                                    title: widget.memoryTtile,
+                                    memoryId: widget.memoryId,
+                                    subId: widget.subId,
+                                    cateId: widget.catId,
                                 memoryListData: memoriesModel.data!.data!,
                               ),
                             ),
@@ -504,6 +541,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 future: widget.future,
                                 isBack: true,
                                 isEdit: true,
+                                    title: widget.memoryTtile,
+                                    memoryId: widget.memoryId,
+                                    subId: widget.subId,
+                                    cateId: widget.catId,
                                 memoryListData: memoriesModel.data!.data!,
                               ),
                             ),
@@ -622,6 +663,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                 } else if (value != null &&
                                                     value.isNotEmpty &&
                                                     value == "Edit") {
+                                                  debugPrint("Edit3");
                                                   Navigator.push(
                                                       context,
                                                       MaterialPageRoute(
@@ -674,7 +716,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                   
                                                 } else if (value != null &&
                                                     value.isNotEmpty &&
-                                                    value == "Edit") {}
+                                                    value == "Edit") {
+                                                  debugPrint("Edit4");
+                                                }
                                               });
                                             },
                                             child: Container(
@@ -1592,6 +1636,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
 
   @override
   void onFailure(String message) {
+    EasyLoading.dismiss();
     CommonWidgets.errorDialog(context, message);
   }
 

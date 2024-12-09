@@ -43,10 +43,15 @@ class CreateMemoryScreen extends StatefulWidget {
       required this.photosList,
       required this.isBack,
       this.isEdit,
-      this.memoryListData});
+      this.memoryListData,this.title,this.memoryId,this.cateId,this.subId});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
   List<MemoryListData>? memoryListData = [];
+  String? title='';
+  String? memoryId='';
+  String? cateId='';
+  String? subId='';
+
 
   bool? isEdit;
   bool isBack;
@@ -127,6 +132,30 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   }
 
   selectionOfAllPhoto() {
+    titleController.text = widget.title??'';
+    categoryId = widget.cateId??'';
+    memoryId = widget.memoryId ??'';
+    subCategoryId =
+        widget.subId??'';
+    if (subCategoryId.isNotEmpty) {
+
+      for (int sub = 0;
+      sub < categoryMemoryModelWithoutPage.subCategories!.length;
+      sub++) {
+        if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
+            int.parse(subCategoryId) ) {
+          categoryMemoryModelWithoutPage.subCategories![sub].isselected =
+          true;
+        }
+      }
+    }
+    for (int i = 0; i < categoryModel.categories!.length; i++) {
+      if (categoryModel.categories![i].id ==
+          int.parse(categoryId) ) {
+        categoryModel.categories![i].isSelected = true;
+        categoryId = categoryModel.categories![i].id.toString();
+      }
+    }
     for (int p = 0; p < widget.memoryListData!.length; p++) {
       if (widget.memoryListData![p].type == "image") {
         updateSelectedValue(widget.memoryListData![p].typeId!);
@@ -137,29 +166,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       } else if (widget.memoryListData![p].type == "drive") {
         updateDriveSelectedValue(widget.memoryListData![p].typeId!.toString());
       }
-      titleController.text = widget.memoryListData![p].memory!.title!;
-      categoryId = widget.memoryListData![p].memory!.categoryId.toString();
-      memoryId = widget.memoryListData![p].memory!.id!.toString();
-      if (widget.memoryListData![p].memory!.subCategoryId != null) {
-        subCategoryId =
-            widget.memoryListData![p].memory!.subCategoryId.toString();
-        for (int sub = 0;
-            sub < categoryMemoryModelWithoutPage.subCategories!.length;
-            sub++) {
-          if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
-              widget.memoryListData![p].memory!.subCategoryId) {
-            categoryMemoryModelWithoutPage.subCategories![sub].isselected =
-                true;
-          }
-        }
-      }
-      for (int i = 0; i < categoryModel.categories!.length; i++) {
-        if (categoryModel.categories![i].id ==
-            widget.memoryListData![p].memory!.categoryId) {
-          categoryModel.categories![i].isSelected = true;
-          categoryId = categoryModel.categories![i].id.toString();
-        }
-      }
+
     }
     setState(() {});
   }
@@ -757,7 +764,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   @override
   void onFailure(String message) {
-        EasyLoading.show();
+        EasyLoading.dismiss();
 
     CommonWidgets.errorDialog(context, message);
   }
@@ -785,11 +792,14 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         selectionOfAllPhoto();
       }
 
-      setState(() {
+
         if (categoryMemoryModelWithoutPage.subCategories!.isNotEmpty) {
           addLable = false;
+          setState(() {
+
+          });
         }
-      });
+
     } else if (apiType == ApiUrl.uploadImageTomemory) {
       String count = data.split("=")[1];
       print(json.decode(data.split("=")[0])['file'].toString());
@@ -825,7 +835,16 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       Navigator.pop(context, true);
 
       print(data);
-    } else if (apiType == ApiUrl.createSubCategory) {
+    }
+    else if (apiType == ApiUrl.updateMemory) {
+      deselectAll();
+      titleController.text = "";
+      labelController.text = "";
+      CommonWidgets.successDialog(context, json.decode(data)['message']);
+      Navigator.pop(context, true);
+
+      print(data);
+    }else if (apiType == ApiUrl.createSubCategory) {
       print(data);
       SubCategoryResModel subCategoryResModel =
           SubCategoryResModel.fromJson(json.decode(data));

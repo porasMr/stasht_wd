@@ -56,7 +56,7 @@ print(ApiUrl.baseUrl+api);
       ..badCertificateCallback = (X509Certificate cert, String host, int port) => true; // Bypass SSL verification
     final httpClient = IOClient(ioc);
 
-
+print((ApiUrl.baseUrl+api));
     final response = await httpClient.post(
       Uri.parse(ApiUrl.baseUrl+api),
       body: body,

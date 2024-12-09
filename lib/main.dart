@@ -36,7 +36,7 @@ void configLoading() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
          await  PrefUtils.instance.init();
-  await dotenv.load();
+  await dotenv.load(fileName: "assets/.env");
 
    configLoading();
 

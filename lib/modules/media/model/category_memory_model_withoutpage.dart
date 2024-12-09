@@ -13,7 +13,7 @@ class CategoryMemoryModelWithoutPage {
     if (json['data'] != null) {
       data = <Data>[];
       json['data'].forEach((v) {
-        data!.add(new Data.fromJson(v));
+        data!.add( Data.fromJson(v));
       });
     }
     if (json['subCategories'] != null) {
@@ -44,7 +44,7 @@ class Data {
   int? categoryId;
   int? userId;
   String? title;
-  int? subCategoryId;
+  String? subCategoryId;
   String? slug;
   dynamic published;
   int? commentsCount;
@@ -89,21 +89,21 @@ class Data {
     categoryId = json['category_id'];
     userId = json['user_id'];
     title = json['title'];
-    subCategoryId = json['sub_category_id']??0;
+    subCategoryId = json['sub_category_id']??'';
     slug = json['slug'];
-    published = json['published']??0;
+    published = json['published'];
     commentsCount = json['comments_count'];
     inviteLink = json['invite_link']??'';
-    minUploadedImgDate = json['min_uploaded_img_date'];
-    maxUploadedImgDate = json['max_uploaded_img_date'];
-    lastUpdateImg = json['last_update_img'];
+    minUploadedImgDate = json['min_uploaded_img_date']??'';
+    maxUploadedImgDate = json['max_uploaded_img_date']??'';
+    lastUpdateImg = json['last_update_img']??'';
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
     deletedAt = json['deleted_at'];
     postsCount = json['posts_count'];
     collaboratorCount = json['collaborator_count'];
     subCategory = json['sub_category'];
-    user = json['user'] != null ? new User.fromJson(json['user']) : null;
+    user = json['user'] != null ?  User.fromJson(json['user']) : null;
     signleCooaborator = json['signle_cooaborator'];
   }
 

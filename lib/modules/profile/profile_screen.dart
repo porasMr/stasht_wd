@@ -636,7 +636,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       onChanged: (bool value) async {
         if (type == "drive") {
           isDriveSync = false;
-          selectedType = "facebook_synced";
+          selectedType = "google_drive_synced";
         } else if (type == "fb") {
           isFbSync = false;
           selectedType = "facebook_synced";

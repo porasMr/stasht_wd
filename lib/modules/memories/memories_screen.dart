@@ -20,6 +20,8 @@ import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/shimmer_widget.dart';
 
+import '../create_memory/create_memory.dart';
+
 class MemoriesScreen extends StatefulWidget {
    MemoriesScreen({super.key,required this.isSkip,required this.photosList});
   VoidCallback isSkip;
@@ -714,8 +716,11 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                         pubLished: memory.published.toString(),
                                         future: future,
                                         photosList: widget.photosList,
+                                    subId: memory.subCategoryId,
+                                    catId: memory.categoryId.toString(),
                                       
                                   ))).then((value) {
+                                  refrehScreen();
                                                                   allCategory();
 
                                   });
@@ -892,7 +897,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                         BorderRadius.circular(
                                                             18)),
                                                 child: Text(
-                                                  'Post ${memory.postsCount}',
+                                                  '${memory.postsCount}',
                                                   style: appTextStyle(
                                                     fm: interMedium,
                                                     fz: 12,
@@ -963,7 +968,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
 
   @override
   void onFailure(String message) {
-        EasyLoading.show();
+        EasyLoading.dismiss();
 CommonWidgets.errorDialog(context, message);
   }
 
@@ -1478,7 +1483,10 @@ CommonWidgets.errorDialog(context, message);
                                         pubLished: memoriesList[index].published.toString(),
                                          future: future,
                                         photosList: widget.photosList,
+                                    subId: memoriesList[index].subCategoryId,
+                                    catId: memoriesList[index].categoryId.toString(),
                                   ))).then((value) {
+                        refrehScreen();
                               allCategory();
 
                                   });
@@ -1502,11 +1510,8 @@ CommonWidgets.errorDialog(context, message);
                                         margin: const EdgeInsets.only(right: 0),
                                         decoration: BoxDecoration(
                                           border: Border.all(
-                                              color: memoriesList[index]
-                                                          .lastUpdateImg ==
-                                                      ''
-                                                  ? AppColors.skeltonBorderColor
-                                                  : Colors.transparent),
+                                              color:  AppColors.skeltonBorderColor
+                                                  ),
                                           borderRadius:
                                               BorderRadius.circular(46),
                                           image: memoriesList[index]
@@ -1534,7 +1539,7 @@ CommonWidgets.errorDialog(context, message);
                                                       .lastUpdateImg !=
                                                   ''
                                               ? null
-                                              : Colors.grey,
+                                              : Colors.white,
                                         ),
                                       )
                                     ],
@@ -1675,6 +1680,7 @@ CommonWidgets.errorDialog(context, message);
                                                               height: 17.2 / 15,
                                                               fontSize: 15),
                                                         ),
+                                                        if(memoriesList[index].minUploadedImgDate!.isNotEmpty&&memoriesList[index].maxUploadedImgDate!.isNotEmpty)
                                                         Text(
                                                           "${CommonWidgets.dateRetrun(memoriesList[index].minUploadedImgDate!)}-${memoriesList[index].maxUploadedImgDate!.split('-')[2]}/${memoriesList[index].maxUploadedImgDate!.split('-')[0].substring(2, 4)}",
                                                           style: const TextStyle(
@@ -1749,7 +1755,7 @@ CommonWidgets.errorDialog(context, message);
                                         borderRadius:
                                             BorderRadius.circular(26)),
                                     child: Text(
-                                      '${memoriesList[index].postsCount!}',
+                                      'Post ${memoriesList[index].postsCount!}',
                                       style: appTextStyle(
                                           fz: 12,
                                           color: AppColors.black,
@@ -1761,7 +1767,31 @@ CommonWidgets.errorDialog(context, message);
                                     width: 7,
                                   ),
                                   GestureDetector(
-                                    onTap: () {},
+                                    onTap: () {
+
+    Navigator.push(
+    context,
+    MaterialPageRoute(
+    builder: (BuildContext context) =>
+    CreateMemoryScreen(
+    photosList: widget.photosList,
+    future: future,
+    isBack: true,
+    isEdit: true,
+    title: memoriesList[index].title,
+    memoryId: memoriesList[index].id.toString(),
+    subId: memoriesList[index].subCategoryId,
+    cateId: memoriesList[index].categoryId.toString(),
+    memoryListData: [],
+    ),
+    ),
+    ).then((value) {
+    if (value != null) {
+      refrehScreen();
+      allCategory();
+    }
+    });
+                                    },
                                     child: Container(
                                         alignment: Alignment.center,
                                         height: 32,

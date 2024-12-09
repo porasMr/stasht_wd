@@ -67,6 +67,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
               String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
               String link = await CommonWidgets.createDynamicLink(
                   widget.memoryId, widget.title, imageIdentifier);
+              EasyLoading.show();
               if (link.isNotEmpty) {
                 for (var element in selectedContacts) {
                   sendLinkBySms(
@@ -74,6 +75,8 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
                       link: Uri.parse(link),
                       title: TextEditingController(text: widget.title));
                 }
+                EasyLoading.dismiss();
+
                 Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -263,23 +266,29 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
   }
 
   Future fetchContacts() async {
-    if (!await FlutterContacts.requestPermission(readonly: true)) {
-      permissionDenied = true;
-      setState(() {});
-    } else {
-      final contacts = await FlutterContacts.getContacts(
-          withPhoto: true, withProperties: true);
-      contactsList = contacts;
-      filteredContactsList = contacts;
-      for (int i = 0; i < filteredContactsList.length; i++) {
-        print('photo=== ${filteredContactsList[i].photo}');
-        print('photo thumb=== ${filteredContactsList[i].photoOrThumbnail}');
-        print(
-            'name===${filteredContactsList[i].phones.isNotEmpty ? filteredContactsList[i].phones.first.normalizedNumber : ''}');
+    await FlutterContacts.requestPermission(readonly: true).then((value) async{
+      if(value){
 
-        print('name===${filteredContactsList[i].displayName}');
+        final contacts = await FlutterContacts.getContacts(
+            withPhoto: true, withProperties: true);
+        contactsList = contacts;
+        filteredContactsList = contacts;
+        for (int i = 0; i < filteredContactsList.length; i++) {
+          print('photo=== ${filteredContactsList[i].photo}');
+          print('photo thumb=== ${filteredContactsList[i].photoOrThumbnail}');
+          print(
+              'name===${filteredContactsList[i].phones.isNotEmpty ? filteredContactsList[i].phones.first.normalizedNumber : ''}');
+
+          print('name===${filteredContactsList[i].displayName}');
+        }
+        setState(() {});
+
+      }else{
+        permissionDenied = true;
+        setState(() {});
       }
-    }
+    });
+
     EasyLoading.dismiss();
   }
 

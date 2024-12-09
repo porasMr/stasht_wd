@@ -495,7 +495,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                 body: memoriesModel.data!.data!.isEmpty
                     ? GestureDetector(
                         onTap: () {
-                          Navigator.push(
+                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (BuildContext context) =>
@@ -504,7 +504,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 future: widget.future,
                                 isBack: true,
                                 isEdit: true,
-                                memoryListData: [],
+                                memoryListData: memoriesModel.data!.data!,
                               ),
                             ),
                           ).then((value) {

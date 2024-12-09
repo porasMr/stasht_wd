@@ -564,9 +564,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
       height: MediaQuery.of(context).size.height * .8,
       child: Column(
         children: [
-          categoryMemoryModel.subCategories!.isEmpty
-              ? Container()
-              : Container(
+           Container(
                   height: 49,
                   margin: const EdgeInsets.only(top: 8),
                   width: MediaQuery.of(context).size.width,
@@ -753,7 +751,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                     color:
                                                         memory.lastUpdateImg !=
                                                                 ''
-                                                            ? AppColors.black
+                                                            ? AppColors.skeltonBorderColor
                                                             : Colors
                                                                 .transparent),
                                                 borderRadius:

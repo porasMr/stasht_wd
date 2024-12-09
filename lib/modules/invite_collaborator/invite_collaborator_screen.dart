@@ -287,9 +287,39 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
       {String? phoneNumber,
       Uri? link,
       required TextEditingController title}) async {
-    
+    try {
+      var headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization':
+            '$authToken'
+      };
+
+      var request = http.Request(
+          'POST',
+          Uri.parse(
+              'https://api.twilio.com/2010-04-01/Accounts/$accountSid/Messages.json'));
+
+      request.bodyFields = {
+        'To': phoneNumber ?? "",
+        'From': '+18076977883',
+        'Body':
+            '$userName has invited you to collaborate in a memory called ${title.text} : $link'
+      };
+
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        print(await response.stream.bytesToString());
+      } else {
+        print(response.reasonPhrase);
+      }
 
      
+    } catch (e) {
+      print(e.toString());
+    }
   }
 
   showInviteCollabDialog(BuildContext context) {

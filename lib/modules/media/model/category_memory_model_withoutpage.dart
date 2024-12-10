@@ -89,7 +89,11 @@ class Data {
     categoryId = json['category_id'];
     userId = json['user_id'];
     title = json['title'];
-    subCategoryId = json['sub_category_id']??'';
+    if(json['sub_category_id']!=null){
+      subCategoryId = json['sub_category_id'].toString();
+    }else{
+      subCategoryId='';
+    }
     slug = json['slug'];
     published = json['published'];
     commentsCount = json['comments_count'];

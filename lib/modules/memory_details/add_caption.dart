@@ -127,7 +127,8 @@ CommonWidgets.errorDialog(context, message);
   
   @override
   void onSuccess(String data, String apiType) {
-    EasyLoading.show();
+    print(data);
+    EasyLoading.dismiss();
     Navigator.pop(context,captionController.text);
   }
   

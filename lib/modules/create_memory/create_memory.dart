@@ -142,10 +142,14 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       for (int sub = 0;
       sub < categoryMemoryModelWithoutPage.subCategories!.length;
       sub++) {
+        print("subCategoryId${categoryMemoryModelWithoutPage.subCategories![sub].id ==
+            int.parse(subCategoryId)}");
+
         if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
             int.parse(subCategoryId) ) {
-          categoryMemoryModelWithoutPage.subCategories![sub].isselected =
-          true;
+          categoryMemoryModelWithoutPage.subCategories![sub].isselected = true;
+        }else{
+          categoryMemoryModelWithoutPage.subCategories![sub].isselected = false;
         }
       }
     }
@@ -154,6 +158,9 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
           int.parse(categoryId) ) {
         categoryModel.categories![i].isSelected = true;
         categoryId = categoryModel.categories![i].id.toString();
+      }else{
+        categoryModel.categories![i].isSelected = false;
+
       }
     }
     for (int p = 0; p < widget.memoryListData!.length; p++) {
@@ -218,6 +225,19 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       photoList.selectedValue = false;
       photoList.isEditmemory = false;
     }
+
+    for (var photoList in driveModel) {
+      photoList.isEdit = false;
+      photoList.isSelected = false;
+    }
+    for (var photoList in fbModel) {
+      photoList.isEdit = false;
+      photoList.isSelected = false;
+    }
+    for (var photoList in instaModel) {
+      photoList.isEdit = false;
+      photoList.isSelected = false;
+    }
   }
 
   Future<XFile?> _compressAsset(AssetEntity asset) async {
@@ -259,7 +279,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                       uploadCount = 1;
                       progressbarValue = 0.0;
                       if (labelController.text.isEmpty) {
-                        uploadData(categoryId, subCategoryId);
+                        uploadData(getSelectedCategory(), selectedSubCategory());
                       } else {
                         ApiCall.createSubCategory(
                             api: ApiUrl.createSubCategory,
@@ -643,11 +663,11 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     value = value +
         widget.photosList
             .where(
-                (photo) => (photo.selectedValue && photo.isEditmemory == false))
+                (photo) => (photo.selectedValue || photo.isEditmemory))
             .length;
-    value = value + fbModel.where((photo) => photo.isSelected).length;
-    value = value + instaModel.where((photo) => photo.isSelected).length;
-    value = value + driveModel.where((photo) => photo.isSelected).length;
+    value = value + fbModel.where((photo) => (photo.isSelected||photo.isEdit)).length;
+    value = value + instaModel.where((photo) =>(photo.isSelected||photo.isEdit)).length;
+    value = value + driveModel.where((photo) => (photo.isSelected||photo.isEdit)).length;
 
     return value;
   }
@@ -828,6 +848,14 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         } // Dismiss the dialog
       }
     } else if (apiType == ApiUrl.createMemory) {
+      if(countSelectedPhotos()==0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('');
+      }
+
       deselectAll();
       titleController.text = "";
       labelController.text = "";
@@ -837,18 +865,23 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       print(data);
     }
     else if (apiType == ApiUrl.updateMemory) {
+      if(countSelectedPhotos()==0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('');
+      }
       deselectAll();
       titleController.text = "";
       labelController.text = "";
       CommonWidgets.successDialog(context, json.decode(data)['message']);
       Navigator.pop(context, true);
 
-      print(data);
     }else if (apiType == ApiUrl.createSubCategory) {
-      print(data);
       SubCategoryResModel subCategoryResModel =
           SubCategoryResModel.fromJson(json.decode(data));
-      uploadData(categoryId, subCategoryResModel.categories!.id.toString());
+      uploadData(getSelectedCategory(), subCategoryResModel.categories!.id.toString());
     } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
     }
@@ -880,6 +913,14 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     }
     return '';
   }
+  String getSelectedCategory() {
+    for (var category in categoryModel.categories!) {
+      if (category.isSelected) {
+        return category.id.toString();
+      }
+    }
+    return '';
+  }
 
   String selectedCategoryId() {
     for (var category in categoryModel.categories!) {
@@ -893,7 +934,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   String selectedSubCategory() {
     for (var category in categoryMemoryModelWithoutPage.subCategories!) {
       if (category.isselected) {
-        return category.name!;
+        return category.id.toString();
       }
     }
     return '';
@@ -981,7 +1022,21 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-    processPhotos();
+    if(countSelectedPhotos()==0){
+      clossProgressDialog('');
+      if (createModel.memoryId != null) {
+        ApiCall.createMemory(
+            api: ApiUrl.updateMemory, model: createModel, callack: this);
+      } else {
+        ApiCall.createMemory(
+            api: ApiUrl.createMemory,
+            model: createModel,
+            callack: this); // Dismiss the dialog
+      }
+    }else{
+      processPhotos();
+
+    }
 
     print(createModel.images!.length);
   }

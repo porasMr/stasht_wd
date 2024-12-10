@@ -27,6 +27,8 @@ import 'package:stasht/utils/shimmer_widget.dart';
 
 import '../../utils/app_strings.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:share_plus/share_plus.dart';
+
 
 class MemoryDetailPage extends StatefulWidget {
   MemoryDetailPage(
@@ -678,7 +680,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                                             .data![
                                                                         index],
                                                               ))).then((value) {
-                                                    if (value) {
+                                                    if (value!=null) {
                                                       memoriesModel
                                                           .data!
                                                           .data![index]
@@ -975,7 +977,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                                             .data![index],
                                                                   ))).then(
                                                           (value) {
-                                                        if (value) {
+                                                        if (value!=null) {
                                                           memoriesModel
                                                                   .data!
                                                                   .data![index]
@@ -1459,7 +1461,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                 EasyLoading.show();
                 ApiCall.memoryPublished(
                     api: ApiUrl.memoryPublished,
-                    status: widget.pubLished,
+                    status: "1",
                     id: widget.memoryId,
                     callack: this);
               },
@@ -1661,7 +1663,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
       setState(() {});
     } else if (apiType == ApiUrl.memoryPublished) {
       var url = json.decode(data);
-      socialLinkMemoryBottomSheet(url['link'].toString());
+      print('${url['link']}');
+      Share.share('${url['link']}');
+     // socialLinkMemoryBottomSheet(url['link'].toString());
       setState(() {});
     } else if (apiType == ApiUrl.deleteMemory) {
       Navigator.pop(context);

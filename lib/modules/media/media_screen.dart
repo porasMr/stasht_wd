@@ -40,6 +40,7 @@ import 'package:stasht/utils/pref_utils.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:stasht/utils/progress_dialog.dart';
+import '../create_memory/model/sub_category_model.dart';
 import 'model/phot_mdoel.dart';
 
 // ignore: must_be_immutable
@@ -331,9 +332,15 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     debugPrint("Refresh Function Count");
     setState(() {});
     if(widget.isFromSignUp){
-      openAddPillBottomSheetForSignUp(context);
+      if(categoryMemoryModelWithoutPage
+          .data!=null) {
+        openAddPillBottomSheetForSignUp(context);
+      }
     }else{
-      openAddPillBottomSheet(context);
+      if(categoryMemoryModelWithoutPage
+          .data!=null) {
+        openAddPillBottomSheet(context);
+      }
 
     }
   }
@@ -495,6 +502,10 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       setState(() {});
     } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
+    }else if(apiType==ApiUrl.createSubCategory){
+      SubCategoryResModel subCategoryResModel =
+      SubCategoryResModel.fromJson(json.decode(data));
+      uploadData(selectedCategoryId(), subCategoryResModel.categories!.id.toString());
     }
   }
 
@@ -503,6 +514,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         createModel.images!.every((element) => element.link!.isNotEmpty);
     return allNonEmpty;
   }
+
 
   @override
   void tokenExpired(String message) {}
@@ -572,7 +584,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     });
     Future.delayed(const Duration(milliseconds: 50), () {
       bool isReadOnly = false;
-
       _scaffoldKey.currentState!.showBottomSheet(
         (BuildContext context) {
           return SafeArea(
@@ -583,7 +594,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height:widget.isFromSignUp?MediaQuery.of(context).size.height: MediaQuery.of(context).size.height / 2 + 100,
+                      height:MediaQuery.of(context).size.height/2,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -943,7 +954,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       ? Container(
 
                                       height:categoryMemoryModelWithoutPage
-                                          .data!.length*50,
+                                          .data!.isEmpty?50:100,
                                       width:
                                       MediaQuery
                                           .of(context)
@@ -1634,21 +1645,22 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
+if(countSelectedPhotos()>0) {
+  for (int i = 0; i < widget.photosList.length; i++) {
+    if (widget.photosList[i].selectedValue) {
+      ImagesFile imp = ImagesFile();
+      imp.typeId = widget.photosList[i].assetEntity.id;
+      imp.type = "image";
+      imp.captureDate = _getFormattedDateTime(
+          widget.photosList[i].assetEntity.createDateTime);
+      imp.description = '';
+      imp.link = '';
 
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].selectedValue) {
-        ImagesFile imp = ImagesFile();
-        imp.typeId = widget.photosList[i].assetEntity.id;
-        imp.type = "image";
-        imp.captureDate = _getFormattedDateTime(
-            widget.photosList[i].assetEntity.createDateTime);
-        imp.description = '';
-        imp.link = '';
-
-        imp.location = '';
-        imageFile.add(imp);
-      }
+      imp.location = '';
+      imageFile.add(imp);
     }
+  }
+}
     if (fbModel.isNotEmpty) {
       for (int i = 0; i < fbModel.length; i++) {
         if (fbModel[i].isSelected) {
@@ -1698,7 +1710,21 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-    processPhotos();
+    if(countSelectedPhotos()==0){
+      clossProgressDialog('');
+      if (createModel.memoryId != null) {
+        ApiCall.createMemory(
+            api: ApiUrl.updateMemory, model: createModel, callack: this);
+      } else {
+        ApiCall.createMemory(
+            api: ApiUrl.createMemory,
+            model: createModel,
+            callack: this); // Dismiss the dialog
+      }
+    }else{
+      processPhotos();
+
+    }
 
     print(createModel.images!.length);
   }

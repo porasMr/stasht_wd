@@ -24,7 +24,7 @@ class ApiUrl {
     static const String memoryPublished = "memory-published";
     static const String deleteMemoryFile = "delete-memory-file";
     static const String deleteMemory = "delete-memory";
-    static const String saveFileDescription = "saveFileDescription";
+    static const String saveFileDescription = "save-file-description";
 
 
 

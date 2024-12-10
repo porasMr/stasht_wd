@@ -533,7 +533,7 @@ class ApiCall {
         callack.onSuccess(response.body, api);
       } else {
         callack.onFailure(
-          "Something went wrong",
+          "Something went wrong(${response.statusCode})",
         );
       }
     } catch (e) {

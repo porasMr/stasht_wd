@@ -787,6 +787,13 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         EasyLoading.dismiss();
 
     CommonWidgets.errorDialog(context, message);
+     if(countSelectedPhotos()==0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('');
+      }
   }
 
   @override

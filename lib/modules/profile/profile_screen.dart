@@ -8,6 +8,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/profile/change_password.dart';
 import 'package:stasht/network/api_call.dart';
@@ -526,10 +527,17 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 15, vertical: 13),
                         child: GestureDetector(
-                          onTap: () {
-                            PrefUtils.instance.clearPreferance();
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                                '/SignIn', (Route<dynamic> route) => false);
+                          onTap: () async{
+                            
+   final appDir = await getApplicationSupportDirectory();
+
+    if(appDir.existsSync()){
+      appDir.deleteSync(recursive: true);
+    }
+ EasyLoading.show();
+                      ApiCall.deleteUserAccount(api: ApiUrl.unSyncAccount, callack: this);
+
+                            
                           },
                           child: Text(
                             AppStrings.logout,
@@ -734,7 +742,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                     topRight: Radius.circular(15),
                     topLeft: Radius.circular(15)),
                 color: Colors.white),
-            height: focusNode.hasFocus ? 500 : 300,
+            height:  300,
             child: Column(
               children: [
                 const Padding(
@@ -756,8 +764,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                       onTap: () {
                         Navigator.pop(context);
                         EasyLoading.show();
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/SignIn', (Route<dynamic> route) => false);
+                      ApiCall.deleteUserAccount(api: ApiUrl.deleteUserAccount, callack: this);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(30),
@@ -821,6 +828,8 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
 
   @override
   void onSuccess(String data, String apiType) {
+              EasyLoading.dismiss();
+
     print(data);
     if (apiType == ApiUrl.uploadImageTomemory) {
       var img = json.decode(data.split("=")[0])['file'].toString();
@@ -833,7 +842,6 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       changeUserName = false;
       setState(() {});
     } else if (apiType == ApiUrl.deleteUserAccount) {
-      EasyLoading.dismiss();
       PrefUtils.instance.clearPreferance();
       Navigator.popUntil(context, ModalRoute.withName("/SignIn"));
     } else if (apiType == ApiUrl.syncAccount) {
@@ -846,14 +854,20 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
         isDriveSync = false;
         model.user!.googleDriveSynced = 0;
         PrefUtils.instance.saveDrivePhotoLinks([]);
-      } else {
+      } 
+      else {
         PrefUtils.instance.saveInstaPhotoLinks([]);
 
         isInstaeSync = false;
         model.user!.instagramSynced = 0;
       }
       PrefUtils.instance.saveUserToPrefs(model);
+    }else if(apiType==ApiUrl.unSyncAccount){
+      PrefUtils.instance.clearPreferance();
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/SignIn', (Route<dynamic> route) => false);
     }
+
     setState(() {});
   }
 

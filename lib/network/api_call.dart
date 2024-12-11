@@ -540,4 +540,99 @@ class ApiCall {
       print(e);
     }
   }
+
+  static Future<void> addCollabarator({
+    required String api,
+    required String memoryID,
+    required String userId,
+    required ApiCallback callback,
+  }) async {
+    final body = {
+      "memory_id": memoryID,
+      "user_id": userId,
+    };
+
+    try {
+      final Response response = await ApiClient.postTypeWithTokenApi(
+        api: api,
+        body: body,
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callback.onSuccess(response.body, api);
+      } else if (response.statusCode == 409) {
+        callback.onSuccess(
+            response.body, api); // Handling 409 as success (conflict)
+      } else {
+        callback.onFailure("Something went wrong");
+      }
+    } catch (e) {
+      print("Exception is: $e");
+      callback.onFailure("An error occurred: $e");
+    }
+  }
+
+  static Future<void> getComments(
+      {required String api, required ApiCallback callack}) async {
+    try {
+      final Response response = await ApiClient.getTypeWithTokenApi(
+        api: api,
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print('this invokesss');
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  static Future<void> addComment(
+      {required String api,
+      required String memoryID,
+      required String imageId,
+      required String comment,
+      required ApiCallback callack}) async {
+    final body = {
+      "memory_id": memoryID,
+      "image_id": imageId,
+      "comment": comment
+    };
+    try {
+      final Response response =
+          await ApiClient.postTypeWithTokenApi(api: api, body: body);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+static Future<void> deleteUserAccount(
+      {required String api, required ApiCallback callack}) async {
+    try {
+      final Response response = await ApiClient.getTypeWithTokenApi(
+        api: api,
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        callack.onSuccess(response.body, api);
+      } else {
+        callack.onFailure(
+          "Something went wrong",
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+  
 }

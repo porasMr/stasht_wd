@@ -249,7 +249,7 @@
     },
     {
       "name": "flutter",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/packages/flutter",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/packages/flutter",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -423,13 +423,13 @@
     },
     {
       "name": "flutter_test",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/packages/flutter_test",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/packages/flutter_test",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -891,7 +891,7 @@
     },
     {
       "name": "sky_engine",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/bin/cache/pkg/sky_engine",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -1088,7 +1088,7 @@
       "languageVersion": "3.3"
     }
   ],
-  "generated": "2024-12-10T06:13:32.091144Z",
+  "generated": "2024-12-10T09:53:07.896566Z",
   "generator": "pub",
   "generatorVersion": "3.3.0"
 }

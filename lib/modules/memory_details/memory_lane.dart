@@ -6,12 +6,15 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/utils.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memory_details/add_caption.dart';
+import 'package:stasht/modules/memory_details/model/add_comment_response_model.dart';
+import 'package:stasht/modules/memory_details/model/get_comments_response_model.dart';
 import 'package:stasht/modules/memory_details/model/memory_detail_model.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
@@ -29,7 +32,6 @@ import '../../utils/app_strings.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:share_plus/share_plus.dart';
 
-
 class MemoryDetailPage extends StatefulWidget {
   MemoryDetailPage(
       {super.key,
@@ -42,7 +44,9 @@ class MemoryDetailPage extends StatefulWidget {
       required this.imageLink,
       required this.pubLished,
       required this.future,
-      required this.photosList,this.subId,this.catId});
+      required this.photosList,
+      this.subId,
+      this.catId});
   String memoryTtile = '';
   String userName = '';
   String memoryId = '';
@@ -53,10 +57,8 @@ class MemoryDetailPage extends StatefulWidget {
   String imageLink;
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
-  String? subId='';
-  String? catId='';
-
-
+  String? subId = '';
+  String? catId = '';
 
   @override
   State<MemoryDetailPage> createState() => _MemoryDetailPageState();
@@ -74,6 +76,15 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
   bool _hasMore = false;
   final ScrollController _scrollController = ScrollController();
 
+  GetCommentsResponseModel getCommentsResponseModel =
+      GetCommentsResponseModel();
+  AddCommentResponseModel addCommentResponseModel = AddCommentResponseModel();
+
+  bool openCommentLoader = false;
+  bool addPostCommentLoader = false;
+  var memoryIdComment;
+  var imageIdComment;
+
   @override
   void initState() {
     PrefUtils.instance.getUserFromPrefs().then((value) {
@@ -81,7 +92,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
       print("${widget.email} ${model.user!.id}");
       setState(() {});
     });
-    
+
     ApiCall.memoryDetails(
         api: ApiUrl.memoryDetail,
         id: widget.memoryId,
@@ -246,20 +257,28 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                       children: [
                         GestureDetector(
                           onTap: () async {
+                            debugPrint("The Memory Id is ${widget.memoryId}");
                             String memoryId = widget.memoryId;
                             String title = widget.memoryTtile;
                             String fullImageUrl = widget.imageLink;
+                            String userName = widget.userName;
+                            String userProfileImage = widget.imageCaptions;
+                            debugPrint("UserName is ${widget.userName}");
+                            debugPrint(
+                                "UserProfileImage is ${widget.imageCaptions}");
                             String baseUrl =
                                 "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
                             String imageIdentifier =
                                 fullImageUrl.replaceFirst(baseUrl, "");
-
                             String link = await CommonWidgets.createDynamicLink(
-                                memoryId, title, imageIdentifier);
-
+                                memoryId,
+                                title,
+                                imageIdentifier,
+                                userName,
+                                userProfileImage);
                             if (link.isNotEmpty) {
                               try {
-                                // await Share.share(link);
+                                await Share.share(link);
                               } catch (error) {
                                 debugPrint("Error sharing link: $error");
                               }
@@ -360,7 +379,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                   actions: [
                     Padding(
                       padding: EdgeInsets.only(
-                          right: widget.email == model.user!.id.toString() ? 20 : 0.0),
+                          right: widget.email == model.user!.id.toString()
+                              ? 20
+                              : 0.0),
                       child: GestureDetector(
                         onTap: () {
                           isSelected = !isSelected;
@@ -391,16 +412,13 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                               ),
                       ),
                     ),
-                    widget.email == model.user!.id.toString() 
+                    widget.email == model.user!.id.toString()
                         ? GestureDetector(
                             onTapDown: (details) {
                               showPopupMenu(context, true, details)
                                   .then((value) {
                                 if (value != null && value == "Delete") {
                                   deleteMemoryDialog(context);
-
-                                  
-                                  
                                 } else if (value != null && value == "Edit") {
                                   debugPrint("Edit2");
                                   Navigator.push(
@@ -408,16 +426,17 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                     MaterialPageRoute(
                                       builder: (BuildContext context) =>
                                           CreateMemoryScreen(
-                                            photosList: widget.photosList,
-                                            future: widget.future,
-                                            isBack: true,
-                                            isEdit: true,
-                                            title: widget.memoryTtile,
-                                            memoryId: widget.memoryId,
-                                            subId: widget.subId,
-                                            cateId: widget.catId,
-                                            memoryListData: memoriesModel.data!.data!,
-                                          ),
+                                        photosList: widget.photosList,
+                                        future: widget.future,
+                                        isBack: true,
+                                        isEdit: true,
+                                        title: widget.memoryTtile,
+                                        memoryId: widget.memoryId,
+                                        subId: widget.subId,
+                                        cateId: widget.catId,
+                                        memoryListData:
+                                            memoriesModel.data!.data!,
+                                      ),
                                     ),
                                   ).then((value) {
                                     if (value != null) {
@@ -446,8 +465,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                               showPopupMenu(context, false, details)
                                   .then((value) {
                                 if (value != null && value == "Delete") {
-                                                                   deleteMemoryDialog(context);
-
+                                  deleteMemoryDialog(context);
                                 } else if (value != null && value == "Edit") {
                                   debugPrint(""
                                       "Edit1");
@@ -477,32 +495,32 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                         children: [
                           GestureDetector(
                             onTap: () {
-                               Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (BuildContext context) =>
-                                  CreateMemoryScreen(
-                                photosList: widget.photosList,
-                                future: widget.future,
-                                isBack: true,
-                                isEdit: true,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (BuildContext context) =>
+                                      CreateMemoryScreen(
+                                    photosList: widget.photosList,
+                                    future: widget.future,
+                                    isBack: true,
+                                    isEdit: true,
                                     title: widget.memoryTtile,
                                     memoryId: widget.memoryId,
                                     subId: widget.subId,
                                     cateId: widget.catId,
-                                memoryListData: memoriesModel.data!.data!,
-                              ),
-                            ),
-                          ).then((value) {
-                            if (value != null) {
-                              _currentPage = 1;
-                              ApiCall.memoryDetails(
-                                  api: ApiUrl.memoryDetail,
-                                  id: widget.memoryId,
-                                  page: _currentPage.toString(),
-                                  callack: this);
-                            }
-                          });
+                                    memoryListData: memoriesModel.data!.data!,
+                                  ),
+                                ),
+                              ).then((value) {
+                                if (value != null) {
+                                  _currentPage = 1;
+                                  ApiCall.memoryDetails(
+                                      api: ApiUrl.memoryDetail,
+                                      id: widget.memoryId,
+                                      page: _currentPage.toString(),
+                                      callack: this);
+                                }
+                              });
                             },
                             child: Stack(
                               alignment: Alignment.center,
@@ -534,7 +552,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                 body: memoriesModel.data!.data!.isEmpty
                     ? GestureDetector(
                         onTap: () {
-                           Navigator.push(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (BuildContext context) =>
@@ -543,10 +561,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 future: widget.future,
                                 isBack: true,
                                 isEdit: true,
-                                    title: widget.memoryTtile,
-                                    memoryId: widget.memoryId,
-                                    subId: widget.subId,
-                                    cateId: widget.catId,
+                                title: widget.memoryTtile,
+                                memoryId: widget.memoryId,
+                                subId: widget.subId,
+                                cateId: widget.catId,
                                 memoryListData: memoriesModel.data!.data!,
                               ),
                             ),
@@ -596,373 +614,86 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                           )),
                         ),
                       )
-                    : ListView.builder(
-                        padding: EdgeInsets.only(left: 20, right: 20, top: 5),
-                        itemCount: memoriesModel.data!.data!.length,
-                        reverse: false,
-                        shrinkWrap: true,
-                        controller: _scrollController,
-                        itemBuilder: (context, index) {
-                          return Container(
-                            margin: EdgeInsets.only(bottom: 20),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(25)),
-                            child: Column(
-                              children: [
-                                Stack(
-                                  alignment: Alignment.topRight,
+                    : Stack(
+                        children: [
+                          ListView.builder(
+                            padding:
+                                EdgeInsets.only(left: 20, right: 20, top: 5),
+                            itemCount: memoriesModel.data!.data!.length,
+                            reverse: false,
+                            shrinkWrap: true,
+                            controller: _scrollController,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                margin: EdgeInsets.only(bottom: 20),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(25)),
+                                child: Column(
                                   children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(35),
-                                        topRight: Radius.circular(35),
-                                      ),
-                                      child: Container(
-                                        color: Colors.white,
-                                        child: CachedNetworkImage(
-                                          height: 304,
-                                          width:
-                                              MediaQuery.of(context).size.width,
-                                          imageUrl: memoriesModel
-                                              .data!.data![index].imageLink!,
-                                          fit: BoxFit.cover,
-                                          placeholder: (context, url) {
-                                            return Shimmer.fromColors(
-                                              baseColor: Colors.grey[300]!,
-                                              highlightColor: Colors.grey[100]!,
-                                              child: Container(
-                                                height: 304,
-                                                width: MediaQuery.of(context)
-                                                    .size
-                                                    .width,
-                                                color: Colors.grey[300],
-                                              ),
-                                            );
-                                          },
-                                          errorWidget: (context, url, error) {
-                                            return SizedBox(
-                                              height: 50,
-                                              width: 50,
-                                              child: Icon(Icons.error_outline),
-                                            );
-                                          },
+                                    Stack(
+                                      alignment: Alignment.topRight,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(35),
+                                            topRight: Radius.circular(35),
+                                          ),
+                                          child: Container(
+                                            color: Colors.white,
+                                            child: CachedNetworkImage(
+                                              height: 304,
+                                              width: MediaQuery.of(context)
+                                                  .size
+                                                  .width,
+                                              imageUrl: memoriesModel.data!
+                                                  .data![index].imageLink!,
+                                              fit: BoxFit.cover,
+                                              placeholder: (context, url) {
+                                                return Shimmer.fromColors(
+                                                  baseColor: Colors.grey[300]!,
+                                                  highlightColor:
+                                                      Colors.grey[100]!,
+                                                  child: Container(
+                                                    height: 304,
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                            .size
+                                                            .width,
+                                                    color: Colors.grey[300],
+                                                  ),
+                                                );
+                                              },
+                                              errorWidget:
+                                                  (context, url, error) {
+                                                return SizedBox(
+                                                  height: 50,
+                                                  width: 50,
+                                                  child:
+                                                      Icon(Icons.error_outline),
+                                                );
+                                              },
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    widget.email == model.user!.id.toString() 
-                                        ? GestureDetector(
-                                            onTapDown: (details) {
-                                              showPopupMenu(
-                                                      context, true, details)
-                                                  .then((value) {
-                                                if (value != null &&
-                                                    value.isNotEmpty &&
-                                                    value == "Delete") {
-                                                      deletePostDialog(context ,memoriesModel
-                                                          .data!.data![index].id
-                                                          .toString());
-                                                  
-                                                } else if (value != null &&
-                                                    value.isNotEmpty &&
-                                                    value == "Edit") {
-                                                  debugPrint("Edit3");
-                                                  Navigator.push(
-                                                      context,
-                                                      MaterialPageRoute(
-                                                          builder: (BuildContext
-                                                                  context) =>
-                                                              AddCaption(
-                                                                id: widget
-                                                                    .memoryId,
-                                                                memoriesModel:
-                                                                    memoriesModel
-                                                                            .data!
-                                                                            .data![
-                                                                        index],
-                                                              ))).then((value) {
-                                                    if (value!=null) {
-                                                      memoriesModel
-                                                          .data!
-                                                          .data![index]
-                                                          .description = value;
-                                                      setState(() {});
-                                                    }
-                                                  });
-                                                }
-                                              });
-                                            },
-                                            child: Container(
-                                              margin: EdgeInsets.only(
-                                                  right: 17, top: 20),
-                                              height: 31,
-                                              width: 24,
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  color: Colors.white
-                                                      .withOpacity(.4)),
-                                              child: Icon(Icons.more_vert),
-                                            ),
-                                          )
-                                        : GestureDetector(
-                                            onTapDown: (details) {
-                                              showPopupMenu(
-                                                      context, false, details)
-                                                  .then((value) {
-                                                if (value != null &&
-                                                    value.isNotEmpty &&
-                                                    value == "Delete") {
-                                                      deletePostDialog(context ,memoriesModel
-                                                          .data!.data![index].id
-                                                          .toString());
-                                                  
-                                                } else if (value != null &&
-                                                    value.isNotEmpty &&
-                                                    value == "Edit") {
-                                                  debugPrint("Edit4");
-                                                }
-                                              });
-                                            },
-                                            child: Container(
-                                              margin: EdgeInsets.only(
-                                                  right: 17, top: 20),
-                                              height: 31,
-                                              width: 24,
-                                              decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  color: Colors.white
-                                                      .withOpacity(.4)),
-                                              child: Icon(Icons.more_vert),
-                                            ),
-                                          )
-                                  ],
-                                ),
-                                Container(
-                                  padding: EdgeInsets.only(
-                                      left: 16, right: 16, top: 16, bottom: 24),
-                                  decoration: BoxDecoration(
-                                      boxShadow: [
-                                        BoxShadow(
-                                            blurRadius: 4,
-                                            offset: Offset(0, 4),
-                                            color: AppColors.textfieldFillColor
-                                                .withOpacity(.25))
-                                      ],
-                                      borderRadius: BorderRadius.only(
-                                        bottomRight: Radius.circular(35),
-                                        bottomLeft: Radius.circular(35),
-                                      ),
-                                      color: Colors.white,
-                                      border: Border.all(
-                                          color: AppColors.textfieldFillColor)),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          memoriesModel.data!.data![index].user!
-                                                      .profileImage !=
-                                                  ""
-                                              ? ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(35),
-                                                  child: CachedNetworkImage(
-                                                    height: 43,
-                                                    width: 43,
-                                                    imageUrl: memoriesModel
-                                                        .data!
-                                                        .data![index]
-                                                        .user!
-                                                        .profileImage,
-                                                    fit: BoxFit.cover,
-                                                    placeholder:
-                                                        (context, url) {
-                                                      return Image.asset(
-                                                          userIcon);
-                                                    },
-                                                    errorWidget:
-                                                        (context, url, error) {
-                                                      return Image.asset(
-                                                          userIcon);
-                                                    },
-                                                  ),
-                                                )
-                                              : Container(
-                                                  height: 43,
-                                                  width: 43,
-                                                  alignment: Alignment.center,
-                                                  decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: AppColors
-                                                          .primaryColor /*??
-                                                                  AppColors.primaryColor,*/
-                                                      ),
-                                                  child: Text(
-                                                    memoriesModel
-                                                        .data!
-                                                        .data![index]
-                                                        .user!
-                                                        .name![0]
-                                                        .toUpperCase(),
-                                                    style: TextStyle(
-                                                        fontSize: 22,
-                                                        color: Colors.white,
-                                                        fontFamily:
-                                                            robotoRegular),
-                                                  ),
-                                                ),
-                                          SizedBox(
-                                            width: 8,
-                                          ),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  memoriesModel.data!
-                                                      .data![index].user!.name!,
-                                                  style: appTextStyle(
-                                                      fm: robotoRegular,
-                                                      fz: 13,
-                                                      height: 19.2 / 13,
-                                                      color: AppColors
-                                                          .memoeylaneColor),
-                                                ),
-                                                if (memoriesModel
-                                                        .data!
-                                                        .data![index]
-                                                        .location !=
-                                                    "")
-                                                  Text(
-                                                    memoriesModel.data!
-                                                        .data![index].location,
-                                                    style: appTextStyle(
-                                                        fm: robotoRegular,
-                                                        fz: 12,
-                                                        height: 19.2 / 12,
-                                                        color: AppColors
-                                                            .hintColor),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          // Spacer(),
-                                          GestureDetector(
-                                            onTap: () {},
-                                            child: Container(
-                                              color: Colors.transparent,
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.end,
-                                                children: [
-                                                  Image.asset(
-                                                    comment,
-                                                    height: 20,
-                                                  ),
-                                                  SizedBox(
-                                                    width: 5,
-                                                  ),
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            top: 3.0),
-                                                    child: Text(
-                                                      memoriesModel
-                                                          .data!
-                                                          .data![index]
-                                                          .commentsCount
-                                                          .toString(),
-                                                      style: appTextStyle(
-                                                          fm: robotoRegular,
-                                                          fz: 20,
-                                                          height: 28 / 19),
-                                                    ),
-                                                  )
-                                                ],
-                                              ),
-                                            ),
-                                          )
-                                        ],
-                                      ),
-                                      SizedBox(
-                                        height: 5,
-                                      ),
-                                      memoriesModel.data!.data![index]
-                                                  .description !=
-                                              ''
-                                          ? RichText(
-                                              text: TextSpan(
-                                              children: [
-                                                WidgetSpan(
-                                                  child: Image.asset(
-                                                    time,
-                                                    height: 20,
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text: CommonWidgets
-                                                      .dateFormatRetrun(
-                                                          memoriesModel
-                                                              .data!
-                                                              .data![index]
-                                                              .captureDate!),
-
-                                                  style: appTextStyle(
-                                                    fm: robotoItalic,
-                                                    fz: 14,
-                                                    height: 19.2 / 14,
-                                                    color:
-                                                        AppColors.primaryColor,
-                                                  ),
-                                                  // Customize the text style as needed
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      "  ${memoriesModel.data!.data![index].description}",
-                                                  style: TextStyle(
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    fontFamily: robotoRegular,
-                                                    fontSize: 14,
-                                                    height: 19.2 / 14,
-                                                    color: AppColors.black,
-                                                  ), // Hashtag style (e.g., blue color)
-                                                ),
-                                              ],
-                                            ))
-                                          : Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                Image.asset(
-                                                  time,
-                                                  height: 20,
-                                                ),
-                                                SizedBox(width: 8),
-                                                Text(
-                                                  CommonWidgets
-                                                      .dateFormatRetrun(
-                                                          memoriesModel
-                                                              .data!
-                                                              .data![index]
-                                                              .captureDate!),
-                                                  style: appTextStyle(
-                                                    fm: robotoItalic,
-                                                    fz: 14,
-                                                    height: 19.2 / 14,
-                                                    color:
-                                                        AppColors.primaryColor,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 8),
-                                                // Add some spacing between the timestamp and caption
-                                                if (widget.email ==
-                                                   model.user!.id.toString() )
-                                                  GestureDetector(
-                                                    onTap: () {
+                                        widget.email ==
+                                                model.user!.id.toString()
+                                            ? GestureDetector(
+                                                onTapDown: (details) {
+                                                  showPopupMenu(context, true,
+                                                          details)
+                                                      .then((value) {
+                                                    if (value != null &&
+                                                        value.isNotEmpty &&
+                                                        value == "Delete") {
+                                                      deletePostDialog(
+                                                          context,
+                                                          memoriesModel.data!
+                                                              .data![index].id
+                                                              .toString());
+                                                    } else if (value != null &&
+                                                        value.isNotEmpty &&
+                                                        value == "Edit") {
+                                                      debugPrint("Edit3");
                                                       Navigator.push(
                                                           context,
                                                           MaterialPageRoute(
@@ -977,7 +708,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                                             .data![index],
                                                                   ))).then(
                                                           (value) {
-                                                        if (value!=null) {
+                                                        if (value != null) {
                                                           memoriesModel
                                                                   .data!
                                                                   .data![index]
@@ -986,27 +717,403 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                           setState(() {});
                                                         }
                                                       });
-                                                    },
-                                                    child: Text(
-                                                      "+ Add a description",
-                                                      style: appTextStyle(
-                                                        fm: robotoRegular,
-                                                        fz: 14,
-                                                        height: 19.2 / 14,
-                                                        color:
-                                                            AppColors.hintColor,
+                                                    }
+                                                  });
+                                                },
+                                                child: Container(
+                                                  margin: EdgeInsets.only(
+                                                      right: 17, top: 20),
+                                                  height: 31,
+                                                  width: 24,
+                                                  decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                      color: Colors.white
+                                                          .withOpacity(.4)),
+                                                  child: Icon(Icons.more_vert),
+                                                ),
+                                              )
+                                            : GestureDetector(
+                                                onTapDown: (details) {
+                                                  showPopupMenu(context, false,
+                                                          details)
+                                                      .then((value) {
+                                                    if (value != null &&
+                                                        value.isNotEmpty &&
+                                                        value == "Delete") {
+                                                      deletePostDialog(
+                                                          context,
+                                                          memoriesModel.data!
+                                                              .data![index].id
+                                                              .toString());
+                                                    } else if (value != null &&
+                                                        value.isNotEmpty &&
+                                                        value == "Edit") {
+                                                      debugPrint("Edit4");
+                                                    }
+                                                  });
+                                                },
+                                                child: Container(
+                                                  margin: EdgeInsets.only(
+                                                      right: 17, top: 20),
+                                                  height: 31,
+                                                  width: 24,
+                                                  decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                      color: Colors.white
+                                                          .withOpacity(.4)),
+                                                  child: Icon(Icons.more_vert),
+                                                ),
+                                              )
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.only(
+                                          left: 16,
+                                          right: 16,
+                                          top: 16,
+                                          bottom: 24),
+                                      decoration: BoxDecoration(
+                                          boxShadow: [
+                                            BoxShadow(
+                                                blurRadius: 4,
+                                                offset: Offset(0, 4),
+                                                color: AppColors
+                                                    .textfieldFillColor
+                                                    .withOpacity(.25))
+                                          ],
+                                          borderRadius: BorderRadius.only(
+                                            bottomRight: Radius.circular(35),
+                                            bottomLeft: Radius.circular(35),
+                                          ),
+                                          color: Colors.white,
+                                          border: Border.all(
+                                              color: AppColors
+                                                  .textfieldFillColor)),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              memoriesModel.data!.data![index]
+                                                          .user!.profileImage !=
+                                                      ""
+                                                  ? ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              35),
+                                                      child: CachedNetworkImage(
+                                                        height: 43,
+                                                        width: 43,
+                                                        imageUrl: memoriesModel
+                                                            .data!
+                                                            .data![index]
+                                                            .user!
+                                                            .profileImage,
+                                                        fit: BoxFit.cover,
+                                                        placeholder:
+                                                            (context, url) {
+                                                          return Image.asset(
+                                                              userIcon);
+                                                        },
+                                                        errorWidget: (context,
+                                                            url, error) {
+                                                          return Image.asset(
+                                                              userIcon);
+                                                        },
+                                                      ),
+                                                    )
+                                                  : Container(
+                                                      height: 43,
+                                                      width: 43,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          color: AppColors
+                                                              .primaryColor /*??
+                                                                      AppColors.primaryColor,*/
+                                                          ),
+                                                      child: Text(
+                                                        memoriesModel
+                                                            .data!
+                                                            .data![index]
+                                                            .user!
+                                                            .name![0]
+                                                            .toUpperCase(),
+                                                        style: TextStyle(
+                                                            fontSize: 22,
+                                                            color: Colors.white,
+                                                            fontFamily:
+                                                                robotoRegular),
                                                       ),
                                                     ),
+                                              SizedBox(
+                                                width: 8,
+                                              ),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      memoriesModel
+                                                          .data!
+                                                          .data![index]
+                                                          .user!
+                                                          .name!,
+                                                      style: appTextStyle(
+                                                          fm: robotoRegular,
+                                                          fz: 13,
+                                                          height: 19.2 / 13,
+                                                          color: AppColors
+                                                              .memoeylaneColor),
+                                                    ),
+                                                    if (memoriesModel
+                                                            .data!
+                                                            .data![index]
+                                                            .location !=
+                                                        "")
+                                                      Text(
+                                                        memoriesModel
+                                                            .data!
+                                                            .data![index]
+                                                            .location,
+                                                        style: appTextStyle(
+                                                            fm: robotoRegular,
+                                                            fz: 12,
+                                                            height: 19.2 / 12,
+                                                            color: AppColors
+                                                                .hintColor),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                              // Spacer(),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  memoryIdComment =
+                                                      memoriesModel
+                                                          .data!
+                                                          .data![index]
+                                                          .memoryId;
+                                                  imageIdComment = memoriesModel
+                                                      .data!.data![index].id;
+                                                  debugPrint(
+                                                      "Memory Comment ID is $memoryIdComment");
+                                                  debugPrint(
+                                                      "Image Comment Id is $imageIdComment");
+                                                  setState(() {
+                                                    openCommentLoader = true;
+                                                  });
+                                                  final apiUrl =
+                                                      "${ApiUrl.getComments}?memory_id=${memoriesModel.data!.data![index].memoryId}&image_id=${memoriesModel.data!.data![index].id}";
+                                                  ApiCall.getComments(
+                                                      api: apiUrl,
+                                                      callack: this);
+                                                  debugPrint(
+                                                      "Memory Id is ${memoriesModel.data!.data![index].memoryId}");
+                                                  debugPrint(
+                                                      "Image Id is ${memoriesModel.data!.data![index].id}");
+                                                },
+                                                child: Container(
+                                                  color: Colors.transparent,
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.end,
+                                                    children: [
+                                                      Image.asset(
+                                                        comment,
+                                                        height: 20,
+                                                      ),
+                                                      SizedBox(
+                                                        width: 5,
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(top: 3.0),
+                                                        child: Text(
+                                                          memoriesModel
+                                                              .data!
+                                                              .data![index]
+                                                              .commentsCount
+                                                              .toString(),
+                                                          style: appTextStyle(
+                                                              fm: robotoRegular,
+                                                              fz: 20,
+                                                              height: 28 / 19),
+                                                        ),
+                                                      )
+                                                    ],
                                                   ),
-                                              ],
-                                            )
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                          SizedBox(
+                                            height: 5,
+                                          ),
+                                          memoriesModel.data!.data![index]
+                                                      .description !=
+                                                  ''
+                                              ? RichText(
+                                                  text: TextSpan(
+                                                  children: [
+                                                    WidgetSpan(
+                                                      child: Image.asset(
+                                                        time,
+                                                        height: 20,
+                                                      ),
+                                                    ),
+                                                    TextSpan(
+                                                      text: CommonWidgets
+                                                          .dateFormatRetrun(
+                                                              memoriesModel
+                                                                  .data!
+                                                                  .data![index]
+                                                                  .captureDate!),
+
+                                                      style: appTextStyle(
+                                                        fm: robotoItalic,
+                                                        fz: 14,
+                                                        height: 19.2 / 14,
+                                                        color: AppColors
+                                                            .primaryColor,
+                                                      ),
+                                                      // Customize the text style as needed
+                                                    ),
+                                                    TextSpan(
+                                                      text:
+                                                          "  ${memoriesModel.data!.data![index].description}",
+                                                      style: TextStyle(
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        fontFamily:
+                                                            robotoRegular,
+                                                        fontSize: 14,
+                                                        height: 19.2 / 14,
+                                                        color: AppColors.black,
+                                                      ), // Hashtag style (e.g., blue color)
+                                                    ),
+                                                  ],
+                                                ))
+                                              : Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    Image.asset(
+                                                      time,
+                                                      height: 20,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      CommonWidgets
+                                                          .dateFormatRetrun(
+                                                              memoriesModel
+                                                                  .data!
+                                                                  .data![index]
+                                                                  .captureDate!),
+                                                      style: appTextStyle(
+                                                        fm: robotoItalic,
+                                                        fz: 14,
+                                                        height: 19.2 / 14,
+                                                        color: AppColors
+                                                            .primaryColor,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    // Add some spacing between the timestamp and caption
+                                                    if (widget.email ==
+                                                        model.user!.id
+                                                            .toString())
+                                                      GestureDetector(
+                                                        onTap: () {
+                                                          Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                  builder: (BuildContext
+                                                                          context) =>
+                                                                      AddCaption(
+                                                                        id: widget
+                                                                            .memoryId,
+                                                                        memoriesModel: memoriesModel
+                                                                            .data!
+                                                                            .data![index],
+                                                                      ))).then(
+                                                              (value) {
+                                                            if (value != null) {
+                                                              memoriesModel
+                                                                  .data!
+                                                                  .data![index]
+                                                                  .description = value;
+                                                              setState(() {});
+                                                            }
+                                                          });
+                                                        },
+                                                        child: Text(
+                                                          "+ Add a description",
+                                                          style: appTextStyle(
+                                                            fm: robotoRegular,
+                                                            fz: 14,
+                                                            height: 19.2 / 14,
+                                                            color: AppColors
+                                                                .hintColor,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                )
+                                        ],
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          if (openCommentLoader)
+                            Positioned.fill(
+                              child: Container(
+                                color: Colors.black54,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Text(
+                                        'Comments are loading...',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 18),
+                                      ),
                                     ],
                                   ),
-                                )
-                              ],
-                            ),
-                          );
-                        },
+                                ),
+                              ),
+                            )
+                          else if (addPostCommentLoader)
+                            Positioned.fill(
+                              child: Container(
+                                color: Colors.black54,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Text(
+                                        'Comment Submitted....',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
+                        ],
                       )));
   }
 
@@ -1402,7 +1509,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
             ],
           ),
         ),
-        if (widget.email != model.user!.id.toString() )
+        if (widget.email != model.user!.id.toString())
           PopupMenuItem(
             value: 2,
             // row has two child icon and text.
@@ -1655,6 +1762,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
         print(data);
 
         memoriesModel = MemoryDetailsModel.fromJson(json.decode(data));
+        if(memoriesModel.data!.data!.isNotEmpty){
+widget.memoryTtile=memoriesModel.data!.data![0].memory!.title!;
+        }
         print('${memoriesModel.data!.nextPageUrl}');
         if (memoriesModel.data!.nextPageUrl != '') {
           _hasMore = true;
@@ -1665,7 +1775,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
       var url = json.decode(data);
       print('${url['link']}');
       Share.share('${url['link']}');
-     // socialLinkMemoryBottomSheet(url['link'].toString());
+      // socialLinkMemoryBottomSheet(url['link'].toString());
       setState(() {});
     } else if (apiType == ApiUrl.deleteMemory) {
       Navigator.pop(context);
@@ -1676,6 +1786,44 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
           id: widget.memoryId,
           page: _currentPage.toString(),
           callack: this);
+    } else if (apiType.startsWith(ApiUrl.getComments)) {
+      try {
+        final responseJson = json.decode(data);
+        if (responseJson['data'] != null) {
+          Future<GetCommentsResponseModel> commentsFuture = Future.value(
+            GetCommentsResponseModel.fromJson(responseJson),
+          );
+          debugPrint("Comments Data: $data");
+          setState(() {
+            openCommentLoader = false;
+          });
+          _openBottomSheet(context, commentsFuture);
+        } else {
+          debugPrint("No comments found.");
+        }
+      } catch (e) {
+        debugPrint("Error parsing response: $e");
+      }
+      setState(() {});
+    } else if (apiType == ApiUrl.addComment) {
+      final responseJson = json.decode(data);
+      try {
+        if (responseJson['data'] != null) {
+          ApiCall.memoryDetails(
+              api: ApiUrl.memoryDetail,
+              id: widget.memoryId,
+              page: _currentPage.toString(),
+              callack: this);
+          addCommentResponseModel =
+              AddCommentResponseModel.fromJson(responseJson);
+          debugPrint("Add Comment Data is : ${addCommentResponseModel.status}");
+          setState(() {
+            addPostCommentLoader = false;
+          });
+        }
+      } catch (e) {
+        debugPrint("Exception is $e");
+      }
     }
     EasyLoading.dismiss();
   }
@@ -1741,230 +1889,454 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
     return null;
   }
 
-   deleteMemoryDialog(BuildContext context,) {
+  deleteMemoryDialog(
+    BuildContext context,
+  ) {
     showDialog(
       barrierColor: Colors.transparent,
-       context: context, builder: (BuildContext context) { return Dialog(
-        backgroundColor: AppColors.textfieldFillColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Container(
-          width: 312,
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-          height: 280,
-          // Add padding for spacing
-          decoration: BoxDecoration(
-            color: AppColors.textfieldFillColor,
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.textfieldFillColor,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              // Center content vertically
-              children: [
-                const SizedBox(
-                  height: 25,
-                ),
-                Text(
-                  AppStrings.deleteMemory,
-                  style: appTextStyle(
-                    fz: 24,
-                    height: 32 / 24,
-                    fm: robotoRegular,
+          child: Container(
+            width: 312,
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+            height: 280,
+            // Add padding for spacing
+            decoration: BoxDecoration(
+              color: AppColors.textfieldFillColor,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                // Center content vertically
+                children: [
+                  const SizedBox(
+                    height: 25,
                   ),
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: 16),
-                // Add spacing between elements
-                Text(
-                  "By tapping “Delete”, you are choosing to delete this memory permanently including photos and comments.",
-                  style: appTextStyle(
-                    fz: 14,
-                    height: 20 / 14,
-                    fm: robotoRegular,
-                    color: AppColors.dialogMiddleFontColor,
+                  Text(
+                    AppStrings.deleteMemory,
+                    style: appTextStyle(
+                      fz: 24,
+                      height: 32 / 24,
+                      fm: robotoRegular,
+                    ),
+                    textAlign: TextAlign.start,
                   ),
-                  textAlign: TextAlign.justify,
-                ),
-                const SizedBox(height: 40),
-                // Add spacing before the close button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () {
-Navigator.pop(context);                        },
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            AppStrings.cancel,
-                            style: appTextStyle(
-                              fz: 14,
-                              height: 20 / 14,
-                              fm: robotoMedium,
-                              color: AppColors.primaryColor,
+                  const SizedBox(height: 16),
+                  // Add spacing between elements
+                  Text(
+                    "By tapping “Delete”, you are choosing to delete this memory permanently including photos and comments.",
+                    style: appTextStyle(
+                      fz: 14,
+                      height: 20 / 14,
+                      fm: robotoRegular,
+                      color: AppColors.dialogMiddleFontColor,
+                    ),
+                    textAlign: TextAlign.justify,
+                  ),
+                  const SizedBox(height: 40),
+                  // Add spacing before the close button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              AppStrings.cancel,
+                              style: appTextStyle(
+                                fz: 14,
+                                height: 20 / 14,
+                                fm: robotoMedium,
+                                color: AppColors.primaryColor,
+                              ),
+                              textAlign: TextAlign.end,
                             ),
-                            textAlign: TextAlign.end,
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 15),
-                    Container(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () async {
-                          Navigator.of(context).pop();
-                         EasyLoading.show();
-                                  ApiCall.deleteMemory(
-                                      api: ApiUrl.deleteMemory,
-                                      id: widget.memoryId,
-                                      callack: this);
-                        },
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            AppStrings.delete,
-                            style: appTextStyle(
-                              fz: 14,
-                              height: 20 / 14,
-                              fm: robotoMedium,
-                              color: AppColors.primaryColor,
+                      SizedBox(width: 15),
+                      Container(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () async {
+                            Navigator.of(context).pop();
+                            EasyLoading.show();
+                            ApiCall.deleteMemory(
+                                api: ApiUrl.deleteMemory,
+                                id: widget.memoryId,
+                                callack: this);
+                          },
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              AppStrings.delete,
+                              style: appTextStyle(
+                                fz: 14,
+                                height: 20 / 14,
+                                fm: robotoMedium,
+                                color: AppColors.primaryColor,
+                              ),
+                              textAlign: TextAlign.end,
                             ),
-                            textAlign: TextAlign.end,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ); },
+        );
+      },
     );
   }
 
-  deletePostDialog(
-      BuildContext context,
-      String id
-     ) {
+  deletePostDialog(BuildContext context, String id) {
     showDialog(
-      context:context,
-      barrierColor: Colors.transparent, builder: (BuildContext context) { return Dialog(
-        backgroundColor: AppColors.textfieldFillColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Container(
-          width: 312,
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-          height: 280,
-          // Add padding for spacing
-          decoration: BoxDecoration(
-            color: AppColors.textfieldFillColor,
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.textfieldFillColor,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              // Center content vertically
-              children: [
-                const SizedBox(
-                  height: 25,
-                ),
-                Text(
-                  AppStrings.deletePost,
-                  style: appTextStyle(
-                    fz: 24,
-                    height: 32 / 24,
-                    fm: robotoRegular,
+          child: Container(
+            width: 312,
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+            height: 280,
+            // Add padding for spacing
+            decoration: BoxDecoration(
+              color: AppColors.textfieldFillColor,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                // Center content vertically
+                children: [
+                  const SizedBox(
+                    height: 25,
                   ),
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: 16),
-                // Add spacing between elements
-                Text(
-                  "By tapping “Delete”, you are choosing to delete this post permanently including comments.",
-                  style: appTextStyle(
-                    fz: 14,
-                    height: 20 / 14,
-                    fm: robotoRegular,
-                    color: AppColors.dialogMiddleFontColor,
+                  Text(
+                    AppStrings.deletePost,
+                    style: appTextStyle(
+                      fz: 24,
+                      height: 32 / 24,
+                      fm: robotoRegular,
+                    ),
+                    textAlign: TextAlign.start,
                   ),
-                  textAlign: TextAlign.justify,
-                ),
-                const SizedBox(height: 40),
-                // Add spacing before the close button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            AppStrings.cancel,
-                            style: appTextStyle(
-                              fz: 14,
-                              height: 20 / 14,
-                              fm: robotoMedium,
-                              color: AppColors.primaryColor,
+                  const SizedBox(height: 16),
+                  // Add spacing between elements
+                  Text(
+                    "By tapping “Delete”, you are choosing to delete this post permanently including comments.",
+                    style: appTextStyle(
+                      fz: 14,
+                      height: 20 / 14,
+                      fm: robotoRegular,
+                      color: AppColors.dialogMiddleFontColor,
+                    ),
+                    textAlign: TextAlign.justify,
+                  ),
+                  const SizedBox(height: 40),
+                  // Add spacing before the close button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              AppStrings.cancel,
+                              style: appTextStyle(
+                                fz: 14,
+                                height: 20 / 14,
+                                fm: robotoMedium,
+                                color: AppColors.primaryColor,
+                              ),
+                              textAlign: TextAlign.end,
                             ),
-                            textAlign: TextAlign.end,
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 15),
-                    Container(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () async {
-                                                   Navigator.pop(context);
+                      const SizedBox(width: 15),
+                      Container(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () async {
+                            Navigator.pop(context);
 
-EasyLoading.show();
-                                                  ApiCall.deleteMemoryFile(
-                                                      api: ApiUrl
-                                                          .deleteMemoryFile,
-                                                      id: widget.memoryId,
-                                                      fileId: id,
-                                                      callack: this);
-                        
-                        },
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            AppStrings.delete,
-                            style: appTextStyle(
-                              fz: 14,
-                              height: 20 / 14,
-                              fm: robotoMedium,
-                              color: AppColors.primaryColor,
+                            EasyLoading.show();
+                            ApiCall.deleteMemoryFile(
+                                api: ApiUrl.deleteMemoryFile,
+                                id: widget.memoryId,
+                                fileId: id,
+                                callack: this);
+                          },
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              AppStrings.delete,
+                              style: appTextStyle(
+                                fz: 14,
+                                height: 20 / 14,
+                                fm: robotoMedium,
+                                color: AppColors.primaryColor,
+                              ),
+                              textAlign: TextAlign.end,
                             ),
-                            textAlign: TextAlign.end,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ); },
-      
+        );
+      },
+    );
+  }
+
+  //----------------Comment bottom sheet
+
+  void _openBottomSheet(
+      BuildContext context, Future<GetCommentsResponseModel> commentsFuture) {
+    final TextEditingController commentController = TextEditingController();
+    showModalBottomSheet(
+
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: FutureBuilder<GetCommentsResponseModel>(
+              future: commentsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text("Error loading comments"));
+                } else if (snapshot.hasData) {
+                  final commentsResponse = snapshot.data!;
+                  return SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                "Comments",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ).paddingOnly(left: 40),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(Icons.close, color: Colors.black),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        if (commentsResponse.data != null)
+                          ...commentsResponse.data!.map((comment) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    model.user?.profileImage==''?
+                            Container(
+                                                      height: 43,
+                                                      width: 43,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          color: AppColors
+                                                              .primaryColor /*??
+                                                                      AppColors.primaryColor,*/
+                                                          ),
+                                                      child: Text(
+                                                       comment.user?.name![0].toUpperCase(),
+                                                        style: TextStyle(
+                                                            fontSize: 22,
+                                                            color: Colors.white,
+                                                            fontFamily:
+                                                                robotoRegular),
+                                                      ),
+                                                    ).paddingOnly(left: 4, right: 25):
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(21),
+                                      child: CachedNetworkImage(
+                                        imageUrl:
+                                            "${comment.user?.profileImage}",
+                                        placeholder: (context, url) =>
+                                            const CircularProgressIndicator(),
+                                        errorWidget: (context, url, error) =>
+                                            const Icon(Icons.account_circle,
+                                                size: 42),
+                                        fit: BoxFit.cover,
+                                        width: 42,
+                                        height: 42,
+                                      ),
+                                    ).paddingOnly(left: 4, right: 25),
+                                    Text(
+                                      comment.user?.name ?? "Anonymous",
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ).paddingOnly(bottom: 10, right: 20),
+                                    Text(
+                                      comment.updatedAt != null
+                                          ? timeago.format(
+                                              DateTime.parse(
+                                                  comment.updatedAt!),
+                                              locale: 'en')
+                                          : "Time",
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w400,
+                                          fontStyle: FontStyle.italic),
+                                    ).paddingOnly(bottom: 10),
+                                  ],
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 70),
+                                  child: Text(
+                                    comment.description ?? "No comment",
+                                    style: TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                              ],
+                            );
+                          }).toList(),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            model.user?.profileImage==''?
+                            Container(
+                                                      height: 43,
+                                                      width: 43,
+                                                      alignment:
+                                                          Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          color: AppColors
+                                                              .primaryColor /*??
+                                                                      AppColors.primaryColor,*/
+                                                          ),
+                                                      child: Text(
+                                                       model.user!.name![0].toUpperCase(),
+                                                        style: TextStyle(
+                                                            fontSize: 22,
+                                                            color: Colors.white,
+                                                            fontFamily:
+                                                                robotoRegular),
+                                                      ),
+                                                    ):
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(21),
+                              child: CachedNetworkImage(
+                                imageUrl: "${model.user?.profileImage}",
+                                placeholder: (context, url) =>
+                                    const CircularProgressIndicator(),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.account_circle, size: 42),
+                                fit: BoxFit.cover,
+                                width: 42,
+                                height: 42,
+                              ),
+                            ).paddingOnly(left: 4),
+                            SizedBox(width: 20),
+                            Expanded(
+                              child: TextField(
+                                controller: commentController,
+                                decoration: InputDecoration(
+                                  hintText: "Add a comment",
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                ),
+                                onSubmitted: (value) {
+                                  if (value.isNotEmpty) {
+                                    ApiCall.addComment(
+                                        api: ApiUrl.addComment,
+                                        callack: this,
+                                        imageId: imageIdComment.toString(),
+                                        memoryID: memoryIdComment.toString(),
+                                        comment: commentController.text.trim());
+                                    setState(() {
+                                      addPostCommentLoader = true;
+                                    });
+                                    commentController.clear();
+                                    Navigator.pop(context);
+                                  }
+                                },
+                              ),
+                            ),
+                            SizedBox(
+                              width: 20,
+                            )
+                          ],
+                        ),
+                        SizedBox(
+                          height: 40,
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  return Center(child: Text("No comments available"));
+                }
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

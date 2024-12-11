@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:stasht/memory_detail_bottom_sheet.dart';
 import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/media_screen.dart';
@@ -19,9 +20,22 @@ import '../../bottom_bar_visibility_provider.dart';
 import 'package:provider/provider.dart';
 
 class PhotosView extends StatefulWidget {
-  PhotosView({super.key, required this.photosList, required this.isSkip});
+  PhotosView(
+      {super.key,
+      required this.photosList,
+      required this.isSkip,
+      this.memoryId,
+      this.imageLink,
+      this.title,
+      this.profileImge,
+      this.userName});
   List<PhotoModel> photosList = [];
   bool isSkip;
+  final String? memoryId;
+  final String? title;
+  final String? imageLink;
+  final String? profileImge;
+  final String? userName;
 
   @override
   State<PhotosView> createState() => _PhotosViewState();
@@ -50,7 +64,29 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
       // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
     }
 
+    if (widget.memoryId != null) {
+      Future.delayed(Duration.zero, () {
+        _showMemoryDetailsBottomSheet();
+      });
+    }
+
     super.initState();
+  }
+
+  void _showMemoryDetailsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return MemoryDetailsBottomSheet(
+            memoryId: widget.memoryId,
+            title: widget.title,
+            imageLink: widget.imageLink,
+            userName: widget.userName,
+            profileImage: widget.profileImge,
+            userId: model.user?.id);
+      },
+    );
   }
 
   @override
@@ -59,8 +95,6 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-
- 
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -241,9 +275,7 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
           ? MemoriesScreen(
               key: _scaffoldKey,
               photosList: widget.photosList,
-              isSkip: (){
-                
-              },
+              isSkip: () {},
             )
           : selectedIndex == 1
               ? MediaScreen(
@@ -344,8 +376,10 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                       MaterialPageRoute(
                           builder: (BuildContext context) =>
                               const ProfileScreen())).then((value) {
-                    setState(() {});
-                  });
+PrefUtils.instance.getUserFromPrefs().then((value) {
+      model = value!;
+      setState(() {});
+    });                  });
                 },
                 child: Container(
                   alignment: Alignment.center,

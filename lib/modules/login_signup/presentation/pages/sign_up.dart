@@ -6,6 +6,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/login_signup/presentation/pages/sign_in.dart';
+import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/onboarding/onboarding_screen.dart';
 import 'package:stasht/modules/photos/photos_screen.dart';
 import 'package:stasht/network/api_call.dart';
@@ -28,6 +29,7 @@ class Signup extends StatefulWidget {
 class _SignupState extends State<Signup> implements ApiCallback {
   int val = -1;
   bool isEmail = false;
+  List<PhotoModel> photosList = [];
 
   bool isLoggedIn = false;
   var profileData;
@@ -53,6 +55,13 @@ class _SignupState extends State<Signup> implements ApiCallback {
 
   @override
   void initState() {
+    CommonWidgets.requestStoragePermission(((allAssets) {
+      for (int i = 0; i < allAssets.length; i++) {
+        photosList
+            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
+        // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
+      }
+    }));
     nameFocusNode.addListener(() {
       setState(() {
         isNameFocused = nameFocusNode.hasFocus;
@@ -502,14 +511,23 @@ class _SignupState extends State<Signup> implements ApiCallback {
           MaterialPageRoute(
               builder: (BuildContext context) => const OnboardScreen()));
     } else if (apiType == ApiUrl.socialLogin) {
-      
+      if (model.hasMemory == 0 ) {
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
               builder: (BuildContext context) => const OnboardScreen()));
+      }else{
+         Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (BuildContext context) =>
+                  PhotosView(photosList: photosList, isSkip: false,)));
+      }
+    
+      }
       
     }
-  }
+  
 
   @override
   void tokenExpired(String message) {}

@@ -1497,44 +1497,48 @@ static Widget allAlbumView(
   }
 
   static Future<String> createDynamicLink(
-  String memoryId,
-  String title,
-  String imageLink,
-) async {
-  String shareLink = "";
-  FirebaseDynamicLinksPlatform dynamicLinks = FirebaseDynamicLinksPlatform.instance;
+      String memoryId,
+      String title,
+      String imageLink,
+      String userName,
+      String userProfileImage,
+      ) async {
+    String shareLink = "";
+    FirebaseDynamicLinksPlatform dynamicLinks = FirebaseDynamicLinksPlatform.instance;
 
-  const String URI_PREFIX_FIREBASE = "https://stashtdev.page.link";
-  const String DEFAULT_FALLBACK_URL_ANDROID = "https://stashtdev.page.link";
+    const String URI_PREFIX_FIREBASE = "https://stashtdev.page.link";
+    const String DEFAULT_FALLBACK_URL_ANDROID = "https://stashtdev.page.link";
 
-  String link =
-      "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=${Uri.encodeComponent(memoryId)}"
-      "&title=${Uri.encodeComponent(title)}"
-      "&image_link=${Uri.encodeComponent(imageLink)}";
+    // Construct the dynamic link URL
+    String link = "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=${Uri.encodeComponent(memoryId)}"
+        "&title=${Uri.encodeComponent(title)}"
+        "&image_link=${Uri.encodeComponent(imageLink)}"
+        "&user_name=${Uri.encodeComponent(userName)}"
+        "&profile_image=${Uri.encodeComponent(userProfileImage)}";
 
-  final DynamicLinkParameters parameters = DynamicLinkParameters(
-    uriPrefix: URI_PREFIX_FIREBASE,
-    link: Uri.parse(link),
-    androidParameters: const AndroidParameters(
-      packageName: 'com.app.stasht.dev',
-      minimumVersion: 1,
-    ),
-    iosParameters: const IOSParameters(
-      bundleId: 'com.app.stasht.dev',
-      minimumVersion: '1',
-      appStoreId: '6575378856',
-    ),
-  );
+    final DynamicLinkParameters parameters = DynamicLinkParameters(
+      uriPrefix: URI_PREFIX_FIREBASE,
+      link: Uri.parse(link),
+      androidParameters: const AndroidParameters(
+        packageName: 'com.app.stasht.dev',
+        minimumVersion: 1,
+      ),
+      iosParameters: const IOSParameters(
+        bundleId: 'com.app.stasht.dev',
+        minimumVersion: '1',
+        appStoreId: '6575378856',
+      ),
+    );
 
-  try {
-    final ShortDynamicLink shortLink = await dynamicLinks.buildShortLink(parameters);
-    shareLink = shortLink.shortUrl.toString();
-  } catch (error) {
-    debugPrint("Error generating link: $error");
+    try {
+      final ShortDynamicLink shortLink = await dynamicLinks.buildShortLink(parameters);
+      shareLink = shortLink.shortUrl.toString();
+    } catch (error) {
+      debugPrint("Error generating link: $error");
+    }
+
+    debugPrint("Generated link: $shareLink");
+    return shareLink;
   }
-
-  debugPrint("Link is $shareLink");
-  return shareLink;
-}
 
 }

@@ -66,7 +66,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
                   "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
               String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
               String link = await CommonWidgets.createDynamicLink(
-                  widget.memoryId, widget.title, imageIdentifier);
+                  widget.memoryId, widget.title, imageIdentifier,"","");
               EasyLoading.show();
               if (link.isNotEmpty) {
                 for (var element in selectedContacts) {

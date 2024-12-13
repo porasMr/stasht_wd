@@ -415,6 +415,9 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                     ),
                                   ],
                                 ),
+                                if(memoriesModel.data![index].memorisCount! >= 0)
+
+                                
                                 GestureDetector(
                                     onTap: () {
                                       categoryModel
@@ -503,6 +506,24 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                             ),
                           ],
                         ),
+                    if(memoriesModel.shared!.isNotEmpty)
+
+                                
+                                GestureDetector(
+                                    onTap: () {
+                                      categoryModel
+                                          .categories![categoryModel
+                                          .categories!.length-2].isSelected = true;
+                                      _currentPage = 1;
+                                      selectedCategory(categoryModel
+                                          .categories!.length-2);
+                                      subIdIndex = null;
+                                    },
+                                    child: const Icon(
+                                      Icons.arrow_forward,
+                                      color: Colors.black,
+                                      size: 25,
+                                    ))
                       ],
                     ),
                     const SizedBox(
@@ -523,6 +544,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
+
                           children: [
                             Text(
                               "Published",
@@ -545,6 +567,24 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                             ),
                           ],
                         ),
+                       if(memoriesModel.published!.isNotEmpty)
+
+                                
+                                GestureDetector(
+                                    onTap: () {
+                                      categoryModel
+                                          .categories![categoryModel
+                                          .categories!.length-1].isSelected = true;
+                                      _currentPage = 1;
+                                      selectedCategory(categoryModel
+                                          .categories!.length-1);
+                                      subIdIndex = null;
+                                    },
+                                    child: const Icon(
+                                      Icons.arrow_forward,
+                                      color: Colors.black,
+                                      size: 25,
+                                    ))
                       ],
                     ),
                     const SizedBox(

@@ -1,0 +1,29 @@
+{
+     "version": "0.2.0",
+     "configurations": [
+         {
+             "name": "Flutter (dev)",
+             "request": "launch",
+             "type": "dart",
+             "program": "lib/main.dart",
+             "args": ["--flavor", "dev"]
+         },
+         {
+             "name": "Flutter (profile mode, dev flavor)",
+             "request": "launch",
+             "type": "dart",
+             "flutterMode": "profile",
+             "program": "lib/main.dart",
+             "args": ["--flavor", "dev"]
+         },
+         {
+             "name": "Flutter (release mode, dev flavor)",
+             "request": "launch",
+             "type": "dart",
+             "flutterMode": "release",
+             "program": "lib/main.dart",
+             "args": ["--flavor", "dev"]
+         }
+     ]
+ }
+ 

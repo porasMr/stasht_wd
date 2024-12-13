@@ -110,6 +110,12 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "convert",
+      "rootUri": "file:///Users/worksdelight/.pub-cache/hosted/pub.dev/convert-3.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "cross_file",
       "rootUri": "file:///Users/worksdelight/.pub-cache/hosted/pub.dev/cross_file-0.3.4+2",
       "packageUri": "lib/",
@@ -136,6 +142,12 @@
     {
       "name": "device_info_platform_interface",
       "rootUri": "file:///Users/worksdelight/.pub-cache/hosted/pub.dev/device_info_platform_interface-2.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "exif",
+      "rootUri": "file:///Users/worksdelight/.pub-cache/hosted/pub.dev/exif-3.3.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
@@ -249,7 +261,7 @@
     },
     {
       "name": "flutter",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/packages/flutter",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/packages/flutter",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -423,13 +435,13 @@
     },
     {
       "name": "flutter_test",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/packages/flutter_test",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/packages/flutter_test",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -600,6 +612,12 @@
       "rootUri": "file:///Users/worksdelight/.pub-cache/hosted/pub.dev/js-0.6.7",
       "packageUri": "lib/",
       "languageVersion": "2.19"
+    },
+    {
+      "name": "json_annotation",
+      "rootUri": "file:///Users/worksdelight/.pub-cache/hosted/pub.dev/json_annotation-4.9.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "leak_tracker",
@@ -891,7 +909,7 @@
     },
     {
       "name": "sky_engine",
-      "rootUri": "file:///Users/worksdelight/Documents/flutter/bin/cache/pkg/sky_engine",
+      "rootUri": "file:///Users/worksdelight/Documents/flutter%20sdk/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -1088,7 +1106,7 @@
       "languageVersion": "3.3"
     }
   ],
-  "generated": "2024-12-10T06:13:32.091144Z",
+  "generated": "2024-12-12T06:17:14.777618Z",
   "generator": "pub",
   "generatorVersion": "3.3.0"
 }

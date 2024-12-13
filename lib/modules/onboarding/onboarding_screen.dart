@@ -412,6 +412,7 @@ PrefUtils.instance.getUserFromPrefs().then((value) {
         });
       } else {
         CommonWidgets.errorDialog(context, 'No image available in drive');
+              clossProgressDialog('google_drive_synced');
 
         await Future.delayed(const Duration(seconds: 2), () {
           // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
@@ -630,6 +631,7 @@ setState(() {
         });
       } else {
         CommonWidgets.errorDialog(context, "No image available in Insta");
+        Navigator.pop(context);
 
         await Future.delayed(const Duration(seconds: 2), () {
         
@@ -831,7 +833,8 @@ class _InstagramLoginPageState extends State<InstagramLoginPage> {
   // String clientSecret = '1805f78dbdb29d02d1c7790806e119ec';
   String redirectUri = 'https://stashtdev.page.link/';
 
-  final String scope = 'user_profile,user_media';
+  // final String scope = 'user_profile,user_media';
+  final String scope='instagram_business_content_publish';
   final String responseType = 'code';
   var controller = WebViewController();
   var cookieController = WebViewCookieManager();

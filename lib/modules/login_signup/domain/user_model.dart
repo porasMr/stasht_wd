@@ -2,12 +2,14 @@ class UserModel {
   String? message;
   String? token;
   User? user;
+  int? hasMemory;
 
   UserModel({this.message, this.token, this.user});
 
   UserModel.fromJson(Map<String, dynamic> json) {
     message = json['message'];
     token = json['token'];
+    hasMemory=json['has_memroy']??0;
     user = json['user'] != null ? new User.fromJson(json['user']) : null;
   }
 

@@ -16,18 +16,19 @@ class ApiUrl {
   static const String subCategory = "sub-category-list?category_id=";
   static const String memoryByCategory = "memory-by-category";
   static const String createMemory = "create-memory";
-    static const String updateMemory = "update-memory";
+  static const String updateMemory = "update-memory";
 
   static const String uploadImageTomemory = "upload-memory-image";
   static const String createSubCategory = "create-sub-category";
   static const String memoryDetail = "memory-detail";
-    static const String memoryPublished = "memory-published";
-    static const String deleteMemoryFile = "delete-memory-file";
-    static const String deleteMemory = "delete-memory";
-    static const String saveFileDescription = "save-file-description";
-
-
-
+  static const String memoryPublished = "memory-published";
+  static const String deleteMemoryFile = "delete-memory-file";
+  static const String deleteMemory = "delete-memory";
+  static const String saveFileDescription = "save-file-description";
+  static const String addCollaborator = "add-collaborator";
+  static const String getComments = "comments";
+  static const String addComment = "add-comment";
+    static const String unSyncAccount = "un_sync_account";
 
   
 }

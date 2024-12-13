@@ -463,9 +463,7 @@ class _SignInState extends State<SignIn> implements ApiCallback {
     PrefUtils.instance.saveUserToPrefs(model);
     PrefUtils.instance.authToken(model.token!);
     if (apiType == ApiUrl.socialLogin) {
-      if (model.user!.facebookSynced == 0 &&
-          model.user!.googleDriveSynced == 0 &&
-          model.user!.instagramSynced == 0) {
+      if (model.hasMemory == 0 ) {
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -478,11 +476,18 @@ class _SignInState extends State<SignIn> implements ApiCallback {
                     PhotosView(photosList: photosList,isSkip: false,)));
       }
     } else {
+      if (model.hasMemory == 0 ) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) => OnboardScreen()));
+      } else {
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
               builder: (BuildContext context) =>
                   PhotosView(photosList: photosList, isSkip: false,)));
+      }
     }
 
     print(model.token!);

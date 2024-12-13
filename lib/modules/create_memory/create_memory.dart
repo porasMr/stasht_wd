@@ -11,6 +11,7 @@ import 'package:googleapis/drive/v3.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/modules/create_memory/model/sub_category_model.dart';
+import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
@@ -43,7 +44,7 @@ class CreateMemoryScreen extends StatefulWidget {
       required this.photosList,
       required this.isBack,
       this.isEdit,
-      this.memoryListData,this.title,this.memoryId,this.cateId,this.subId});
+      this.memoryListData,this.title,this.memoryId,this.cateId,this.subId,this.userId});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
   List<MemoryListData>? memoryListData = [];
@@ -51,7 +52,9 @@ class CreateMemoryScreen extends StatefulWidget {
   String? memoryId='';
   String? cateId='';
   String? subId='';
+    String? userId='';
 
+ScrollController driveController=ScrollController();
 
   bool? isEdit;
   bool isBack;
@@ -105,10 +108,17 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   int uploadCount = 0;
   var progressbarValue = 0.0;
+UserModel model=UserModel();
+  ScrollController driveController=ScrollController();
 
   @override
   void initState() {
     super.initState();
+     PrefUtils.instance.getUserFromPrefs().then((value) {
+      model = value!;
+      setState(() {});
+    });
+
     PrefUtils.instance.getDrivePrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
@@ -129,6 +139,8 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     });
     deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
+            driveController.addListener(_onScrollEnd);
+
   }
 
   selectionOfAllPhoto() {
@@ -204,7 +216,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     for (int i = 0; i < instaModel.length; i++) {
       if (instaModel[i].id == selectedId) {
         instaModel[i].isSelected = true;
-        fbModel[i].isEdit = true;
+        instaModel[i].isEdit = true;
       }
     }
     setState(() {});
@@ -212,9 +224,9 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   void updateDriveSelectedValue(String selectedId) {
     for (int i = 0; i < driveModel.length; i++) {
-      if (instaModel[i].id == selectedId) {
+      if (driveModel[i].id == selectedId) {
         driveModel[i].isSelected = true;
-        fbModel[i].isEdit = true;
+        driveModel[i].isEdit = true;
       }
     }
     setState(() {});
@@ -696,11 +708,42 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       }
     } else if (selectedIndex == 4) {
       if (driveModel.isEmpty) {
+
         return CommonWidgets.driveView(context, getDriveView);
       } else {
-        return CommonWidgets.drivePhtotView(driveModel, viewRefersh);
+
+        return CommonWidgets.drivePhtotView(driveModel, viewRefersh,controller: driveController);
       }
     }
+  }
+
+void _onScrollEnd() {
+    if (driveController.position.pixels >=
+        driveController.position.maxScrollExtent) {
+     if(PrefUtils.instance.getDriveToken()!=null&&PrefUtils.instance.getDriveToken()!.isNotEmpty){
+      _showLoadMoreSnackbar();
+
+     }
+    }
+  }
+
+  void _showLoadMoreSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(
+        content:const Text("Loading more 30 photos"),
+       action: SnackBarAction(
+                  label: 'Load more',
+                  onPressed: () {
+ScaffoldMessenger.of(context).hideCurrentSnackBar();
+CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+      getDriveView(value!,PrefUtils.instance.getDriveToken()!);
+    });
+                  },
+                ),
+      ),
+    );
+    
+
   }
 
   getFacebbokPhoto(AccessToken token) {
@@ -711,8 +754,8 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     instaRequestForAccessToken(token);
   }
 
-  getDriveView(GoogleSignIn v1) {
-    fetchPhotosFromDrive(v1, context);
+  getDriveView(GoogleSignIn v1,String pageToken) {
+    fetchPhotosFromDrive(v1, context,pageToken);
   }
 
   viewRefersh() {
@@ -785,19 +828,23 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   @override
   void onFailure(String message) {
         EasyLoading.dismiss();
-
+if(widget.isEdit!){
     CommonWidgets.errorDialog(context, message);
-     if(countSelectedPhotos()==0) {
+if(countSelectedPhotos()==0) {
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
         print(progressbarValue);
 
         clossProgressDialog('');
       }
+}
+    
+     
   }
 
   @override
   void onSuccess(String data, String apiType) {
+print(data);
     if (apiType == ApiUrl.categories) {
       categoryModel = CategoryModel.fromJson(jsonDecode(data));
       categoryModel.categories![0].isSelected = true;
@@ -815,6 +862,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
       categoryMemoryModelWithoutPage =
           CategoryMemoryModelWithoutPage.fromJson(jsonDecode(data));
+          
       if (widget.isEdit!) {
         selectionOfAllPhoto();
       }
@@ -976,8 +1024,9 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         imp.description = '';
         imp.link = '';
 
-        imp.location = '';
-        imageFile.add(imp);
+ FilePath.getImageLocation(widget.photosList[i].assetEntity)!.then((value) {
+imp.location=value;
+      });        imageFile.add(imp);
       }
     }
     if (fbModel.isNotEmpty) {
@@ -1254,12 +1303,19 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       progressbarValue = 0.0;
       uploadCount = 0;
       if (type == "google_drive_synced") {
+         if(driveModel.isEmpty){
         driveModel = photoLinks;
-        PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+
+        }else{
+          driveModel.addAll(photoLinks);
+        }
+        PrefUtils.instance.saveDrivePhotoLinks(driveModel);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
         fbModel = photoLinks;
+
+       
 
         PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
         ApiCall.syncAccount(
@@ -1278,12 +1334,13 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   fetchPhotosFromDrive(
     GoogleSignIn googleSignIn,
     BuildContext context,
+    String? nextPageToken
   ) async {
     try {
       photoLinks.clear();
       List<File> allFiles = [];
       FileList fileList;
-      String? nextPageToken;
+    
       var httpClient = await googleSignIn.authenticatedClient();
       if (httpClient == null) {
         print('Failed to get authenticated client');
@@ -1294,93 +1351,67 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       showProgressDialog(context);
 
       // do {
-      do {
-        fileList = await driveApi.files.list(
-          // q: "mimeType contains 'image/'",
-          q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and visibility='anyoneWithLink'",
-          pageToken: nextPageToken,
-          $fields:
-              "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
-        );
-        if (fileList.files != null) {
-          if (fileList.files!.length > 50) {
-            allFiles.addAll(fileList.files!.take(50));
-          }
-          {
-            allFiles.addAll(fileList.files!);
-          }
-        }
+
+      fileList = await driveApi.files.list(
+        // q: "mimeType contains 'image/'",
+q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",
+        pageToken: nextPageToken,
+        pageSize: 30,
+        $fields:
+            "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
+      );
+      if (fileList.files != null||fileList.files!.isNotEmpty) {
+        // if (fileList.files!.length > 50) {
+        //   allFiles.addAll(fileList.files!.take(50));
+        // }
+        // {
+        allFiles.addAll(fileList.files!);
+        //}
         nextPageToken = fileList.nextPageToken;
-      } while (nextPageToken != null);
-      if (allFiles.isNotEmpty) {
-        if (allFiles.length > 50) {
-          for (int i = 0; i < allFiles.take(50).length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.take(50).length;
-              progressNotifier.value = progressbarValue;
-
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-            }
-          }
-          clossProgressDialog('google_drive_synced');
+        print("dsfasfa${allFiles.length} $nextPageToken");
+        if (fileList.nextPageToken != null) {
+          PrefUtils.instance.driveToken(fileList.nextPageToken!);
         } else {
-          for (int i = 0; i < allFiles.length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.length;
-              progressNotifier.value = progressbarValue;
+          PrefUtils.instance.driveToken('');
+        }
+        for (int i = 0; i < allFiles.length; i++) {
+          if (allFiles[i].webViewLink != null) {
+            photoLinks.add(PhotoDetailModel(
+                id: allFiles[i].id,
+                createdTime: allFiles[i].createdTime,
+                modifiedTime: allFiles[i].modifiedTime,
+                isSelected: false,
+                isEdit: false,
+                type: "drive",
+                webLink: allFiles[i].webContentLink,
+                thumbnailPath: allFiles[i].thumbnailLink));
+            uploadCount += 1;
+            progressbarValue = uploadCount / allFiles.length;
+            progressNotifier.value = progressbarValue;
 
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-              clossProgressDialog('google_drive_synced');
-            }
+            await Future.delayed(const Duration(seconds: 1));
+            setState(() {});
+            clossProgressDialog('google_drive_synced');
           }
         }
 
-        await Future.delayed(const Duration(seconds: 1), () {});
+        await Future.delayed(const Duration(milliseconds: 100), () {});
       } else {
+        PrefUtils.instance.driveToken('');
+
         CommonWidgets.errorDialog(context, 'No image available in drive');
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('');
+        PrefUtils.instance.driveToken('');
 
         await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true
-          // });
+          
         });
-        // goToMemories(false);
       }
+
+       
     } catch (e) {
       print('Error fetching files: $e');
       return null;
@@ -1514,5 +1545,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     } else {
       throw Exception('Failed to load photos');
     }
+
   }
+   
 }

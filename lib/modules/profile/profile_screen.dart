@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
@@ -529,11 +530,8 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                         child: GestureDetector(
                           onTap: () async{
                             
-   final appDir = await getApplicationSupportDirectory();
+         GoogleSignIn().signOut();
 
-    if(appDir.existsSync()){
-      appDir.deleteSync(recursive: true);
-    }
  EasyLoading.show();
                       ApiCall.deleteUserAccount(api: ApiUrl.unSyncAccount, callack: this);
 
@@ -763,6 +761,8 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                         child: InkWell(
                       onTap: () {
                         Navigator.pop(context);
+                                 GoogleSignIn().signOut();
+
                         EasyLoading.show();
                       ApiCall.deleteUserAccount(api: ApiUrl.deleteUserAccount, callack: this);
                       },
@@ -842,8 +842,11 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       changeUserName = false;
       setState(() {});
     } else if (apiType == ApiUrl.deleteUserAccount) {
+              PrefUtils.instance.driveToken('');
+
       PrefUtils.instance.clearPreferance();
-      Navigator.popUntil(context, ModalRoute.withName("/SignIn"));
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/SignIn', (Route<dynamic> route) => false);
     } else if (apiType == ApiUrl.syncAccount) {
       EasyLoading.dismiss();
       if (selectedType == "facebook_synced") {
@@ -853,6 +856,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       } else if (selectedType == "google_drive_synced") {
         isDriveSync = false;
         model.user!.googleDriveSynced = 0;
+        PrefUtils.instance.driveToken('');
         PrefUtils.instance.saveDrivePhotoLinks([]);
       } 
       else {
@@ -863,12 +867,16 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       }
       PrefUtils.instance.saveUserToPrefs(model);
     }else if(apiType==ApiUrl.unSyncAccount){
+              PrefUtils.instance.driveToken('');
+
       PrefUtils.instance.clearPreferance();
                             Navigator.of(context).pushNamedAndRemoveUntil(
                                 '/SignIn', (Route<dynamic> route) => false);
     }
-
-    setState(() {});
+if(mounted){
+ setState(() {});
+}
+   
   }
 
   @override

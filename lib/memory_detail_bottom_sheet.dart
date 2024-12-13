@@ -22,6 +22,7 @@ class MemoryDetailsBottomSheet extends StatefulWidget {
   final String? profileImage;
   final String? userName;
   var userId;
+  VoidCallback? callBak;
 
   MemoryDetailsBottomSheet(
       {super.key,
@@ -30,7 +31,7 @@ class MemoryDetailsBottomSheet extends StatefulWidget {
       this.imageLink,
       this.profileImage,
       this.userName,
-      this.userId});
+      this.userId,this.callBak});
 
   @override
   _MemoryDetailsBottomSheetState createState() =>
@@ -64,6 +65,8 @@ class _MemoryDetailsBottomSheetState extends State<MemoryDetailsBottomSheet>
                 child: const Text('Finish', style: TextStyle(fontSize: 18))
                     .paddingOnly(right: 6),
                 onTap: () {
+                         widget.callBak!();
+
                   Navigator.pop(context);
                 },
               )
@@ -173,7 +176,7 @@ class _MemoryDetailsBottomSheetState extends State<MemoryDetailsBottomSheet>
        
           CommonWidgets.successDialog(
               context, "${responseJson['message']}");
-       
+       widget.callBak!();
         Navigator.pop(context);
         setState(() {});
       } catch (e) {

@@ -415,7 +415,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                     ),
                                   ],
                                 ),
-                                if(memoriesModel.data![index].memorisCount! >= 0)
+                                if(memoriesModel.data![index].memorisCount! > 0)
 
                                 
                                 GestureDetector(
@@ -487,7 +487,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                         Row(
                           children: [
                             Text(
-                              "Shared",
+                              "Shared With",
                               style: appTextStyle(
                                 color: AppColors.monthColor,
                                 fm: robotoRegular,
@@ -507,6 +507,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                           ],
                         ),
                     if(memoriesModel.shared!.isNotEmpty)
+if(memoriesModel.shared![0].memorisCount!>0)
 
                                 
                                 GestureDetector(
@@ -568,7 +569,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                           ],
                         ),
                        if(memoriesModel.published!.isNotEmpty)
-
+if(memoriesModel.published![0].memorisCount!>0)
                                 
                                 GestureDetector(
                                     onTap: () {
@@ -628,6 +629,8 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                   ),
                   child: Row(
                     children: [
+                                if(getSelectedCategory()!='Shared'||getSelectedCategory()!='Published')
+
                       GestureDetector(
                         onTap: () {
                           _currentPage = 1;
@@ -1856,5 +1859,13 @@ CommonWidgets.errorDialog(context, message);
                   );
                 }),
           );
+  }
+   String getSelectedCategory() {
+    for (var category in categoryModel.categories!) {
+      if (category.isSelected) {
+        return category.name!;
+      }
+    }
+    return '';
   }
 }

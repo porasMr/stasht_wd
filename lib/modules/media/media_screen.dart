@@ -105,6 +105,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   var progressbarValue = 0.0;
   bool isBottomSheetOpen = false;
   ValueNotifier<int> selectedCountNotifier = ValueNotifier<int>(0);
+  ScrollController driveController=ScrollController();
 
   double radians(double degree) {
     return ((degree * 180) / pi);
@@ -169,6 +170,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     });
     deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
+        driveController.addListener(_onScrollEnd);
+
   }
 
   void deselectAll() {
@@ -310,12 +313,42 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       if (driveModel.isEmpty) {
         return CommonWidgets.driveView(context, getDriveView);
       } else {
+
         return CommonWidgets.drivePhtotView(driveModel, viewRefersh,
-            selectedCountNotifier: selectedCountNotifier);
+            selectedCountNotifier: selectedCountNotifier,controller:driveController);
+            
       }
     }
   }
 
+void _onScrollEnd() {
+    if (driveController.position.pixels >=
+        driveController.position.maxScrollExtent) {
+     if(PrefUtils.instance.getDriveToken()!=null&&PrefUtils.instance.getDriveToken()!.isNotEmpty){
+      _showLoadMoreSnackbar();
+
+     }
+    }
+  }
+
+  void _showLoadMoreSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(
+        content:const Text("Loading more 30 photos"),
+       action: SnackBarAction(
+                  label: 'Load more',
+                  onPressed: () {
+ScaffoldMessenger.of(context).hideCurrentSnackBar();
+CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+      getDriveView(value!,PrefUtils.instance.getDriveToken()!);
+    });
+                  },
+                ),
+      ),
+    );
+    
+
+  }
   getFacebbokPhoto(AccessToken token) {
     fetchFacebookPhotos(token);
   }
@@ -324,24 +357,21 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     instaRequestForAccessToken(token);
   }
 
-  getDriveView(GoogleSignIn v1) {
-    fetchPhotosFromDrive(v1, context);
+  getDriveView(GoogleSignIn v1, String pageToken) {
+    fetchPhotosFromDrive(v1, context, pageToken);
   }
 
   viewRefersh() {
     debugPrint("Refresh Function Count");
     setState(() {});
-    if(widget.isFromSignUp){
-      if(categoryMemoryModelWithoutPage
-          .data!=null) {
+    if (widget.isFromSignUp) {
+      if (categoryMemoryModelWithoutPage.data != null) {
         openAddPillBottomSheetForSignUp(context);
       }
-    }else{
-      if(categoryMemoryModelWithoutPage
-          .data!=null) {
+    } else {
+      if (categoryMemoryModelWithoutPage.data != null) {
         openAddPillBottomSheet(context);
       }
-
     }
   }
 
@@ -474,6 +504,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         }
       }
     } else if (apiType == ApiUrl.createMemory) {
+      if (countSelectedPhotos() == 0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('');
+      }
       deselectAll();
       titleController.text = "";
       labelController.text = "";
@@ -494,6 +531,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       }
       setState(() {});
     } else if (apiType == ApiUrl.updateMemory) {
+      if (countSelectedPhotos() == 0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('');
+      }
       deselectAll();
       titleController.text = "";
       labelController.text = "";
@@ -502,10 +546,11 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       setState(() {});
     } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
-    }else if(apiType==ApiUrl.createSubCategory){
+    } else if (apiType == ApiUrl.createSubCategory) {
       SubCategoryResModel subCategoryResModel =
-      SubCategoryResModel.fromJson(json.decode(data));
-      uploadData(selectedCategoryId(), subCategoryResModel.categories!.id.toString());
+          SubCategoryResModel.fromJson(json.decode(data));
+      uploadData(
+          selectedCategoryId(), subCategoryResModel.categories!.id.toString());
     }
   }
 
@@ -514,7 +559,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         createModel.images!.every((element) => element.link!.isNotEmpty);
     return allNonEmpty;
   }
-
 
   @override
   void tokenExpired(String message) {}
@@ -566,8 +610,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     return '';
   }
 
-
-
 /*==============================================================================================================================================================================================*/
 
   void openAddPillBottomSheet(BuildContext context) {
@@ -594,7 +636,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height:MediaQuery.of(context).size.height/2,
+                      height: MediaQuery.of(context).size.height / 2,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -712,8 +754,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               if (labelController
                                                   .text.isEmpty) {
                                                 isLabelTexFormFeildShow = false;
-                                                uploadData(
-                                                    selectedCategoryId(), selectedSubCategory());
+                                                uploadData(selectedCategoryId(),
+                                                    selectedSubCategory());
                                               } else {
                                                 isLabelTexFormFeildShow = false;
 
@@ -912,9 +954,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                   color: AppColors.greyColor,
                                                 ),
                                               )
-                                            :
-
-                                        Row(
+                                            : Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   const Icon(
@@ -947,154 +987,148 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                     ],
                                   ),
                                 ),
-
-                                  categoryMemoryModelWithoutPage
-                                      .data!.isNotEmpty &&
-                                      isLabelTexFormFeildShow == false
-                                      ? Container(
-
-                                      height:categoryMemoryModelWithoutPage
-                                          .data!.isEmpty?50:100,
-                                      width:
-                                      MediaQuery
-                                          .of(context)
-                                          .size
-                                          .width,
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                            left: 10, right: 10),
-                                        child: ListView.builder(
-                                            padding: EdgeInsets.zero,
-                                            itemCount:
-                                            categoryMemoryModelWithoutPage
-                                                .data!.length,
-                                            itemBuilder: (context, index) {
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  isLabelTexFormFeildShow =
-                                                  true;
-                                                  isReadOnly = true;
-                                                  selectedMemoryId =
-                                                      categoryMemoryModelWithoutPage
-                                                          .data![index].id
-                                                          .toString();
-                                                  print(selectedMemoryId);
-                                                  titleController.text =
+                                categoryMemoryModelWithoutPage
+                                            .data!.isNotEmpty &&
+                                        isLabelTexFormFeildShow == false
+                                    ? Container(
+                                        height: categoryMemoryModelWithoutPage
+                                                .data!.isEmpty
+                                            ? 50
+                                            : 100,
+                                        width:
+                                            MediaQuery.of(context).size.width,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                              left: 10, right: 10),
+                                          child: ListView.builder(
+                                              padding: EdgeInsets.zero,
+                                              itemCount:
                                                   categoryMemoryModelWithoutPage
-                                                      .data![index]
-                                                      .title!;
-                                                  setState(() {});
-                                                },
-                                                child: Column(
-                                                  mainAxisSize:
-                                                  MainAxisSize.min,
-                                                  children: [
-                                                    if (index > 0)
-                                                      const SizedBox(
-                                                        height: 5,
-                                                      ),
-                                                    Padding(
-                                                      padding:
-                                                      const EdgeInsets
-                                                          .only(
-                                                          left: 8.0,
-                                                          right: 8.0),
-                                                      child: Row(
-                                                        children: [
-                                                          ClipRRect(
-                                                              borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                  5.0),
-                                                              child: CachedNetworkImage(
-                                                                  imageUrl: categoryMemoryModelWithoutPage
+                                                      .data!.length,
+                                              itemBuilder: (context, index) {
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    isLabelTexFormFeildShow =
+                                                        true;
+                                                    isReadOnly = true;
+                                                    selectedMemoryId =
+                                                        categoryMemoryModelWithoutPage
+                                                            .data![index].id
+                                                            .toString();
+                                                    print(selectedMemoryId);
+                                                    titleController.text =
+                                                        categoryMemoryModelWithoutPage
+                                                            .data![index]
+                                                            .title!;
+                                                    setState(() {});
+                                                  },
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      if (index > 0)
+                                                        const SizedBox(
+                                                          height: 5,
+                                                        ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                left: 8.0,
+                                                                right: 8.0),
+                                                        child: Row(
+                                                          children: [
+                                                            ClipRRect(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            5.0),
+                                                                child: CachedNetworkImage(
+                                                                    imageUrl: categoryMemoryModelWithoutPage
+                                                                        .data![
+                                                                            index]
+                                                                        .lastUpdateImg!,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    height: 30,
+                                                                    width: 30,
+                                                                    progressIndicatorBuilder: (context,
+                                                                            url,
+                                                                            downloadProgress) =>
+                                                                        CircularProgressIndicator(
+                                                                            value:
+                                                                                downloadProgress.progress))),
+                                                            SizedBox(
+                                                              width: 5,
+                                                            ),
+                                                            Column(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Text(
+                                                                  categoryMemoryModelWithoutPage
                                                                       .data![
-                                                                  index]
-                                                                      .lastUpdateImg!,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  height: 30,
-                                                                  width: 30,
-                                                                  progressIndicatorBuilder: (
-                                                                      context,
-                                                                      url,
-                                                                      downloadProgress) =>
-                                                                      CircularProgressIndicator(
-                                                                          value:
-                                                                          downloadProgress
-                                                                              .progress))),
-                                                          SizedBox(
-                                                            width: 5,
-                                                          ),
-                                                          Column(
-                                                            mainAxisSize:
-                                                            MainAxisSize
-                                                                .min,
-                                                            children: [
-                                                              Text(
-                                                                categoryMemoryModelWithoutPage
-                                                                    .data![
-                                                                index]
-                                                                    .title!,
-                                                                style: appTextStyle(
-                                                                    fm:
-                                                                    interRegular,
-                                                                    fz: 14,
-                                                                    height:
-                                                                    19.2 /
-                                                                        14,
-                                                                    color: AppColors
-                                                                        .black),
-                                                              ),
-                                                            ],
-                                                          )
-                                                        ],
+                                                                          index]
+                                                                      .title!,
+                                                                  style: appTextStyle(
+                                                                      fm:
+                                                                          interRegular,
+                                                                      fz: 14,
+                                                                      height:
+                                                                          19.2 /
+                                                                              14,
+                                                                      color: AppColors
+                                                                          .black),
+                                                                ),
+                                                              ],
+                                                            )
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            }),
-                                      ))
-                                      : Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0),
-                                    child: TextFormField(
-                                      controller: titleController,
-                                      focusNode: titleFocusNode,
-                                      readOnly: isReadOnly,
-                                      cursorColor: AppColors.primaryColor,
-                                      onChanged: (val) {},
-                                      style: appTextStyle(
-                                        fm: robotoRegular,
-                                        fz: 21,
-                                        height: 27 / 21,
-                                        color: AppColors.black,
-                                      ),
-                                      decoration: InputDecoration(
-                                        border: InputBorder.none,
-                                        hintText: AppStrings.memoryTitle,
-                                        hintStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
+                                                    ],
+                                                  ),
+                                                );
+                                              }),
+                                        ))
+                                    : Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16.0),
+                                        child: TextFormField(
+                                          controller: titleController,
+                                          focusNode: titleFocusNode,
+                                          readOnly: isReadOnly,
+                                          cursorColor: AppColors.primaryColor,
+                                          onChanged: (val) {},
+                                          style: appTextStyle(
+                                            fm: robotoRegular,
+                                            fz: 21,
+                                            height: 27 / 21,
+                                            color: AppColors.black,
+                                          ),
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                            hintText: AppStrings.memoryTitle,
+                                            hintStyle: appTextStyle(
+                                              fz: isTitleFocused ? 14 : 21,
+                                              color: isTitleFocused
+                                                  ? AppColors.primaryColor
+                                                  : const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                            labelStyle: appTextStyle(
+                                              fz: isTitleFocused ? 14 : 21,
+                                              height: isTitleFocused
+                                                  ? 19.2 / 21
+                                                  : null,
+                                              color: isTitleFocused
+                                                  ? AppColors.primaryColor
+                                                  : const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                          ),
                                         ),
-                                        labelStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          height: isTitleFocused
-                                              ? 19.2 / 21
-                                              : null,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
-                                        ),
                                       ),
-                                    ),
-                                  ),
-
                                 const Divider(
                                   color: AppColors.textfieldFillColor,
                                 ),
@@ -1283,7 +1317,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       bool isReadOnly = false;
 
       _scaffoldKey.currentState!.showBottomSheet(
-            (BuildContext context) {
+        (BuildContext context) {
           return SafeArea(
             top: true,
             bottom: false,
@@ -1292,7 +1326,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height:MediaQuery.of(context).size.height/2,
+                      height: MediaQuery.of(context).size.height / 2,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -1317,7 +1351,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                             child: ListView(
                               shrinkWrap: true,
                               keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
                               children: [
                                 const SizedBox(height: 8),
                                 Row(
@@ -1328,7 +1362,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       width: 36,
                                       decoration: BoxDecoration(
                                         borderRadius:
-                                        BorderRadius.circular(100),
+                                            BorderRadius.circular(100),
                                         color: Colors.grey,
                                       ),
                                     ),
@@ -1341,7 +1375,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                         horizontal: 16.0),
                                     child: Row(
                                       mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Row(
                                           children: [
@@ -1355,8 +1389,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                 Navigator.pop(context);
                                                 isBottomSheetOpen = false;
                                                 Provider.of<BottomBarVisibilityProvider>(
-                                                    context,
-                                                    listen: false)
+                                                        context,
+                                                        listen: false)
                                                     .showBottomBar();
                                               },
                                             ),
@@ -1373,7 +1407,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                             const SizedBox(width: 5),
                                             ValueListenableBuilder<int>(
                                               valueListenable:
-                                              selectedCountNotifier,
+                                                  selectedCountNotifier,
                                               builder: (context, selectedCount,
                                                   child) {
                                                 return Text(
@@ -1408,12 +1442,12 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               uploadCount = 1;
                                               progressbarValue = 0.0;
 
-                                                uploadData(
-                                                    selectedCategoryId(), '');
+                                              uploadData(
+                                                  selectedCategoryId(), '');
 
                                               Provider.of<BottomBarVisibilityProvider>(
-                                                  context,
-                                                  listen: false)
+                                                      context,
+                                                      listen: false)
                                                   .showBottomBar();
                                             }
                                           },
@@ -1423,7 +1457,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               fm: robotoRegular,
                                               fz: 17,
                                               color: titleController
-                                                  .text.isNotEmpty
+                                                      .text.isNotEmpty
                                                   ? AppColors.black
                                                   : const Color(0XFF858484),
                                             ),
@@ -1444,7 +1478,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                   child: Row(
                                     children: [
                                       if ((categoryModel.categories?.length ??
-                                          0) >
+                                              0) >
                                           1)
                                         GestureDetector(
                                           onTap: () {
@@ -1478,78 +1512,77 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                 ),
                                 isExpandedDrop
                                     ? Container(
-                                  height: 40,
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  child: ListView.builder(
-                                    itemCount: categoryModel.categories!
-                                        .where((test) =>
-                                    test.name != "Shared" &&
-                                        test.name != "Published")
-                                        .length,
-                                    scrollDirection: Axis.horizontal,
-                                    itemBuilder: (context, index) {
-                                      return InkWell(
-                                        onTap: () {
-                                          for (int i = 0;
-                                          i <
-                                              categoryModel
-                                                  .categories!.length;
-                                          i++) {
-                                            if (i == index) {
-                                              categoryModel
-                                                  .categories![index]
-                                                  .isSelected = true;
-                                            } else {
-                                              categoryModel.categories![i]
-                                                  .isSelected = false;
-                                            }
-                                          }
-
-                                        },
-                                        child: Container(
-                                          constraints:
-                                          const BoxConstraints(
-                                            minWidth:
-                                            90, // Ensure the min width is 90
-                                          ),
-                                          margin:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 5),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                            BorderRadius.circular(5),
-                                            color: selectedCategory() ==
-                                                categoryModel
-                                                    .categories![
-                                                index]
-                                                    .name
-                                                ? AppColors.subTitleColor
-                                                : Colors.grey
-                                                .withOpacity(.2),
-                                          ),
-                                          padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 5),
-                                          child: Center(
-                                            child: Text(
-                                              categoryModel
-                                                  .categories![index]
-                                                  .name!,
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.black,
-                                                fontWeight:
-                                                FontWeight.bold,
+                                        height: 40,
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 20),
+                                        child: ListView.builder(
+                                          itemCount: categoryModel.categories!
+                                              .where((test) =>
+                                                  test.name != "Shared" &&
+                                                  test.name != "Published")
+                                              .length,
+                                          scrollDirection: Axis.horizontal,
+                                          itemBuilder: (context, index) {
+                                            return InkWell(
+                                              onTap: () {
+                                                for (int i = 0;
+                                                    i <
+                                                        categoryModel
+                                                            .categories!.length;
+                                                    i++) {
+                                                  if (i == index) {
+                                                    categoryModel
+                                                        .categories![index]
+                                                        .isSelected = true;
+                                                  } else {
+                                                    categoryModel.categories![i]
+                                                        .isSelected = false;
+                                                  }
+                                                }
+                                              },
+                                              child: Container(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  minWidth:
+                                                      90, // Ensure the min width is 90
+                                                ),
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 5),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                  color: selectedCategory() ==
+                                                          categoryModel
+                                                              .categories![
+                                                                  index]
+                                                              .name
+                                                      ? AppColors.subTitleColor
+                                                      : Colors.grey
+                                                          .withOpacity(.2),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 5),
+                                                child: Center(
+                                                  child: Text(
+                                                    categoryModel
+                                                        .categories![index]
+                                                        .name!,
+                                                    style: const TextStyle(
+                                                      fontSize: 15,
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                          ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    },
-                                  ),
-                                )
+                                      )
                                     : const IgnorePointer(),
                                 const SizedBox(height: 10),
                                 Divider(
@@ -1561,7 +1594,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       horizontal: 16.0),
                                   child: Row(
                                     mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         AppStrings.memoryTitle,
@@ -1571,54 +1604,50 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                             height: 19.2 / 14,
                                             color: AppColors.primaryColor),
                                       ),
-
-
                                     ],
                                   ),
                                 ),
                                 Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0),
-                                    child: TextFormField(
-                                      controller: titleController,
-                                      focusNode: titleFocusNode,
-                                      readOnly: isReadOnly,
-                                      cursorColor: AppColors.primaryColor,
-                                      onChanged: (val) {},
-                                      style: appTextStyle(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
+                                  child: TextFormField(
+                                    controller: titleController,
+                                    focusNode: titleFocusNode,
+                                    readOnly: isReadOnly,
+                                    cursorColor: AppColors.primaryColor,
+                                    onChanged: (val) {},
+                                    style: appTextStyle(
+                                      fm: robotoRegular,
+                                      fz: 21,
+                                      height: 27 / 21,
+                                      color: AppColors.black,
+                                    ),
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: AppStrings.memoryTitle,
+                                      hintStyle: appTextStyle(
+                                        fz: isTitleFocused ? 14 : 21,
+                                        color: isTitleFocused
+                                            ? AppColors.primaryColor
+                                            : const Color(0XFF999999),
                                         fm: robotoRegular,
-                                        fz: 21,
-                                        height: 27 / 21,
-                                        color: AppColors.black,
                                       ),
-                                      decoration: InputDecoration(
-                                        border: InputBorder.none,
-                                        hintText: AppStrings.memoryTitle,
-                                        hintStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
-                                        ),
-                                        labelStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          height: isTitleFocused
-                                              ? 19.2 / 21
-                                              : null,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
-                                        ),
+                                      labelStyle: appTextStyle(
+                                        fz: isTitleFocused ? 14 : 21,
+                                        height:
+                                            isTitleFocused ? 19.2 / 21 : null,
+                                        color: isTitleFocused
+                                            ? AppColors.primaryColor
+                                            : const Color(0XFF999999),
+                                        fm: robotoRegular,
                                       ),
                                     ),
                                   ),
-
+                                ),
                                 const Divider(
                                   color: AppColors.textfieldFillColor,
                                 ),
-                               ],
+                              ],
                             ),
                           ),
                         )
@@ -1645,22 +1674,25 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
-if(countSelectedPhotos()>0) {
-  for (int i = 0; i < widget.photosList.length; i++) {
-    if (widget.photosList[i].selectedValue) {
-      ImagesFile imp = ImagesFile();
-      imp.typeId = widget.photosList[i].assetEntity.id;
-      imp.type = "image";
-      imp.captureDate = _getFormattedDateTime(
-          widget.photosList[i].assetEntity.createDateTime);
-      imp.description = '';
-      imp.link = '';
+    if (countSelectedPhotos() > 0) {
+      for (int i = 0; i < widget.photosList.length; i++) {
+        if (widget.photosList[i].selectedValue) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = widget.photosList[i].assetEntity.id;
+          imp.type = "image";
+          imp.captureDate = _getFormattedDateTime(
+              widget.photosList[i].assetEntity.createDateTime);
+          imp.description = '';
+          imp.link = '';
 
-      imp.location = '';
-      imageFile.add(imp);
+          FilePath.getImageLocation(widget.photosList[i].assetEntity)!
+              .then((value) {
+            imp.location = value;
+          });
+          imageFile.add(imp);
+        }
+      }
     }
-  }
-}
     if (fbModel.isNotEmpty) {
       for (int i = 0; i < fbModel.length; i++) {
         if (fbModel[i].isSelected) {
@@ -1710,7 +1742,7 @@ if(countSelectedPhotos()>0) {
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-    if(countSelectedPhotos()==0){
+    if (countSelectedPhotos() == 0) {
       clossProgressDialog('');
       if (createModel.memoryId != null) {
         ApiCall.createMemory(
@@ -1721,9 +1753,8 @@ if(countSelectedPhotos()>0) {
             model: createModel,
             callack: this); // Dismiss the dialog
       }
-    }else{
+    } else {
       processPhotos();
-
     }
 
     print(createModel.images!.length);
@@ -1954,10 +1985,18 @@ if(countSelectedPhotos()>0) {
       progressbarValue = 0.0;
       uploadCount = 0;
       if (type == "google_drive_synced") {
-        driveModel = photoLinks;
-        PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+        if (driveModel.isEmpty) {
+          driveModel = photoLinks;
+        } else {
+          driveModel.addAll(photoLinks);
+        }
+         setState(() {
+              
+            });
+        PrefUtils.instance.saveDrivePhotoLinks(driveModel);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
+           
       } else if (type == 'facebook_synced') {
         fbModel = photoLinks;
 
@@ -1975,15 +2014,16 @@ if(countSelectedPhotos()>0) {
   }
 
 //===============Drive===================
-  fetchPhotosFromDrive(
+ fetchPhotosFromDrive(
     GoogleSignIn googleSignIn,
     BuildContext context,
+    String? nextPageToken
   ) async {
     try {
       photoLinks.clear();
       List<File> allFiles = [];
       FileList fileList;
-      String? nextPageToken;
+    
       var httpClient = await googleSignIn.authenticatedClient();
       if (httpClient == null) {
         print('Failed to get authenticated client');
@@ -1994,98 +2034,72 @@ if(countSelectedPhotos()>0) {
       showProgressDialog(context);
 
       // do {
-      do {
-        fileList = await driveApi.files.list(
-          // q: "mimeType contains 'image/'",
-          q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and visibility='anyoneWithLink'",
-          pageToken: nextPageToken,
-          $fields:
-              "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
-        );
-        if (fileList.files != null) {
-          if (fileList.files!.length > 50) {
-            allFiles.addAll(fileList.files!.take(50));
-          }
-          {
-            allFiles.addAll(fileList.files!);
-          }
-        }
+
+      fileList = await driveApi.files.list(
+        // q: "mimeType contains 'image/'",
+q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",
+        pageToken: nextPageToken,
+        pageSize: 30,
+        $fields:
+            "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
+      );
+      if (fileList.files != null||fileList.files!.isNotEmpty) {
+        // if (fileList.files!.length > 50) {
+        //   allFiles.addAll(fileList.files!.take(50));
+        // }
+        // {
+        allFiles.addAll(fileList.files!);
+        //}
         nextPageToken = fileList.nextPageToken;
-      } while (nextPageToken != null);
-      if (allFiles.isNotEmpty) {
-        if (allFiles.length > 50) {
-          for (int i = 0; i < allFiles.take(50).length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.take(50).length;
-              progressNotifier.value = progressbarValue;
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-            }
-          }
-          clossProgressDialog('google_drive_synced');
+        print("dsfasfa${allFiles.length} $nextPageToken");
+        if (fileList.nextPageToken != null) {
+          PrefUtils.instance.driveToken(fileList.nextPageToken!);
         } else {
-          for (int i = 0; i < allFiles.length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.length;
-              progressNotifier.value = progressbarValue;
+          PrefUtils.instance.driveToken('');
+        }
+        for (int i = 0; i < allFiles.length; i++) {
+          if (allFiles[i].webViewLink != null) {
+            photoLinks.add(PhotoDetailModel(
+                id: allFiles[i].id,
+                createdTime: allFiles[i].createdTime,
+                modifiedTime: allFiles[i].modifiedTime,
+                isSelected: false,
+                isEdit: false,
+                type: "drive",
+                webLink: allFiles[i].webContentLink,
+                thumbnailPath: allFiles[i].thumbnailLink));
+            uploadCount += 1;
+            progressbarValue = uploadCount / allFiles.length;
+            progressNotifier.value = progressbarValue;
 
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-              clossProgressDialog('google_drive_synced');
-            }
+            await Future.delayed(const Duration(seconds: 1));
+            setState(() {});
+            clossProgressDialog('google_drive_synced');
           }
         }
 
-        await Future.delayed(const Duration(seconds: 1), () {});
+        await Future.delayed(const Duration(milliseconds: 100), () {});
       } else {
+        PrefUtils.instance.driveToken('');
+
         CommonWidgets.errorDialog(context, 'No image available in drive');
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('');
+        PrefUtils.instance.driveToken('');
 
         await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true
-          // });
+          
         });
-        // goToMemories(false);
       }
+
+       
     } catch (e) {
       print('Error fetching files: $e');
       return null;
     }
   }
-
   String convertToDirectLink(
       String shareableLink, String fileId, String accessToken, var driveApi) {
     print("Before ====>$shareableLink");

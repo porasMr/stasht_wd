@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:exif/exif.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:http/http.dart' as http;
 
@@ -51,4 +54,65 @@ static Future<void> postImageToFacebook(String shareUrl, String accessToken,Func
   }
 }
   
+  static Future<String>? getImageLocation(AssetEntity asset) async {
+    // Get the file path of the image from AssetEntity
+    File? file = await asset.originFile;
+    var address = "";
+    if (file != null) {
+      try {
+        // Read EXIF data from the file bytes
+        final bytes = await file.readAsBytes();
+        final tags = await readExifFromBytes(bytes);
+
+        // Check if the image contains GPS data
+        if (tags.containsKey('GPS GPSLatitude') &&
+            tags.containsKey('GPS GPSLongitude')) {
+          PermissionStatus status =
+              await Permission.accessMediaLocation.request();
+
+          if (status.isGranted) {
+            // Fetch latitude and longitude from the photo metadata
+            final LatLng latLng = await asset.latlngAsync();
+            if (latLng != null &&
+                (latLng.latitude != 0.0 || latLng.longitude != 0.0)) {
+              print(
+                  'Latitude: ${latLng.latitude}, Longitude: ${latLng.longitude}');
+              address = await getAddressFromLatLng(
+                      latLng.latitude ?? 0.0, latLng.longitude ?? 0.0) ??
+                  "";
+            } else {
+              print('No location data found or lat/long is 0.0');
+            }
+          } else {
+            print('Permission denied');
+          }
+        } else {
+          print("No GPS location data found for this image.");
+        }
+      } catch (e) {
+        print("Error reading EXIF data: $e");
+      }
+    } else {
+      print("Unable to get the file from asset.");
+    }
+    return address;
+  }
+  static Future<String?> getAddressFromLatLng(
+      double latitude, double longitude) async {
+    try {
+      // Use the placemarkFromCoordinates method to get location details
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(latitude, longitude);
+
+      // Accessing the first placemark (usually the most relevant)
+      Placemark place = placemarks[0];
+
+      // Constructing a readable address
+      String address = '${place.street}, ${place.locality}';
+      return address;
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
+
 }

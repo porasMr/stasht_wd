@@ -84,7 +84,12 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
             imageLink: widget.imageLink,
             userName: widget.userName,
             profileImage: widget.profileImge,
-            userId: model.user?.id);
+            userId: model.user?.id,
+            callBak: (){
+               if (_scaffoldKey.currentState!.mounted) {
+                              _scaffoldKey.currentState!.refrehScreen();
+                            }
+            },);
       },
     );
   }
@@ -376,6 +381,10 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                       MaterialPageRoute(
                           builder: (BuildContext context) =>
                               const ProfileScreen())).then((value) {
+                                setState(() {});
+                            if (_scaffoldKey.currentState!.mounted) {
+                              _scaffoldKey.currentState!.refrehScreen();
+                            }
 PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
       setState(() {});

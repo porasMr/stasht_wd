@@ -13,7 +13,7 @@ class CategoryMemoryModelWithoutPage {
     if (json['data'] != null) {
       data = <Data>[];
       json['data'].forEach((v) {
-        data!.add( Data.fromJson(v));
+        data!.add(new Data.fromJson(v));
       });
     }
     if (json['subCategories'] != null) {
@@ -57,10 +57,8 @@ class Data {
   dynamic deletedAt;
   int? postsCount;
   int? collaboratorCount;
-  dynamic subCategory;
   User? user;
   dynamic signleCooaborator;
-  bool isSelected=false;
 
   Data(
       {this.id,
@@ -80,7 +78,6 @@ class Data {
       this.deletedAt,
       this.postsCount,
       this.collaboratorCount,
-      this.subCategory,
       this.user,
       this.signleCooaborator});
 
@@ -89,30 +86,31 @@ class Data {
     categoryId = json['category_id'];
     userId = json['user_id'];
     title = json['title'];
-    if(json['sub_category_id']!=null){
-      subCategoryId = json['sub_category_id'].toString();
-    }else{
+    if(json['sub_category_id']==null){
       subCategoryId='';
+    }else{
+    subCategoryId = json['sub_category_id'].toString();
+
     }
     slug = json['slug'];
     published = json['published'];
     commentsCount = json['comments_count'];
-    inviteLink = json['invite_link']??'';
-    minUploadedImgDate = json['min_uploaded_img_date']??'';
-    maxUploadedImgDate = json['max_uploaded_img_date']??'';
-    lastUpdateImg = json['last_update_img']??'';
+    inviteLink = json['invite_link'];
+    minUploadedImgDate = json['min_uploaded_img_date'];
+    maxUploadedImgDate = json['max_uploaded_img_date'];
+    lastUpdateImg = json['last_update_img'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
     deletedAt = json['deleted_at'];
     postsCount = json['posts_count'];
     collaboratorCount = json['collaborator_count'];
-    subCategory = json['sub_category'];
-    user = json['user'] != null ?  User.fromJson(json['user']) : null;
+   
+    user = json['user'] != null ? new User.fromJson(json['user']) : null;
     signleCooaborator = json['signle_cooaborator'];
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data =  Map<String, dynamic>();
+    final Map<String, dynamic> data = new Map<String, dynamic>();
     data['id'] = this.id;
     data['category_id'] = this.categoryId;
     data['user_id'] = this.userId;
@@ -130,7 +128,7 @@ class Data {
     data['deleted_at'] = this.deletedAt;
     data['posts_count'] = this.postsCount;
     data['collaborator_count'] = this.collaboratorCount;
-    data['sub_category'] = this.subCategory;
+    
     if (this.user != null) {
       data['user'] = this.user!.toJson();
     }
@@ -139,30 +137,6 @@ class Data {
   }
 }
 
-class User {
-  int? id;
-  String? name;
-  dynamic profileImage;
-  String? email;
-
-  User({this.id, this.name, this.profileImage, this.email});
-
-  User.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
-    name = json['name'];
-    profileImage = json['profile_image'];
-    email = json['email'];
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['id'] = this.id;
-    data['name'] = this.name;
-    data['profile_image'] = this.profileImage;
-    data['email'] = this.email;
-    return data;
-  }
-}
 
 class SubCategories {
   int? id;
@@ -202,6 +176,31 @@ class SubCategories {
     data['created_at'] = this.createdAt;
     data['updated_at'] = this.updatedAt;
     data['deleted_at'] = this.deletedAt;
+    return data;
+  }
+  
+}
+class User {
+  int? id;
+  String? name;
+  String? profileImage;
+  String? email;
+
+  User({this.id, this.name, this.profileImage, this.email});
+
+  User.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    name = json['name'];
+    profileImage = json['profile_image']??'';
+    email = json['email'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['id'] = this.id;
+    data['name'] = this.name;
+    data['profile_image'] = this.profileImage;
+    data['email'] = this.email;
     return data;
   }
 }

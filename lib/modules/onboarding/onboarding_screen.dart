@@ -30,8 +30,6 @@ import 'package:stasht/utils/constants.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 
-
-
 class OnboardScreen extends StatefulWidget {
   const OnboardScreen({super.key});
 
@@ -40,9 +38,8 @@ class OnboardScreen extends StatefulWidget {
 }
 
 class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
-
   DriveApi? driveApi;
-var fbValue = false;
+  var fbValue = false;
   var instaValue = false;
   var isLoading = false;
   var driveValue = false;
@@ -52,40 +49,43 @@ var fbValue = false;
   int uploadCount = 0;
   var progressbarValue = 0.0;
   var groupedAssets = {};
-List<PhotoModel> photosList = [];
- SharedPreferences? pref;
-   List<Future<Uint8List?>> future = [];
+  List<PhotoModel> photosList = [];
+  SharedPreferences? pref;
+  List<Future<Uint8List?>> future = [];
 
-UserModel model=UserModel();
-@override
+  UserModel model = UserModel();
+  @override
   void initState() {
-PrefUtils.instance.getUserFromPrefs().then((value) {
+    PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
       setState(() {});
     });
-     SharedPreferences.getInstance().then((value) => pref=value);
+    SharedPreferences.getInstance().then((value) => pref = value);
     pref?.setBool("isFirstOnBoard", true);
-     CommonWidgets.requestStoragePermission(((allAssets) {
+    CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
-        photosList
-            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
-            if(allAssets.length-1==i){
-            getImageFutureData();
-
-            }
-           // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
+        photosList.add(PhotoModel(
+            assetEntity: allAssets[i],
+            selectedValue: false,
+            isEditmemory: false));
+        if (allAssets.length - 1 == i) {
+          getImageFutureData();
+        }
+        // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
       }
-     
-    })); 
-       super.initState();
+    }));
+    super.initState();
   }
-  getImageFutureData(){
-      for (int i = 0; i < photosList.length; i++) {
-      future.add(photosList[i].assetEntity
+
+  getImageFutureData() {
+    for (int i = 0; i < photosList.length; i++) {
+      future.add(photosList[i]
+          .assetEntity
           .thumbnailDataWithSize(ThumbnailSize(300, 300)));
       // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
@@ -115,21 +115,26 @@ PrefUtils.instance.getUserFromPrefs().then((value) {
                       ),
                       GestureDetector(
                         onTap: () {
-                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList,isSkip: true,)));
-
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (BuildContext context) => PhotosView(
+                                        photosList: photosList,
+                                        isSkip: true,
+                                      )));
                         },
                         child: Align(
-                            alignment: Alignment.centerRight,
-                            child: isLoading
-                                  ? CircularProgressIndicator()
-                                  : Text(
-                                      AppStrings.skip,
-                                      style: appTextStyle(
-                                          color: AppColors.primaryColor,
-                                          fm: robotoRegular,
-                                          fz: 22),
-                                    ),
-                            ),
+                          alignment: Alignment.centerRight,
+                          child: isLoading
+                              ? CircularProgressIndicator()
+                              : Text(
+                                  AppStrings.skip,
+                                  style: appTextStyle(
+                                      color: AppColors.primaryColor,
+                                      fm: robotoRegular,
+                                      fz: 22),
+                                ),
+                        ),
                       ),
                       const SizedBox(
                         height: 120,
@@ -263,65 +268,61 @@ PrefUtils.instance.getUserFromPrefs().then((value) {
   }
 
   _switchIcon({String? type, required BuildContext context}) {
-    return  Switch(
-          value: type == "fb"
-              ? fbValue
-              : type == "insta"
-                  ? instaValue
-                  : driveValue,
-          onChanged: (value) async {
-            changeSwitchValue(value, type);
-            if (type == "insta" && instaValue) {
-              CommonWidgets.openInstagramPage(context)!.then((value) {
-                instaRequestForAccessToken(value);
-              });
-            } else if (type == "drive" && driveValue) {
-              CommonWidgets.getFileFromGoogleDrive(context).then((value) {
-                fetchPhotosFromDrive(value!, context);
-              });
-            } else if (type == "fb" && fbValue) {
-              CommonWidgets.loginWithFacebook()!.then((value) {
-                fetchFacebookPhotos(value!);
-              });
-            }
-            setState(() {
-              
-            });
-          },
-          activeColor: Colors.white,
-          trackColor: MaterialStateProperty.all(
-              const Color(0XFFD9DAFF).withOpacity(.75)),
-        );
+    return Switch(
+      value: type == "fb"
+          ? fbValue
+          : type == "insta"
+              ? instaValue
+              : driveValue,
+      onChanged: (value) async {
+        changeSwitchValue(value, type);
+        if (type == "insta" && instaValue) {
+          CommonWidgets.openInstagramPage(context)!.then((value) {
+            instaRequestForAccessToken(value);
+          });
+        } else if (type == "drive" && driveValue) {
+          CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+            fetchPhotosFromDrive(value!, context);
+          });
+        } else if (type == "fb" && fbValue) {
+          CommonWidgets.loginWithFacebook()!.then((value) {
+            fetchFacebookPhotos(value!);
+          });
+        }
+        setState(() {});
+      },
+      activeColor: Colors.white,
+      trackColor:
+          MaterialStateProperty.all(const Color(0XFFD9DAFF).withOpacity(.75)),
+    );
   }
-  
+
   void changeSwitchValue(bool value, String? type) {
-  /* if(type == "drive") {
+    /* if(type == "drive") {
       driveValue.value = value;
       instaValue.value = true;
       fbValue.value = true;
     }*/
-     if (type == "fb") {
-         fbValue = value;
+    if (type == "fb") {
+      fbValue = value;
       instaValue = false;
       driveValue = false;
-    }
-    else if (type == "insta") {
-           instaValue = value;
+    } else if (type == "insta") {
+      instaValue = value;
       fbValue = false;
       driveValue = false;
-    }
-    else {
+    } else {
       driveValue = value;
       instaValue = false;
       fbValue = false;
     }
-    setState(() {
-      
-    });
+    setState(() {});
   }
 
-  fetchPhotosFromDrive(GoogleSignIn googleSignIn, BuildContext context,
-     ) async {
+  fetchPhotosFromDrive(
+    GoogleSignIn googleSignIn,
+    BuildContext context,
+  ) async {
     try {
       photoLinks.clear();
       List<File> allFiles = [];
@@ -337,118 +338,88 @@ PrefUtils.instance.getUserFromPrefs().then((value) {
       showProgressDialog(context);
 
       // do {
-      do {
-        fileList = await driveApi.files.list(
-          // q: "mimeType contains 'image/'",
-          q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and visibility='anyoneWithLink'",
-          pageToken: nextPageToken,
-          $fields:
-          "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
-        );
-        if (fileList.files != null) {
 
-          if (fileList.files!.length > 50) {
-            allFiles.addAll(fileList.files!.take(50));
-          }
-          {
-            allFiles.addAll(fileList.files!);
-          }
-        }
+      fileList = await driveApi.files.list(
+        // q: "mimeType contains 'image/'",
+q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",
+        pageToken: nextPageToken,
+        pageSize: 30,
+        $fields:
+            "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
+      );
+      if (fileList.files != null||fileList.files!.isNotEmpty) {
+        // if (fileList.files!.length > 50) {
+        //   allFiles.addAll(fileList.files!.take(50));
+        // }
+        // {
+        allFiles.addAll(fileList.files!);
+        //}
         nextPageToken = fileList.nextPageToken;
-      } while (nextPageToken != null);
-      if (allFiles.isNotEmpty) {
-        if (allFiles.length > 50) {
-            for (int i = 0; i < allFiles.take(50).length; i++) {
-              if (allFiles[i].webViewLink != null) {
-                photoLinks.add(PhotoDetailModel(
-                    id: allFiles[i].id,
-                    createdTime: allFiles[i].createdTime,
-                    modifiedTime: allFiles[i].modifiedTime,
-                    isSelected: false,
-                    isEdit: false,
-                    type: "drive",
-                    webLink: allFiles[i].thumbnailLink,
-                    thumbnailPath: convertToDirectLink(allFiles[i].webViewLink!,allFiles[i].id!,httpClient.credentials.accessToken.data,driveApi)));
-                uploadCount += 1;
-                progressbarValue = uploadCount / allFiles.take(50).length;
-                      progressNotifier.value=progressbarValue;
-
-                await Future.delayed(const Duration(seconds: 1));
-                setState(() {
-                  
-                });
-              }
-            }
-              clossProgressDialog('google_drive_synced');
-
+        print("dsfasfa${allFiles.length} $nextPageToken");
+        if (fileList.nextPageToken != null) {
+          PrefUtils.instance.driveToken(fileList.nextPageToken!);
+        } else {
+          PrefUtils.instance.driveToken('');
         }
-        else {
-          for (int i = 0; i < allFiles.length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(allFiles[i].webViewLink!,allFiles[i].id!,httpClient.credentials.accessToken.data,driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.length;
-                    progressNotifier.value=progressbarValue;
+        for (int i = 0; i < allFiles.length; i++) {
+          if (allFiles[i].webViewLink != null) {
+            photoLinks.add(PhotoDetailModel(
+                id: allFiles[i].id,
+                createdTime: allFiles[i].createdTime,
+                modifiedTime: allFiles[i].modifiedTime,
+                isSelected: false,
+                isEdit: false,
+                type: "drive",
+             webLink: allFiles[i].webContentLink,
+                thumbnailPath: allFiles[i].thumbnailLink));
+            uploadCount += 1;
+            progressbarValue = uploadCount / allFiles.length;
+            progressNotifier.value = progressbarValue;
 
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {
-                
-              });
-              clossProgressDialog('google_drive_synced');
-            }
+        await Future.delayed(const Duration(milliseconds: 100), () {});
+            setState(() {});
+            clossProgressDialog('google_drive_synced');
           }
         }
-       
-        await Future.delayed(const Duration(seconds: 1), () {
-          
-        });
+
+        await Future.delayed(const Duration(seconds: 1), () {});
       } else {
+        PrefUtils.instance.driveToken('');
+
         CommonWidgets.errorDialog(context, 'No image available in drive');
-              clossProgressDialog('google_drive_synced');
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('');
+        PrefUtils.instance.driveToken('');
 
         await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true
-          // });
+          
         });
-        // goToMemories(false);
       }
+
+       
     } catch (e) {
       print('Error fetching files: $e');
       return null;
     }
   }
 
-clossProgressDialog(String type){
-  if((progressbarValue * 100).toStringAsFixed(0)=='100'){
-        Navigator.pop(context);
-        progressbarValue=0.0;
-        if(type=="google_drive_synced"){
+  clossProgressDialog(String type) {
+    if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
+      Navigator.pop(context);
+      progressbarValue = 0.0;
+      if (type == "google_drive_synced") {
         PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
-
-        }else if(type=='facebook_synced'){
-                  PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
-
-        }else{
-                  PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
-
-        }
-        ApiCall.syncAccount(api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
-       }
-}
+      } else if (type == 'facebook_synced') {
+        PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
+      } else {
+        PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+      }
+      ApiCall.syncAccount(
+          api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
+    }
+  }
 
   updateProgressValue({var galleryLength, var driveLength}) async {
     if (galleryLength.isNotEmpty && driveLength.isNotEmpty) {
@@ -459,29 +430,27 @@ clossProgressDialog(String type){
     }
   }
 
-  String convertToDirectLink(String shareableLink,String fileId,String accessToken,var driveApi) {
+  String convertToDirectLink(
+      String shareableLink, String fileId, String accessToken, var driveApi) {
     print("Before ====>$shareableLink");
     final parts = shareableLink.split('/');
     final fileId = parts[5]; // The file ID is at index 5
     final directLink = 'https://drive.google.com/uc?export=view&id=$fileId';
     print("After ========>$directLink");
 
-    changeFilePermission(fileId,accessToken,driveApi);
+    changeFilePermission(fileId, accessToken, driveApi);
 
     return directLink;
   }
 
-
-  Future<void> changeFilePermission(String fileId, String? accessToken,var driveApi) async {
+  Future<void> changeFilePermission(
+      String fileId, String? accessToken, var driveApi) async {
     if (accessToken == null) {
       throw Exception('Access token is null');
     }
 
-
-
-
     // Create a Google Drive API client
-   // final driveApi = drive.DriveApi(httpClient);
+    // final driveApi = drive.DriveApi(httpClient);
 
     // Create a permission object to set to "Anyone with the link" (public)
     final newPermission = drive.Permission(
@@ -496,25 +465,20 @@ clossProgressDialog(String type){
         fileId, // The Google Drive file ID
       );
 
-      print('File permissions updated: Now anyone with the link can access the file.');
+      print(
+          'File permissions updated: Now anyone with the link can access the file.');
     } catch (e) {
-      photoLinks.forEach((element){
-        if(element.id ==fileId){
+      photoLinks.forEach((element) {
+        if (element.id == fileId) {
           photoLinks.remove(element);
         }
-        setState(() {
-          
-        });
+        setState(() {});
       });
       print('Failed to change permission: $e');
-    } finally {
-
-    }
+    } finally {}
   }
 
-
- 
-   Future<void> groupAssetsByMonth(List<PhotoDetailModel> assets,
+  Future<void> groupAssetsByMonth(List<PhotoDetailModel> assets,
       {bool signUpScreen = false}) async {
     final grouped = <DateTime, List<PhotoDetailModel>>{};
 
@@ -531,11 +495,9 @@ clossProgressDialog(String type){
         grouped[monthKey]!.add(asset);
       }
     }
-    
 
-setState(() {
-  
-});  }
+    setState(() {});
+  }
 
   void instaRequestForAccessToken(value) async {
     pref = await SharedPreferences.getInstance();
@@ -602,7 +564,7 @@ setState(() {
       // Successfully received the media
       var data = jsonDecode(response.body);
       if (data["data"] != null) {
-              showProgressDialog(context);
+        showProgressDialog(context);
 
         // requestStoragePermission();
         await Future.forEach(data["data"], (dynamic element) async {
@@ -618,24 +580,20 @@ setState(() {
           }
           uploadCount += 1;
           progressbarValue = uploadCount / data["data"].length;
-                progressNotifier.value=progressbarValue;
+          progressNotifier.value = progressbarValue;
 
           await Future.delayed(const Duration(seconds: 1));
-setState(() {
-  
-});          clossProgressDialog('instagram_synced');
+          setState(() {});
+          clossProgressDialog('instagram_synced');
         });
 
-        await Future.delayed(const Duration(seconds: 2), () {
-         
-        });
+        await Future.delayed(const Duration(seconds: 2), () {});
       } else {
         CommonWidgets.errorDialog(context, "No image available in Insta");
+
         Navigator.pop(context);
 
-        await Future.delayed(const Duration(seconds: 2), () {
-        
-        });
+        await Future.delayed(const Duration(seconds: 2), () {});
       }
     } else {
       // Handle errors, including potential rate limiting
@@ -667,7 +625,6 @@ setState(() {
     if (response.statusCode == 200) {
       var data = jsonDecode(response.body);
       if (data != null) {
-       
         await fetchMedia(data['access_token']);
       }
       return data['access_token'];
@@ -684,13 +641,6 @@ setState(() {
 
     return dateTime;
   }
-
- 
-
-
- 
-  
-
 
   fetchFacebookPhotos(AccessToken accessToken) async {
     // EasyLoading.show(status: 'Processing');
@@ -710,7 +660,7 @@ setState(() {
             id: element["id"], createdTime: element["created_time"]));
       });
       if (faceBook.isNotEmpty) {
-              showProgressDialog(context);
+        showProgressDialog(context);
 
         await Future.forEach(faceBook, (dynamic element) async {
           await fetchFacebookPhotosById(
@@ -755,25 +705,22 @@ setState(() {
       final data = json.decode(response.body);
       photoLinks.add(PhotoDetailModel(
           type: "fb",
-          createdTime: DateTime.tryParse(element.createdTime??""),
+          createdTime: DateTime.tryParse(element.createdTime ?? ""),
           webLink: data['images'][0]["source"],
           id: element.id));
       print(photoLinks);
       uploadCount += 1;
       progressbarValue = uploadCount / faceBook.length;
-      progressNotifier.value=progressbarValue;
+      progressNotifier.value = progressbarValue;
       await Future.delayed(const Duration(seconds: 1));
-      setState(() {
-        
-      });
-                    clossProgressDialog('facebook_synced');
-
+      setState(() {});
+      clossProgressDialog('facebook_synced');
     } else {
       throw Exception('Failed to load photos');
     }
   }
 
-final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
 
   void showProgressDialog(BuildContext context) {
     showDialog(
@@ -782,36 +729,38 @@ final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
       builder: (context) => ProgressDialog(progressNotifier),
     );
   }
+
   @override
   void onFailure(String message) {
-    
-            CommonWidgets.errorDialog(context, message);
-
-
+    CommonWidgets.errorDialog(context, message);
   }
 
   @override
   void onSuccess(String data, String apiType) {
-    if(apiType==ApiUrl.syncAccount){
-      if(model.user!.facebookSynced!=0||model.user!.googleDriveSynced!=0||model.user!.instagramSynced!=0){
-                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => PhotosView(photosList:photosList,isSkip: false,)));
-
-      }else{
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (BuildContext context) => MediaScreen(photosList:photosList,future: future,isFromSignUp: true,)));
-
+    if (apiType == ApiUrl.syncAccount) {
+      if (model.hasMemory == 1) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) => PhotosView(
+                      photosList: photosList,
+                      isSkip: false,
+                    )));
+      } else {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) => MediaScreen(
+                      photosList: photosList,
+                      future: future,
+                      isFromSignUp: true,
+                    )));
       }
-
-
- 
-   }
+    }
   }
 
   @override
-  void tokenExpired(String message) {
-  }
-
-
-
+  void tokenExpired(String message) {}
 }
 
 class InstagramLoginPage extends StatefulWidget {
@@ -834,7 +783,7 @@ class _InstagramLoginPageState extends State<InstagramLoginPage> {
   String redirectUri = 'https://stashtdev.page.link/';
 
   // final String scope = 'user_profile,user_media';
-  final String scope='instagram_business_content_publish';
+  final String scope = 'instagram_business_content_publish';
   final String responseType = 'code';
   var controller = WebViewController();
   var cookieController = WebViewCookieManager();
@@ -916,7 +865,6 @@ class _InstagramLoginPageState extends State<InstagramLoginPage> {
     controller.clearCache();
     cookieController.clearCookies();
   }
-
 
   @override
   Widget build(BuildContext context) {

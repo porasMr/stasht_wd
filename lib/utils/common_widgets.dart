@@ -28,6 +28,7 @@ import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
+import 'package:stasht/utils/pref_utils.dart';
 import 'package:stasht/utils/web_image_preview.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import '../image_preview_widget.dart';
@@ -37,7 +38,6 @@ class CommonWidgets {
   static Future<dynamic> googleSignup(ApiCallback callBack) async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
       final GoogleSignInAuthentication? googleAuth =
           await googleUser?.authentication;
 
@@ -166,9 +166,10 @@ class CommonWidgets {
 
   static Future<String>? openInstagramPage(BuildContext context) {
     Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (BuildContext context) =>InstagramLoginPage())).then((value) async {
+            context,
+            MaterialPageRoute(
+                builder: (BuildContext context) => InstagramLoginPage()))
+        .then((value) async {
       print("code====>$value");
       if (value != null) {
         return value;
@@ -338,7 +339,7 @@ class CommonWidgets {
     );
   }
 
-  static driveView(BuildContext context, Function(GoogleSignIn v) callBack) {
+  static driveView(BuildContext context, Function(GoogleSignIn v,String pageToken) callBack) {
     return SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: SingleChildScrollView(
@@ -372,7 +373,7 @@ class CommonWidgets {
             GestureDetector(
               onTap: () {
                 getFileFromGoogleDrive(context).then((value) {
-                  callBack(value!);
+                  callBack(value!,PrefUtils.instance.getDriveToken()!);
                 });
               },
               child: button(
@@ -538,7 +539,7 @@ class CommonWidgets {
           child: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color.fromARGB(255, 245, 74, 74),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -548,7 +549,7 @@ class CommonWidgets {
                 const Text(
                   'Error',
                   style: TextStyle(
-                    color: Colors.red,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -556,7 +557,7 @@ class CommonWidgets {
                 SizedBox(height: 8),
                 Text(
                   message,
-                  style: TextStyle(color: Colors.red, fontSize: 14),
+                  style: TextStyle(color: Colors.white, fontSize: 14),
                 ),
               ],
             ),
@@ -574,7 +575,7 @@ class CommonWidgets {
   }
 
   static successDialog(BuildContext context, String message) {
-     final overlay = Overlay.of(context);
+    final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 50,
@@ -585,7 +586,7 @@ class CommonWidgets {
           child: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color.fromARGB(255, 12, 160, 2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -595,7 +596,7 @@ class CommonWidgets {
                 const Text(
                   'Success',
                   style: TextStyle(
-                    color: Colors.green,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -603,7 +604,7 @@ class CommonWidgets {
                 SizedBox(height: 8),
                 Text(
                   message,
-                  style: TextStyle(color: Colors.green, fontSize: 14),
+                  style: TextStyle(color: Colors.white, fontSize: 14),
                 ),
               ],
             ),
@@ -632,10 +633,12 @@ class CommonWidgets {
     List<PhotoDetailModel> photosList,
     VoidCallback onPressed, {
     ValueNotifier<int>? selectedCountNotifier,
+    ScrollController? controller,
   }) {
     print(photosList);
 
     return GridView.builder(
+      controller: controller,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, // Number of columns
         crossAxisSpacing: 10.0,
@@ -647,14 +650,13 @@ class CommonWidgets {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
-              showDialog(
+            showDialog(
               context: context,
               barrierColor: Colors.transparent,
               builder: (context) {
-                return WebImagePreview(path:photosList[index].webLink!);
+                return WebImagePreview(path: photosList[index].webLink!);
               },
             );
-           
           },
           child: Stack(
             children: [
@@ -667,7 +669,7 @@ class CommonWidgets {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: CachedNetworkImage(
-                      imageUrl: photosList[index].webLink!,
+                      imageUrl: photosList[index].thumbnailPath!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => SizedBox(
                             height: 120,
@@ -699,22 +701,25 @@ class CommonWidgets {
                     elevation: 4,
                     color: Colors.transparent,
                     child: GestureDetector(
-                      onTap: (){
-                         photosList[index].isSelected = !photosList[index].isSelected;
-                                                                         photosList[index].isEdit =false;
-
-            if (selectedCountNotifier != null) {
-            
-                          if (photosList[index].isSelected) {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value + 1;
-                          } else {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value - 1;
-                          }
+                      onTap: () {
                         
-            }
-            onPressed();
+
+                        if (selectedCountNotifier != null) {
+                          if (photosList[index].isEdit) {
+                            unSelectedDialog(context);
+                          } else {
+                            photosList[index].isSelected =
+                            !photosList[index].isSelected;
+                            if (photosList[index].isSelected) {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value + 1;
+                            } else {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value - 1;
+                            }
+                          }
+                        }
+                        onPressed();
                       },
                       child: Container(
                         height: 21.87,
@@ -722,7 +727,8 @@ class CommonWidgets {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                             border: Border.all(
-                                color: Colors.white.withOpacity(.5), width: 1.5),
+                                color: Colors.white.withOpacity(.5),
+                                width: 1.5),
                             borderRadius: BorderRadius.circular(8),
                             color: photosList[index].isSelected
                                 ? Colors.white
@@ -764,15 +770,13 @@ class CommonWidgets {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
-  showDialog(
+            showDialog(
               context: context,
               barrierColor: Colors.transparent,
               builder: (context) {
-                return WebImagePreview(path:photosList[index].webLink!);
+                return WebImagePreview(path: photosList[index].webLink!);
               },
             );
-            
-           
           },
           child: Stack(
             children: [
@@ -817,22 +821,25 @@ class CommonWidgets {
                     elevation: 4,
                     color: Colors.transparent,
                     child: GestureDetector(
-                      onTap: (){
-                         photosList[index].isSelected = !photosList[index].isSelected;
-                                                                         photosList[index].isEdit =false;
-
-            if (selectedCountNotifier != null) {
-            
-                          if (photosList[index].isSelected) {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value + 1;
-                          } else {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value - 1;
-                          }
+                      onTap: () {
                         
-            }
-            onPressed();
+
+                        if (selectedCountNotifier != null) {
+                          if (photosList[index].isEdit) {
+                            unSelectedDialog(context);
+                          } else {
+                            photosList[index].isSelected =
+                            !photosList[index].isSelected;
+                            if (photosList[index].isSelected) {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value + 1;
+                            } else {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value - 1;
+                            }
+                          }
+                        }
+                        onPressed();
                       },
                       child: Container(
                         height: 21.87,
@@ -840,7 +847,8 @@ class CommonWidgets {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                             border: Border.all(
-                                color: Colors.white.withOpacity(.5), width: 1.5),
+                                color: Colors.white.withOpacity(.5),
+                                width: 1.5),
                             borderRadius: BorderRadius.circular(8),
                             color: photosList[index].isSelected
                                 ? Colors.white
@@ -886,10 +894,9 @@ class CommonWidgets {
               context: context,
               barrierColor: Colors.transparent,
               builder: (context) {
-                return WebImagePreview(path:photosList[index].webLink!);
+                return WebImagePreview(path: photosList[index].webLink!);
               },
             );
-          
           },
           child: Stack(
             children: [
@@ -933,28 +940,36 @@ class CommonWidgets {
                     borderRadius: BorderRadius.circular(8),
                     elevation: 4,
                     color: Colors.transparent,
-                    child: GestureDetector(onTap: (){
-                        photosList[index].isSelected = !photosList[index].isSelected;
-                                                photosList[index].isEdit =false;
+                    child: GestureDetector(
+                      onTap: () {
+                       
+                       // photosList[index].isEdit = false;
 
-            if (selectedCountNotifier != null) {
-               if (photosList[index].isSelected) {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value + 1;
+                        if (selectedCountNotifier != null) {
+                           photosList[index].isSelected =
+                            !photosList[index].isSelected;
+                         if (photosList[index].isEdit) {
+                            unSelectedDialog(context);
                           } else {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value - 1;
+                            if (photosList[index].isSelected) {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value + 1;
+                            } else {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value - 1;
+                            }
                           }
-            }
-            onPressed();
-                    },
+                        }
+                        onPressed();
+                      },
                       child: Container(
                         height: 21.87,
                         width: 30.07,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                             border: Border.all(
-                                color: Colors.white.withOpacity(.5), width: 1.5),
+                                color: Colors.white.withOpacity(.5),
+                                width: 1.5),
                             borderRadius: BorderRadius.circular(8),
                             color: photosList[index].isSelected
                                 ? Colors.white
@@ -978,15 +993,12 @@ class CommonWidgets {
     );
   }
 
-static Widget allAlbumView(
+  static Widget allAlbumView(
     List<Future<Uint8List?>> future,
     List<PhotoModel> photosList,
     List<PhotoDetailModel> fbList,
-        List<PhotoDetailModel> driveList,
-        List<PhotoDetailModel> instaList,
-
-
-
+    List<PhotoDetailModel> driveList,
+    List<PhotoDetailModel> instaList,
     VoidCallback onPressed, {
     ValueNotifier<int>? selectedCountNotifier,
   }) {
@@ -995,7 +1007,7 @@ static Widget allAlbumView(
       children: [
         GridView.builder(
           shrinkWrap: true,
-          physics:const NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3, // Number of columns
             crossAxisSpacing: 10.0,
@@ -1011,7 +1023,8 @@ static Widget allAlbumView(
                   context: context,
                   barrierColor: Colors.transparent,
                   builder: (context) {
-                    return ImagePreview(assetEntity: photosList[index].assetEntity);
+                    return ImagePreview(
+                        assetEntity: photosList[index].assetEntity);
                   },
                 );
               },
@@ -1042,7 +1055,7 @@ static Widget allAlbumView(
                             debugPrint("Image Selected");
                             photosList[index].selectedValue =
                                 !photosList[index].selectedValue;
-        
+
                             if (selectedCountNotifier != null) {
                               if (photosList[index].selectedValue) {
                                 selectedCountNotifier.value =
@@ -1052,7 +1065,7 @@ static Widget allAlbumView(
                                     selectedCountNotifier.value - 1;
                               }
                             }
-        
+
                             onPressed();
                           },
                           child: Container(
@@ -1086,299 +1099,297 @@ static Widget allAlbumView(
             );
           },
         ),
-    //     if(fbList.isNotEmpty)
-    //     GridView.builder(
-    //   shrinkWrap: true,
-    //   physics:const NeverScrollableScrollPhysics(),
-    //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-    //     crossAxisCount: 3, // Number of columns
-    //     crossAxisSpacing: 10.0,
-    //     mainAxisSpacing: 10.0,
-    //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-    //   ),
-    //   itemCount: fbList.length,
-    //   addAutomaticKeepAlives: false,
-    //   itemBuilder: (context, index) {
-    //     return GestureDetector(
-    //       onTap: () {
-    //         fbList[index].isSelected = !fbList[index].isSelected;
-    //         if (selectedCountNotifier != null) {
-    //            if (fbList[index].isSelected) {
-    //                         selectedCountNotifier.value =
-    //                             selectedCountNotifier.value + 1;
-    //                       } else {
-    //                         selectedCountNotifier.value =
-    //                             selectedCountNotifier.value - 1;
-    //                       }
-    //         }
-    //         onPressed();
-    //       },
-    //       child: Stack(
-    //         children: [
-    //           Container(
-    //             height: 120,
-    //             width: MediaQuery.of(context).size.width,
-    //             decoration: BoxDecoration(
-    //               borderRadius: BorderRadius.circular(12),
-    //             ),
-    //             child: ClipRRect(
-    //               borderRadius: BorderRadius.circular(12),
-    //               child: CachedNetworkImage(
-    //                   imageUrl: fbList[index].webLink ?? "",
-    //                   fit: BoxFit.cover,
-    //                   placeholder: (context, url) => SizedBox(
-    //                         height: 120,
-    //                         width: MediaQuery.of(context).size.width,
-    //                         child: const Center(
-    //                           child: CircularProgressIndicator(
-    //                             color: AppColors.primaryColor,
-    //                           ),
-    //                         ),
-    //                       )),
-    //             ),
-    //           ),
-    //           Container(
-    //             height: 120,
-    //             width: MediaQuery.of(context).size.width,
-    //             decoration: BoxDecoration(
-    //                 borderRadius: BorderRadius.circular(12),
-    //                 color: fbList[index].isSelected
-    //                     ? AppColors.primaryColor.withOpacity(.65)
-    //                     : null),
-    //           ),
-    //           Positioned(
-    //             top: 5,
-    //             right: 5,
-    //             child: Padding(
-    //               padding: EdgeInsets.only(top: 4, right: 4),
-    //               child: PhysicalModel(
-    //                 borderRadius: BorderRadius.circular(8),
-    //                 elevation: 4,
-    //                 color: Colors.transparent,
-    //                 child: Container(
-    //                   height: 21.87,
-    //                   width: 30.07,
-    //                   alignment: Alignment.center,
-    //                   decoration: BoxDecoration(
-    //                       border: Border.all(
-    //                           color: Colors.white.withOpacity(.5), width: 1.5),
-    //                       borderRadius: BorderRadius.circular(8),
-    //                       color: fbList[index].isSelected
-    //                           ? Colors.white
-    //                           : Colors.black.withOpacity(.3)),
-    //                   child: fbList[index].isSelected
-    //                       ? Image.asset(
-    //                           correct,
-    //                           height: 12,
-    //                           width: 12,
-    //                         )
-    //                       : const IgnorePointer(),
-    //                 ),
-    //               ),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-    //     );
-    //   },
-    // ),
-    // if(instaList.isNotEmpty)
-    //  GridView.builder(
-    //   shrinkWrap: true,
-    //   physics:const NeverScrollableScrollPhysics(),
-    //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-    //     crossAxisCount: 3, // Number of columns
-    //     crossAxisSpacing: 10.0,
-    //     mainAxisSpacing: 10.0,
-    //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-    //   ),
-    //   itemCount: instaList.length,
-    //   addAutomaticKeepAlives: false,
-    //   itemBuilder: (context, index) {
-    //     return GestureDetector(
-    //       onTap: () {
-    //         instaList[index].isSelected = !instaList[index].isSelected;
-    //         if (selectedCountNotifier != null) {
-    //            if (instaList[index].isSelected) {
-    //                         selectedCountNotifier.value =
-    //                             selectedCountNotifier.value + 1;
-    //                       } else {
-    //                         selectedCountNotifier.value =
-    //                             selectedCountNotifier.value - 1;
-    //                       }
-    //         }
-    //         onPressed();
-    //       },
-    //       child: Stack(
-    //         children: [
-    //           Container(
-    //             height: 120,
-    //             width: MediaQuery.of(context).size.width,
-    //             decoration: BoxDecoration(
-    //               borderRadius: BorderRadius.circular(12),
-    //             ),
-    //             child: ClipRRect(
-    //               borderRadius: BorderRadius.circular(12),
-    //               child: CachedNetworkImage(
-    //                   imageUrl: instaList[index].webLink ?? "",
-    //                   fit: BoxFit.cover,
-    //                   placeholder: (context, url) => SizedBox(
-    //                         height: 120,
-    //                         width: MediaQuery.of(context).size.width,
-    //                         child: const Center(
-    //                           child: CircularProgressIndicator(
-    //                             color: AppColors.primaryColor,
-    //                           ),
-    //                         ),
-    //                       )),
-    //             ),
-    //           ),
-    //           Container(
-    //             height: 120,
-    //             width: MediaQuery.of(context).size.width,
-    //             decoration: BoxDecoration(
-    //                 borderRadius: BorderRadius.circular(12),
-    //                 color: instaList[index].isSelected
-    //                     ? AppColors.primaryColor.withOpacity(.65)
-    //                     : null),
-    //           ),
-    //           Positioned(
-    //             top: 5,
-    //             right: 5,
-    //             child: Padding(
-    //               padding: EdgeInsets.only(top: 4, right: 4),
-    //               child: PhysicalModel(
-    //                 borderRadius: BorderRadius.circular(8),
-    //                 elevation: 4,
-    //                 color: Colors.transparent,
-    //                 child: Container(
-    //                   height: 21.87,
-    //                   width: 30.07,
-    //                   alignment: Alignment.center,
-    //                   decoration: BoxDecoration(
-    //                       border: Border.all(
-    //                           color: Colors.white.withOpacity(.5), width: 1.5),
-    //                       borderRadius: BorderRadius.circular(8),
-    //                       color: instaList[index].isSelected
-    //                           ? Colors.white
-    //                           : Colors.black.withOpacity(.3)),
-    //                   child: instaList[index].isSelected
-    //                       ? Image.asset(
-    //                           correct,
-    //                           height: 12,
-    //                           width: 12,
-    //                         )
-    //                       : const IgnorePointer(),
-    //                 ),
-    //               ),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-    //     );
-    //   },
-    // ),
-    // if(driveList.isNotEmpty)
-    // GridView.builder(
-    //   shrinkWrap: true,
-    //   physics:const NeverScrollableScrollPhysics(),
-    //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-    //     crossAxisCount: 3, // Number of columns
-    //     crossAxisSpacing: 10.0,
-    //     mainAxisSpacing: 10.0,
-    //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-    //   ),
-    //   itemCount: driveList.length,
-    //   addAutomaticKeepAlives: false,
-    //   itemBuilder: (context, index) {
-    //     return GestureDetector(
-    //       onTap: () {
-    //         driveList[index].isSelected = !driveList[index].isSelected;
-    //         if (selectedCountNotifier != null) {
-    //            if (driveList[index].isSelected) {
-    //                         selectedCountNotifier.value =
-    //                             selectedCountNotifier.value + 1;
-    //                       } else {
-    //                         selectedCountNotifier.value =
-    //                             selectedCountNotifier.value - 1;
-    //                       }
-    //         }
-    //         onPressed();
-    //       },
-    //       child: Stack(
-    //         children: [
-    //           Container(
-    //             height: 120,
-    //             width: MediaQuery.of(context).size.width,
-    //             decoration: BoxDecoration(
-    //               borderRadius: BorderRadius.circular(12),
-    //             ),
-    //             child: ClipRRect(
-    //               borderRadius: BorderRadius.circular(12),
-    //               child: CachedNetworkImage(
-    //                   imageUrl: driveList[index].webLink ?? "",
-    //                   fit: BoxFit.cover,
-    //                   placeholder: (context, url) => SizedBox(
-    //                         height: 120,
-    //                         width: MediaQuery.of(context).size.width,
-    //                         child: const Center(
-    //                           child: CircularProgressIndicator(
-    //                             color: AppColors.primaryColor,
-    //                           ),
-    //                         ),
-    //                       )),
-    //             ),
-    //           ),
-    //           Container(
-    //             height: 120,
-    //             width: MediaQuery.of(context).size.width,
-    //             decoration: BoxDecoration(
-    //                 borderRadius: BorderRadius.circular(12),
-    //                 color: driveList[index].isSelected
-    //                     ? AppColors.primaryColor.withOpacity(.65)
-    //                     : null),
-    //           ),
-    //           Positioned(
-    //             top: 5,
-    //             right: 5,
-    //             child: Padding(
-    //               padding: EdgeInsets.only(top: 4, right: 4),
-    //               child: PhysicalModel(
-    //                 borderRadius: BorderRadius.circular(8),
-    //                 elevation: 4,
-    //                 color: Colors.transparent,
-    //                 child: Container(
-    //                   height: 21.87,
-    //                   width: 30.07,
-    //                   alignment: Alignment.center,
-    //                   decoration: BoxDecoration(
-    //                       border: Border.all(
-    //                           color: Colors.white.withOpacity(.5), width: 1.5),
-    //                       borderRadius: BorderRadius.circular(8),
-    //                       color: driveList[index].isSelected
-    //                           ? Colors.white
-    //                           : Colors.black.withOpacity(.3)),
-    //                   child: driveList[index].isSelected
-    //                       ? Image.asset(
-    //                           correct,
-    //                           height: 12,
-    //                           width: 12,
-    //                         )
-    //                       : const IgnorePointer(),
-    //                 ),
-    //               ),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-    //     );
-    //   },
-    // )
+        //     if(fbList.isNotEmpty)
+        //     GridView.builder(
+        //   shrinkWrap: true,
+        //   physics:const NeverScrollableScrollPhysics(),
+        //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        //     crossAxisCount: 3, // Number of columns
+        //     crossAxisSpacing: 10.0,
+        //     mainAxisSpacing: 10.0,
+        //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+        //   ),
+        //   itemCount: fbList.length,
+        //   addAutomaticKeepAlives: false,
+        //   itemBuilder: (context, index) {
+        //     return GestureDetector(
+        //       onTap: () {
+        //         fbList[index].isSelected = !fbList[index].isSelected;
+        //         if (selectedCountNotifier != null) {
+        //            if (fbList[index].isSelected) {
+        //                         selectedCountNotifier.value =
+        //                             selectedCountNotifier.value + 1;
+        //                       } else {
+        //                         selectedCountNotifier.value =
+        //                             selectedCountNotifier.value - 1;
+        //                       }
+        //         }
+        //         onPressed();
+        //       },
+        //       child: Stack(
+        //         children: [
+        //           Container(
+        //             height: 120,
+        //             width: MediaQuery.of(context).size.width,
+        //             decoration: BoxDecoration(
+        //               borderRadius: BorderRadius.circular(12),
+        //             ),
+        //             child: ClipRRect(
+        //               borderRadius: BorderRadius.circular(12),
+        //               child: CachedNetworkImage(
+        //                   imageUrl: fbList[index].webLink ?? "",
+        //                   fit: BoxFit.cover,
+        //                   placeholder: (context, url) => SizedBox(
+        //                         height: 120,
+        //                         width: MediaQuery.of(context).size.width,
+        //                         child: const Center(
+        //                           child: CircularProgressIndicator(
+        //                             color: AppColors.primaryColor,
+        //                           ),
+        //                         ),
+        //                       )),
+        //             ),
+        //           ),
+        //           Container(
+        //             height: 120,
+        //             width: MediaQuery.of(context).size.width,
+        //             decoration: BoxDecoration(
+        //                 borderRadius: BorderRadius.circular(12),
+        //                 color: fbList[index].isSelected
+        //                     ? AppColors.primaryColor.withOpacity(.65)
+        //                     : null),
+        //           ),
+        //           Positioned(
+        //             top: 5,
+        //             right: 5,
+        //             child: Padding(
+        //               padding: EdgeInsets.only(top: 4, right: 4),
+        //               child: PhysicalModel(
+        //                 borderRadius: BorderRadius.circular(8),
+        //                 elevation: 4,
+        //                 color: Colors.transparent,
+        //                 child: Container(
+        //                   height: 21.87,
+        //                   width: 30.07,
+        //                   alignment: Alignment.center,
+        //                   decoration: BoxDecoration(
+        //                       border: Border.all(
+        //                           color: Colors.white.withOpacity(.5), width: 1.5),
+        //                       borderRadius: BorderRadius.circular(8),
+        //                       color: fbList[index].isSelected
+        //                           ? Colors.white
+        //                           : Colors.black.withOpacity(.3)),
+        //                   child: fbList[index].isSelected
+        //                       ? Image.asset(
+        //                           correct,
+        //                           height: 12,
+        //                           width: 12,
+        //                         )
+        //                       : const IgnorePointer(),
+        //                 ),
+        //               ),
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     );
+        //   },
+        // ),
+        // if(instaList.isNotEmpty)
+        //  GridView.builder(
+        //   shrinkWrap: true,
+        //   physics:const NeverScrollableScrollPhysics(),
+        //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        //     crossAxisCount: 3, // Number of columns
+        //     crossAxisSpacing: 10.0,
+        //     mainAxisSpacing: 10.0,
+        //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+        //   ),
+        //   itemCount: instaList.length,
+        //   addAutomaticKeepAlives: false,
+        //   itemBuilder: (context, index) {
+        //     return GestureDetector(
+        //       onTap: () {
+        //         instaList[index].isSelected = !instaList[index].isSelected;
+        //         if (selectedCountNotifier != null) {
+        //            if (instaList[index].isSelected) {
+        //                         selectedCountNotifier.value =
+        //                             selectedCountNotifier.value + 1;
+        //                       } else {
+        //                         selectedCountNotifier.value =
+        //                             selectedCountNotifier.value - 1;
+        //                       }
+        //         }
+        //         onPressed();
+        //       },
+        //       child: Stack(
+        //         children: [
+        //           Container(
+        //             height: 120,
+        //             width: MediaQuery.of(context).size.width,
+        //             decoration: BoxDecoration(
+        //               borderRadius: BorderRadius.circular(12),
+        //             ),
+        //             child: ClipRRect(
+        //               borderRadius: BorderRadius.circular(12),
+        //               child: CachedNetworkImage(
+        //                   imageUrl: instaList[index].webLink ?? "",
+        //                   fit: BoxFit.cover,
+        //                   placeholder: (context, url) => SizedBox(
+        //                         height: 120,
+        //                         width: MediaQuery.of(context).size.width,
+        //                         child: const Center(
+        //                           child: CircularProgressIndicator(
+        //                             color: AppColors.primaryColor,
+        //                           ),
+        //                         ),
+        //                       )),
+        //             ),
+        //           ),
+        //           Container(
+        //             height: 120,
+        //             width: MediaQuery.of(context).size.width,
+        //             decoration: BoxDecoration(
+        //                 borderRadius: BorderRadius.circular(12),
+        //                 color: instaList[index].isSelected
+        //                     ? AppColors.primaryColor.withOpacity(.65)
+        //                     : null),
+        //           ),
+        //           Positioned(
+        //             top: 5,
+        //             right: 5,
+        //             child: Padding(
+        //               padding: EdgeInsets.only(top: 4, right: 4),
+        //               child: PhysicalModel(
+        //                 borderRadius: BorderRadius.circular(8),
+        //                 elevation: 4,
+        //                 color: Colors.transparent,
+        //                 child: Container(
+        //                   height: 21.87,
+        //                   width: 30.07,
+        //                   alignment: Alignment.center,
+        //                   decoration: BoxDecoration(
+        //                       border: Border.all(
+        //                           color: Colors.white.withOpacity(.5), width: 1.5),
+        //                       borderRadius: BorderRadius.circular(8),
+        //                       color: instaList[index].isSelected
+        //                           ? Colors.white
+        //                           : Colors.black.withOpacity(.3)),
+        //                   child: instaList[index].isSelected
+        //                       ? Image.asset(
+        //                           correct,
+        //                           height: 12,
+        //                           width: 12,
+        //                         )
+        //                       : const IgnorePointer(),
+        //                 ),
+        //               ),
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     );
+        //   },
+        // ),
+        // if(driveList.isNotEmpty)
+        // GridView.builder(
+        //   shrinkWrap: true,
+        //   physics:const NeverScrollableScrollPhysics(),
+        //   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        //     crossAxisCount: 3, // Number of columns
+        //     crossAxisSpacing: 10.0,
+        //     mainAxisSpacing: 10.0,
+        //     childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+        //   ),
+        //   itemCount: driveList.length,
+        //   addAutomaticKeepAlives: false,
+        //   itemBuilder: (context, index) {
+        //     return GestureDetector(
+        //       onTap: () {
+        //         driveList[index].isSelected = !driveList[index].isSelected;
+        //         if (selectedCountNotifier != null) {
+        //            if (driveList[index].isSelected) {
+        //                         selectedCountNotifier.value =
+        //                             selectedCountNotifier.value + 1;
+        //                       } else {
+        //                         selectedCountNotifier.value =
+        //                             selectedCountNotifier.value - 1;
+        //                       }
+        //         }
+        //         onPressed();
+        //       },
+        //       child: Stack(
+        //         children: [
+        //           Container(
+        //             height: 120,
+        //             width: MediaQuery.of(context).size.width,
+        //             decoration: BoxDecoration(
+        //               borderRadius: BorderRadius.circular(12),
+        //             ),
+        //             child: ClipRRect(
+        //               borderRadius: BorderRadius.circular(12),
+        //               child: CachedNetworkImage(
+        //                   imageUrl: driveList[index].webLink ?? "",
+        //                   fit: BoxFit.cover,
+        //                   placeholder: (context, url) => SizedBox(
+        //                         height: 120,
+        //                         width: MediaQuery.of(context).size.width,
+        //                         child: const Center(
+        //                           child: CircularProgressIndicator(
+        //                             color: AppColors.primaryColor,
+        //                           ),
+        //                         ),
+        //                       )),
+        //             ),
+        //           ),
+        //           Container(
+        //             height: 120,
+        //             width: MediaQuery.of(context).size.width,
+        //             decoration: BoxDecoration(
+        //                 borderRadius: BorderRadius.circular(12),
+        //                 color: driveList[index].isSelected
+        //                     ? AppColors.primaryColor.withOpacity(.65)
+        //                     : null),
+        //           ),
+        //           Positioned(
+        //             top: 5,
+        //             right: 5,
+        //             child: Padding(
+        //               padding: EdgeInsets.only(top: 4, right: 4),
+        //               child: PhysicalModel(
+        //                 borderRadius: BorderRadius.circular(8),
+        //                 elevation: 4,
+        //                 color: Colors.transparent,
+        //                 child: Container(
+        //                   height: 21.87,
+        //                   width: 30.07,
+        //                   alignment: Alignment.center,
+        //                   decoration: BoxDecoration(
+        //                       border: Border.all(
+        //                           color: Colors.white.withOpacity(.5), width: 1.5),
+        //                       borderRadius: BorderRadius.circular(8),
+        //                       color: driveList[index].isSelected
+        //                           ? Colors.white
+        //                           : Colors.black.withOpacity(.3)),
+        //                   child: driveList[index].isSelected
+        //                       ? Image.asset(
+        //                           correct,
+        //                           height: 12,
+        //                           width: 12,
+        //                         )
+        //                       : const IgnorePointer(),
+        //                 ),
+        //               ),
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //     );
+        //   },
+        // )
       ],
     );
   }
-
-
 
   static Widget albumView(
     List<Future<Uint8List?>> future,
@@ -1432,11 +1443,15 @@ static Widget allAlbumView(
                     child: GestureDetector(
                       onTap: () {
                         debugPrint("Image Selected");
-                        photosList[index].selectedValue =
-                            !photosList[index].selectedValue;
-                        photosList[index].isEditmemory =false;
+                        
 
-                        if (selectedCountNotifier != null) {
+                       
+                        if (photosList[index].isEditmemory) {
+                            unSelectedDialog(context);
+                          } else {
+                            photosList[index].selectedValue =
+                            !photosList[index].selectedValue;
+                            if (selectedCountNotifier != null) {
                           if (photosList[index].selectedValue) {
                             selectedCountNotifier.value =
                                 selectedCountNotifier.value + 1;
@@ -1445,6 +1460,7 @@ static Widget allAlbumView(
                                 selectedCountNotifier.value - 1;
                           }
                         }
+                          }
 
                         onPressed();
                       },
@@ -1497,20 +1513,22 @@ static Widget allAlbumView(
   }
 
   static Future<String> createDynamicLink(
-      String memoryId,
-      String title,
-      String imageLink,
-      String userName,
-      String userProfileImage,
-      ) async {
+    String memoryId,
+    String title,
+    String imageLink,
+    String userName,
+    String userProfileImage,
+  ) async {
     String shareLink = "";
-    FirebaseDynamicLinksPlatform dynamicLinks = FirebaseDynamicLinksPlatform.instance;
+    FirebaseDynamicLinksPlatform dynamicLinks =
+        FirebaseDynamicLinksPlatform.instance;
 
     const String URI_PREFIX_FIREBASE = "https://stashtdev.page.link";
     const String DEFAULT_FALLBACK_URL_ANDROID = "https://stashtdev.page.link";
 
     // Construct the dynamic link URL
-    String link = "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=${Uri.encodeComponent(memoryId)}"
+    String link =
+        "$DEFAULT_FALLBACK_URL_ANDROID/memory_id=${Uri.encodeComponent(memoryId)}"
         "&title=${Uri.encodeComponent(title)}"
         "&image_link=${Uri.encodeComponent(imageLink)}"
         "&user_name=${Uri.encodeComponent(userName)}"
@@ -1531,7 +1549,8 @@ static Widget allAlbumView(
     );
 
     try {
-      final ShortDynamicLink shortLink = await dynamicLinks.buildShortLink(parameters);
+      final ShortDynamicLink shortLink =
+          await dynamicLinks.buildShortLink(parameters);
       shareLink = shortLink.shortUrl.toString();
     } catch (error) {
       debugPrint("Error generating link: $error");
@@ -1541,4 +1560,81 @@ static Widget allAlbumView(
     return shareLink;
   }
 
-}
+  static void unSelectedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: AppColors.textfieldFillColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Container(
+            width: 312,
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            height: 280,
+            // Add padding for spacing
+            decoration: BoxDecoration(
+              color: AppColors.textfieldFillColor,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              // Center content vertically
+              children: [
+                const SizedBox(
+                  height: 25,
+                ),
+                Text(
+                  "We are unable to delete \nthis photo from your \nmemory",
+                  style: appTextStyle(
+                    fz: 24,
+                    height: 32 / 24,
+                    fm: robotoRegular,
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+                const SizedBox(height: 16), // Add spacing between elements
+                Text(
+                  "Please go to the memory details screen \nand tap on the edit icon on the top right \nof the image to delete it.",
+                  style: appTextStyle(
+                    fz: 14,
+                    height: 20 / 14,
+                    fm: robotoRegular,
+                    color: AppColors.dialogMiddleFontColor,
+                  ),
+                  textAlign: TextAlign.justify,
+                ),
+                const SizedBox(
+                    height: 20), // Add spacing before the close button
+                Container(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        "Ok",
+                        style: appTextStyle(
+                          fz: 14,
+                          height: 20 / 14,
+                          fm: robotoMedium,
+                          color: AppColors.primaryColor,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      barrierColor: Colors.transparent,
+    );
+  }
+
+  }

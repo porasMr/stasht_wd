@@ -9,6 +9,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/utils.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:stasht/modules/comment_screen/comment_screen.dart';
 import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
@@ -257,6 +258,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                       children: [
                         GestureDetector(
                           onTap: () async {
+                            if(                          widget.email == model.user!.id.toString()&&widget.pubLished=="0"){
+
                             debugPrint("The Memory Id is ${widget.memoryId}");
                             String memoryId = widget.memoryId;
                             String title = widget.memoryTtile;
@@ -285,6 +288,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                             } else {
                               debugPrint("Error: Link generation failed.");
                             }
+  }
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(top: 15.0),
@@ -293,6 +297,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 Image.asset(
                                   collab,
                                   height: 30,
+                                                                        color: (widget.email != model.user!.id.toString()&&widget.pubLished=="0")?Colors.grey:null ,
+
                                 ),
                                 const SizedBox(
                                   height: 5,
@@ -303,6 +309,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                       fz: 10,
                                       fw: FontWeight.w600,
                                       fm: interMedium,
+                                      color: widget.email != model.user!.id.toString()&&widget.pubLished=="0"?Colors.grey:null ,
                                       height: 20 / 10),
                                 )
                               ],
@@ -312,7 +319,9 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                         // Image.asset(home,height:63),
                         GestureDetector(
                           onTap: () {
+                            if(  widget.email == model.user!.id.toString()&&widget.pubLished=="0"){
                             publishMemoryBottomSheet(context);
+                            }
                           },
                           child: Padding(
                             padding:
@@ -322,6 +331,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 Image.asset(
                                   "assets/images/publish.png",
                                   height: 40,
+                                                                        color: widget.email != model.user!.id.toString()&&widget.pubLished=="0"?Colors.grey:null ,
+
                                 ),
                                 Text(
                                   "PUBLISH",
@@ -329,6 +340,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                       fz: 10,
                                       fw: FontWeight.w600,
                                       fm: interMedium,
+                                                                                                              color: widget.email != model.user!.id.toString()&&widget.pubLished=="0"?Colors.grey:null ,
+
                                       height: 20 / 10),
                                 )
                               ],
@@ -675,7 +688,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                             ),
                                           ),
                                         ),
-                                        widget.email ==
+                                       memoriesModel.data!.data![index]
+                                                          .user!.id.toString() ==
                                                 model.user!.id.toString()
                                             ? GestureDetector(
                                                 onTapDown: (details) {
@@ -897,30 +911,31 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                               // Spacer(),
                                               GestureDetector(
                                                 onTap: () {
-                                                  memoryIdComment =
-                                                      memoriesModel
-                                                          .data!
-                                                          .data![index]
-                                                          .memoryId;
-                                                  imageIdComment = memoriesModel
-                                                      .data!.data![index].id;
-                                                  debugPrint(
-                                                      "Memory Comment ID is $memoryIdComment");
-                                                  debugPrint(
-                                                      "Image Comment Id is $imageIdComment");
-                                                  setState(() {
-                                                    openCommentLoader = true;
-                                                  });
-                                                  final apiUrl =
-                                                      "${ApiUrl.getComments}?memory_id=${memoriesModel.data!.data![index].memoryId}&image_id=${memoriesModel.data!.data![index].id}";
-                                                  ApiCall.getComments(
-                                                      api: apiUrl,
-                                                      callack: this);
-                                                  debugPrint(
-                                                      "Memory Id is ${memoriesModel.data!.data![index].memoryId}");
-                                                  debugPrint(
-                                                      "Image Id is ${memoriesModel.data!.data![index].id}");
-                                                },
+
+                                                   Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                  builder: (BuildContext
+                                                                          context) =>
+                                                                      Comments(
+                                                                        memoryId: widget
+                                                                            .memoryId,
+                                                                        imagePath: memoriesModel
+                                                                            .data!
+                                                                            .data![index].imageLink!,
+                                                                            imageId:  memoriesModel
+                                                                            .data!
+                                                                            .data![index].id.toString(),
+                                                                      ))).then(
+                                                              (value) {
+                                                                _currentPage=0;
+                                                            ApiCall.memoryDetails(
+        api: ApiUrl.memoryDetail,
+        id: widget.memoryId,
+        page: _currentPage.toString(),
+        callack: this);
+                                                          });
+                                                  },
                                                 child: Container(
                                                   color: Colors.transparent,
                                                   child: Row(
@@ -1797,7 +1812,7 @@ widget.memoryTtile=memoriesModel.data!.data![0].memory!.title!;
           setState(() {
             openCommentLoader = false;
           });
-          _openBottomSheet(context, commentsFuture);
+          //_openBottomSheet(context, commentsFuture);
         } else {
           debugPrint("No comments found.");
         }
@@ -2121,222 +2136,222 @@ widget.memoryTtile=memoriesModel.data!.data![0].memory!.title!;
 
   //----------------Comment bottom sheet
 
-  void _openBottomSheet(
-      BuildContext context, Future<GetCommentsResponseModel> commentsFuture) {
-    final TextEditingController commentController = TextEditingController();
-    showModalBottomSheet(
+  // void _openBottomSheet(
+  //     BuildContext context, Future<GetCommentsResponseModel> commentsFuture) {
+  //   final TextEditingController commentController = TextEditingController();
+  //   showModalBottomSheet(
 
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16.0,
-            right: 16.0,
-            top: 16.0,
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: FutureBuilder<GetCommentsResponseModel>(
-              future: commentsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text("Error loading comments"));
-                } else if (snapshot.hasData) {
-                  final commentsResponse = snapshot.data!;
-                  return SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                "Comments",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                              ).paddingOnly(left: 40),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: Icon(Icons.close, color: Colors.black),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10),
-                        if (commentsResponse.data != null)
-                          ...commentsResponse.data!.map((comment) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    model.user?.profileImage==''?
-                            Container(
-                                                      height: 43,
-                                                      width: 43,
-                                                      alignment:
-                                                          Alignment.center,
-                                                      decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          color: AppColors
-                                                              .primaryColor /*??
-                                                                      AppColors.primaryColor,*/
-                                                          ),
-                                                      child: Text(
-                                                       comment.user?.name![0].toUpperCase(),
-                                                        style: TextStyle(
-                                                            fontSize: 22,
-                                                            color: Colors.white,
-                                                            fontFamily:
-                                                                robotoRegular),
-                                                      ),
-                                                    ).paddingOnly(left: 4, right: 25):
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(21),
-                                      child: CachedNetworkImage(
-                                        imageUrl:
-                                            "${comment.user?.profileImage}",
-                                        placeholder: (context, url) =>
-                                            const CircularProgressIndicator(),
-                                        errorWidget: (context, url, error) =>
-                                            const Icon(Icons.account_circle,
-                                                size: 42),
-                                        fit: BoxFit.cover,
-                                        width: 42,
-                                        height: 42,
-                                      ),
-                                    ).paddingOnly(left: 4, right: 25),
-                                    Text(
-                                      comment.user?.name ?? "Anonymous",
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold),
-                                    ).paddingOnly(bottom: 10, right: 20),
-                                    Text(
-                                      comment.updatedAt != null
-                                          ? timeago.format(
-                                              DateTime.parse(
-                                                  comment.updatedAt!),
-                                              locale: 'en')
-                                          : "Time",
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w400,
-                                          fontStyle: FontStyle.italic),
-                                    ).paddingOnly(bottom: 10),
-                                  ],
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 70),
-                                  child: Text(
-                                    comment.description ?? "No comment",
-                                    style: TextStyle(fontSize: 18),
-                                  ),
-                                ),
-                                SizedBox(height: 10),
-                              ],
-                            );
-                          }).toList(),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            model.user?.profileImage==''?
-                            Container(
-                                                      height: 43,
-                                                      width: 43,
-                                                      alignment:
-                                                          Alignment.center,
-                                                      decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          color: AppColors
-                                                              .primaryColor /*??
-                                                                      AppColors.primaryColor,*/
-                                                          ),
-                                                      child: Text(
-                                                       model.user!.name![0].toUpperCase(),
-                                                        style: TextStyle(
-                                                            fontSize: 22,
-                                                            color: Colors.white,
-                                                            fontFamily:
-                                                                robotoRegular),
-                                                      ),
-                                                    ):
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(21),
-                              child: CachedNetworkImage(
-                                imageUrl: "${model.user?.profileImage}",
-                                placeholder: (context, url) =>
-                                    const CircularProgressIndicator(),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(Icons.account_circle, size: 42),
-                                fit: BoxFit.cover,
-                                width: 42,
-                                height: 42,
-                              ),
-                            ).paddingOnly(left: 4),
-                            SizedBox(width: 20),
-                            Expanded(
-                              child: TextField(
-                                controller: commentController,
-                                decoration: InputDecoration(
-                                  hintText: "Add a comment",
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(50),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
-                                ),
-                                onSubmitted: (value) {
-                                  if (value.isNotEmpty) {
-                                    ApiCall.addComment(
-                                        api: ApiUrl.addComment,
-                                        callack: this,
-                                        imageId: imageIdComment.toString(),
-                                        memoryID: memoryIdComment.toString(),
-                                        comment: commentController.text.trim());
-                                    setState(() {
-                                      addPostCommentLoader = true;
-                                    });
-                                    commentController.clear();
-                                    Navigator.pop(context);
-                                  }
-                                },
-                              ),
-                            ),
-                            SizedBox(
-                              width: 20,
-                            )
-                          ],
-                        ),
-                        SizedBox(
-                          height: 40,
-                        ),
-                      ],
-                    ),
-                  );
-                } else {
-                  return Center(child: Text("No comments available"));
-                }
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
+  //     context: context,
+  //     isScrollControlled: true,
+  //     shape: RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  //     ),
+  //     builder: (context) {
+  //       return Padding(
+  //         padding: EdgeInsets.only(
+  //           left: 16.0,
+  //           right: 16.0,
+  //           top: 16.0,
+  //           bottom: MediaQuery.of(context).viewInsets.bottom,
+  //         ),
+  //         child: Container(
+  //           width: MediaQuery.of(context).size.width,
+  //           decoration: BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  //           ),
+  //           child: FutureBuilder<GetCommentsResponseModel>(
+  //             future: commentsFuture,
+  //             builder: (context, snapshot) {
+  //               if (snapshot.connectionState == ConnectionState.waiting) {
+  //                 return Center(child: CircularProgressIndicator());
+  //               } else if (snapshot.hasError) {
+  //                 return Center(child: Text("Error loading comments"));
+  //               } else if (snapshot.hasData) {
+  //                 final commentsResponse = snapshot.data!;
+  //                 return SingleChildScrollView(
+  //                   child: Column(
+  //                     mainAxisSize: MainAxisSize.min,
+  //                     crossAxisAlignment: CrossAxisAlignment.start,
+  //                     children: [
+  //                       Row(
+  //                         children: [
+  //                           Expanded(
+  //                             child: Text(
+  //                               "Comments",
+  //                               textAlign: TextAlign.center,
+  //                               style: TextStyle(
+  //                                   fontSize: 18, fontWeight: FontWeight.bold),
+  //                             ).paddingOnly(left: 40),
+  //                           ),
+  //                           IconButton(
+  //                             onPressed: () => Navigator.pop(context),
+  //                             icon: Icon(Icons.close, color: Colors.black),
+  //                           ),
+  //                         ],
+  //                       ),
+  //                       SizedBox(height: 10),
+  //                       if (commentsResponse.data != null)
+  //                         ...commentsResponse.data!.map((comment) {
+  //                           return Column(
+  //                             crossAxisAlignment: CrossAxisAlignment.start,
+  //                             children: [
+  //                               Row(
+  //                                 children: [
+  //                                   model.user?.profileImage==''?
+  //                           Container(
+  //                                                     height: 43,
+  //                                                     width: 43,
+  //                                                     alignment:
+  //                                                         Alignment.center,
+  //                                                     decoration: BoxDecoration(
+  //                                                         shape:
+  //                                                             BoxShape.circle,
+  //                                                         color: AppColors
+  //                                                             .primaryColor /*??
+  //                                                                     AppColors.primaryColor,*/
+  //                                                         ),
+  //                                                     child: Text(
+  //                                                      comment.user?.name![0].toUpperCase(),
+  //                                                       style: TextStyle(
+  //                                                           fontSize: 22,
+  //                                                           color: Colors.white,
+  //                                                           fontFamily:
+  //                                                               robotoRegular),
+  //                                                     ),
+  //                                                   ).paddingOnly(left: 4, right: 25):
+  //                                   ClipRRect(
+  //                                     borderRadius: BorderRadius.circular(21),
+  //                                     child: CachedNetworkImage(
+  //                                       imageUrl:
+  //                                           "${comment.user?.profileImage}",
+  //                                       placeholder: (context, url) =>
+  //                                           const CircularProgressIndicator(),
+  //                                       errorWidget: (context, url, error) =>
+  //                                           const Icon(Icons.account_circle,
+  //                                               size: 42),
+  //                                       fit: BoxFit.cover,
+  //                                       width: 42,
+  //                                       height: 42,
+  //                                     ),
+  //                                   ).paddingOnly(left: 4, right: 25),
+  //                                   Text(
+  //                                     comment.user?.name ?? "Anonymous",
+  //                                     style: TextStyle(
+  //                                         fontSize: 16,
+  //                                         fontWeight: FontWeight.bold),
+  //                                   ).paddingOnly(bottom: 10, right: 20),
+  //                                   Text(
+  //                                     comment.updatedAt != null
+  //                                         ? timeago.format(
+  //                                             DateTime.parse(
+  //                                                 comment.updatedAt!),
+  //                                             locale: 'en')
+  //                                         : "Time",
+  //                                     style: TextStyle(
+  //                                         fontSize: 14,
+  //                                         fontWeight: FontWeight.w400,
+  //                                         fontStyle: FontStyle.italic),
+  //                                   ).paddingOnly(bottom: 10),
+  //                                 ],
+  //                               ),
+  //                               Padding(
+  //                                 padding: const EdgeInsets.only(left: 70),
+  //                                 child: Text(
+  //                                   comment.description ?? "No comment",
+  //                                   style: TextStyle(fontSize: 18),
+  //                                 ),
+  //                               ),
+  //                               SizedBox(height: 10),
+  //                             ],
+  //                           );
+  //                         }).toList(),
+  //                       SizedBox(height: 10),
+  //                       Row(
+  //                         children: [
+  //                           model.user?.profileImage==''?
+  //                           Container(
+  //                                                     height: 43,
+  //                                                     width: 43,
+  //                                                     alignment:
+  //                                                         Alignment.center,
+  //                                                     decoration: BoxDecoration(
+  //                                                         shape:
+  //                                                             BoxShape.circle,
+  //                                                         color: AppColors
+  //                                                             .primaryColor /*??
+  //                                                                     AppColors.primaryColor,*/
+  //                                                         ),
+  //                                                     child: Text(
+  //                                                      model.user!.name![0].toUpperCase(),
+  //                                                       style: TextStyle(
+  //                                                           fontSize: 22,
+  //                                                           color: Colors.white,
+  //                                                           fontFamily:
+  //                                                               robotoRegular),
+  //                                                     ),
+  //                                                   ):
+  //                           ClipRRect(
+  //                             borderRadius: BorderRadius.circular(21),
+  //                             child: CachedNetworkImage(
+  //                               imageUrl: "${model.user?.profileImage}",
+  //                               placeholder: (context, url) =>
+  //                                   const CircularProgressIndicator(),
+  //                               errorWidget: (context, url, error) =>
+  //                                   const Icon(Icons.account_circle, size: 42),
+  //                               fit: BoxFit.cover,
+  //                               width: 42,
+  //                               height: 42,
+  //                             ),
+  //                           ).paddingOnly(left: 4),
+  //                           SizedBox(width: 20),
+  //                           Expanded(
+  //                             child: TextField(
+  //                               controller: commentController,
+  //                               decoration: InputDecoration(
+  //                                 hintText: "Add a comment",
+  //                                 border: OutlineInputBorder(
+  //                                   borderRadius: BorderRadius.circular(50),
+  //                                 ),
+  //                                 contentPadding: EdgeInsets.symmetric(
+  //                                     horizontal: 16, vertical: 10),
+  //                               ),
+  //                               onSubmitted: (value) {
+  //                                 if (value.isNotEmpty) {
+  //                                   ApiCall.addComment(
+  //                                       api: ApiUrl.addComment,
+  //                                       callack: this,
+  //                                       imageId: imageIdComment.toString(),
+  //                                       memoryID: memoryIdComment.toString(),
+  //                                       comment: commentController.text.trim());
+  //                                   setState(() {
+  //                                     addPostCommentLoader = true;
+  //                                   });
+  //                                   commentController.clear();
+  //                                   Navigator.pop(context);
+  //                                 }
+  //                               },
+  //                             ),
+  //                           ),
+  //                           SizedBox(
+  //                             width: 20,
+  //                           )
+  //                         ],
+  //                       ),
+  //                       SizedBox(
+  //                         height: 40,
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 );
+  //               } else {
+  //                 return Center(child: Text("No comments available"));
+  //               }
+  //             },
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 }

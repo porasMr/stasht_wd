@@ -30,10 +30,12 @@ class ApiCall {
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
       } else {
-        callack.onFailure("Something went wrong");
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -53,13 +55,15 @@ class ApiCall {
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
       } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+                        callack.onFailure(json.decode(response.body)['message']);
+
+
       }
     } catch (e) {
-      print(e);
-    }
+callack.onFailure(
+          "Something went wrong",
+        );  
+          }
   }
 
   static Future<void> scocialLogin(
@@ -84,14 +88,13 @@ class ApiCall {
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
-    }
+callack.onFailure(
+          "Something went wrong",
+        );      }
   }
 
   static Future<void> syncAccount(
@@ -110,14 +113,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
-    }
+callack.onFailure(
+          "Something went wrong",
+        );      }
   }
 
   static Future<void> category(
@@ -128,14 +130,13 @@ class ApiCall {
       );
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
-    }
+callack.onFailure(
+          "Something went wrong",
+        );      }
   }
 
   static Future<void> getMomories(
@@ -146,14 +147,13 @@ class ApiCall {
       );
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
-    }
+callack.onFailure(
+          "Something went wrong",
+        );      }
   }
 
   static Future<void> createCategory(
@@ -170,14 +170,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
-    }
+callack.onFailure(
+          "Something went wrong",
+        );      }
   }
 
   static Future<void> memoryDetails(
@@ -193,13 +192,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -219,13 +218,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -243,13 +242,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -261,13 +260,13 @@ class ApiCall {
       );
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -291,13 +290,15 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
       print(e);
+      print(e);
+      callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -375,13 +376,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -401,13 +402,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -427,13 +428,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -453,13 +454,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -479,13 +480,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -503,13 +504,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -537,7 +538,9 @@ class ApiCall {
         );
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -564,7 +567,7 @@ class ApiCall {
         callback.onSuccess(
             response.body, api); // Handling 409 as success (conflict)
       } else {
-        callback.onFailure("Something went wrong");
+        callback.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
       print("Exception is: $e");
@@ -574,6 +577,7 @@ class ApiCall {
 
   static Future<void> getComments(
       {required String api, required ApiCallback callack}) async {
+        print(api);
     try {
       final Response response = await ApiClient.getTypeWithTokenApi(
         api: api,
@@ -581,13 +585,13 @@ class ApiCall {
       if (response.statusCode == 201 || response.statusCode == 200) {
         print('this invokesss');
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -607,13 +611,13 @@ class ApiCall {
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
 
@@ -625,13 +629,13 @@ static Future<void> deleteUserAccount(
       );
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
-      } else {
-        callack.onFailure(
-          "Something went wrong",
-        );
+      }  else {
+        callack.onFailure(json.decode(response.body)['message']);
       }
     } catch (e) {
-      print(e);
+      print(e);callack.onFailure(
+          "Something went wrong",
+        );  
     }
   }
   

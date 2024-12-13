@@ -6,6 +6,8 @@ class SPKeys {
     static const String driveData = 'drive_data';
         static const String instaData = 'insta_data';
                 static const String fbData = 'fb_data';
+                  static const String driveToken = 'driveToken';
+
 
 
 

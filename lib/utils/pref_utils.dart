@@ -119,4 +119,11 @@ Future<void> saveInstaPhotoLinks(List<PhotoDetailModel> photoLinks) async {
   return []; // Return an empty list if not found
   }
 
+   Future<void> driveToken(String token) =>
+      prefsProvider.prefs.setString(SPKeys.driveToken, token);
+  String? getDriveToken() { 
+
+  return   prefsProvider.prefs.getString(SPKeys.driveToken)??'';
+    }
+
 }

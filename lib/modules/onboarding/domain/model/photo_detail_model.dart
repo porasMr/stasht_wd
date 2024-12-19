@@ -15,6 +15,8 @@ class PhotoDetailModel {
   String? type;
   String? location;
   String? thumbnailPath;
+    String? captureDate;
+
 
   PhotoDetailModel({
     this.webLink,
@@ -29,6 +31,7 @@ class PhotoDetailModel {
     this.location,
     this.originalThumbdata,
     this.thumbnailPath,
+    this.captureDate
   });
 
   // Convert a PhotoDetail object into a JSON map
@@ -46,6 +49,7 @@ class PhotoDetailModel {
       'file': file?.path, // Store the file path, not the file itself
       'type': type,
       'thumbnailPath': thumbnailPath,
+      'captureDate':captureDate
     };
   }
 
@@ -64,6 +68,7 @@ class PhotoDetailModel {
       file: json['file'] != null ? File(json['file']) : null, // Convert file path back to File object
       type: json['type'],
       thumbnailPath: json['thumbnailPath'],
+      captureDate:json['captureDate']
     );
   }
 }

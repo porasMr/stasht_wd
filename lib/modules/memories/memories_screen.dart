@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/model/category_memory_model.dart';
@@ -101,7 +102,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                         children: [
                           GestureDetector(
                             onTap: () {
-                              openAddPillBottomSheet('', '');
+                              addLableBottomSheet(context,'', '');
                             },
                             child: Container(
                                 height: 35,
@@ -387,6 +388,19 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                       padding: const EdgeInsets.symmetric(horizontal: 15.0),
                       child: GestureDetector(
                         onTap: () {},
+                        onLongPress: (){
+                          
+                        },
+                        onLongPressStart: (details){
+                           if (memoriesModel.data![index].name !=
+                                            "Personal" ) {
+                                      showPopupMenu(
+                                          details,
+                                          memoriesModel.data![index].id
+                                              .toString(),
+                                          memoriesModel.data![index].name!);
+                                    }
+                        },
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -437,11 +451,12 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                               height: 20,
                             ),
                             (memoriesModel.data![index].memorisCount == 0 &&
-                                    index == 0)
+                                    index == 0&&memoriesModel.published!.isEmpty&&memoriesModel.shared!.isEmpty)
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Image.asset(
                                         noMemoriesPlaceholder,
@@ -450,15 +465,19 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                       const SizedBox(height: 16),
 
                                       // No memory text
-                                      const Text(
-                                        "You haven't created a memory yet!",
-                                        style: TextStyle(
-                                            color: Colors.black, fontSize: 16),
+                                      Container(
+                                        width: MediaQuery.of(context).size.width,
+                                        alignment: Alignment.center,
+                                        child: const Text(
+                                          "You haven't created a memory yet!",
+                                          style: TextStyle(
+                                              color: Colors.black, fontSize: 16),
+                                        ),
                                       ),
                                       const SizedBox(height: 20),
                                     ],
                                   )
-                                : listView(memoriesModel.data![index].memoris!),
+                                : listView(memoriesModel.data![index].memoris!, memoriesModel.data![index].name!),
                             if (memoriesModel.data!.length == 1)
                               Container(
                                 child: Column(
@@ -531,7 +550,7 @@ if(memoriesModel.shared![0].memorisCount!>0)
                       height: 20,
                     ),
                     if(memoriesModel.shared!.isNotEmpty)
-                                               listView(memoriesModel.shared![0].memoris!),
+                                               listView(memoriesModel.shared![0].memoris!,"Shared"),
 
                   ],
                 ),
@@ -593,7 +612,7 @@ if(memoriesModel.published![0].memorisCount!>0)
                     ),
                                         if(memoriesModel.published!.isNotEmpty)
 
-                                               listView(memoriesModel.published![0].memoris!),
+                                               listView(memoriesModel.published![0].memoris!,"Published"),
 
                   ],
                 ),
@@ -612,24 +631,10 @@ if(memoriesModel.published![0].memorisCount!>0)
                   margin: const EdgeInsets.only(top: 8),
                   width: MediaQuery.of(context).size.width,
                   padding: const EdgeInsets.symmetric(horizontal: 15),
-                  decoration: const BoxDecoration(
-                    border: Border(
-                        bottom:
-                            BorderSide(color: AppColors.textfieldFillColor)),
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.selectedTabColor, // Start color
-                        Colors.white, // End color
-                      ],
-                      begin: Alignment.topCenter,
-                      // Starting point of the gradient
-                      end: Alignment
-                          .bottomCenter, // Ending point of the gradient
-                    ),
-                  ),
+                  
                   child: Row(
                     children: [
-                                if(getSelectedCategory()!='Shared'||getSelectedCategory()!='Published')
+                                (getSelectedCategory()=='Shared'||getSelectedCategory()=='Published')?Container():
 
                       GestureDetector(
                         onTap: () {
@@ -781,7 +786,7 @@ if(memoriesModel.published![0].memorisCount!>0)
                                             color:
                                                 AppColors.textfieldFillColor))),
                                 child: SizedBox(
-                                  height: 71,
+                                  height: 91,
                                   child: Row(
                                     children: [
                                       Stack(
@@ -789,11 +794,11 @@ if(memoriesModel.published![0].memorisCount!>0)
                                         children: [
                                           Container(
                                             alignment: Alignment.centerLeft,
-                                            height: 51,
-                                            width: 70,
+                                           height: 71,
+                                              width: 97,
                                             child: Container(
-                                              height: 51,
-                                              width: 55,
+                                              height: 71,
+                                              width: 77,
                                               decoration: BoxDecoration(
                                                 border: Border.all(
                                                     color:
@@ -822,8 +827,8 @@ if(memoriesModel.published![0].memorisCount!>0)
                                             ),
                                           ),
                                           Container(
-                                              height: 32,
-                                              width: 32,
+                                              height: 38,
+                                              width: 38,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
                                                   border: Border.all(
@@ -923,8 +928,26 @@ if(memoriesModel.published![0].memorisCount!>0)
                                                         height: 19 / 16,
                                                       ),
                                                     ),
+                                                    
                                                   ],
                                                 ),
+                                               const SizedBox(height: 3,),
+                                                 Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                   children: [
+                                                    
+                                                     Text(
+                                                              "${CommonWidgets.dateRetrun(memory.minUploadedImgDate!)}-${CommonWidgets.maxDateRetrun(memory.maxUploadedImgDate!)}",
+                                                              style: const TextStyle(
+                                                                  color: Colors.black,
+                                                                      fontStyle: FontStyle.italic,
+                                                                  fontFamily:
+                                                                      robotoRegular,
+                                                                  height: 17.2 / 13,
+                                                                  fontSize: 10),
+                                                            ),
+                                                   ],
+                                                 )
                                               ],
                                             ),
                                             Align(
@@ -979,7 +1002,7 @@ if(memoriesModel.published![0].memorisCount!>0)
   _addCategoryTitleView() {
     return GestureDetector(
       onTap: () {
-        openAddPillBottomSheet('', '');
+        addLableBottomSheet(context,'', '');
       },
       child: Container(
         margin: const EdgeInsets.only(left: 15),
@@ -1029,12 +1052,18 @@ CommonWidgets.errorDialog(context, message);
 
       }
     } else if (apiType == ApiUrl.createCategory) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       ApiCall.category(api: ApiUrl.categories, callack: this);
     } else if (apiType == ApiUrl.deleteCategory) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       ApiCall.category(api: ApiUrl.categories, callack: this);
     } else if (apiType == ApiUrl.updateCategory) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       ApiCall.category(api: ApiUrl.categories, callack: this);
     } else if (apiType == ApiUrl.memoryByCategory) {
@@ -1135,7 +1164,10 @@ CommonWidgets.errorDialog(context, message);
                               children: [
                                 GestureDetector(
                                   onTap: () {
+                                                                                                            Navigator.pop(context);
+
                                     titleController.clear();
+
                                   },
                                   child: const Padding(
                                     padding: EdgeInsets.only(left: 20.0),
@@ -1244,6 +1276,8 @@ CommonWidgets.errorDialog(context, message);
         });
       },
     );
+
+    
 
     // Get.bottomSheet(
     //     DraggableScrollableSheet(
@@ -1450,7 +1484,7 @@ CommonWidgets.errorDialog(context, message);
       Offset.zero & overlay.size,
     );
 
-    await showMenu<String>(
+   await  showMenu<String>(
       context: context,
       color: AppColors.whiteColor,
       surfaceTintColor: Color(0XFFF9F9F9),
@@ -1484,8 +1518,8 @@ CommonWidgets.errorDialog(context, message);
       ),
     ).then((value) {
       if (value == 'Edit') {
-        openAddPillBottomSheet(name, id);
-      } else {
+        addLableBottomSheet(context,name, id);
+      } else if (value == 'Delete'){
         EasyLoading.show();
         ApiCall.deleteCategory(
             api: ApiUrl.deleteCategory, id: id, callack: this);
@@ -1494,7 +1528,7 @@ CommonWidgets.errorDialog(context, message);
   }
 
   //------------memory view------------
-  listView(List<Memoris> memoriesList) {
+  listView(List<Memoris> memoriesList,String type) {
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
     return memoriesList.isEmpty
@@ -1547,6 +1581,7 @@ CommonWidgets.errorDialog(context, message);
                                   Stack(
                                     alignment: Alignment.topRight,
                                     children: [
+                                      
                                       Container(
                                         height: deviceHeight * .2,
                                         width: deviceWidth * .43,
@@ -1585,6 +1620,17 @@ CommonWidgets.errorDialog(context, message);
                                               : Colors.white,
                                         ),
                                       )
+                                   ,Container(height: deviceHeight * .2,
+                                        width: deviceWidth * .43,
+                                        margin: const EdgeInsets.only(right: 0),
+                                        decoration:BoxDecoration(
+                                          color: AppColors.black.withOpacity(0.2),
+                                          border: Border.all(
+                                              color:  AppColors.skeltonBorderColor
+                                                  ),
+                                          borderRadius:
+                                              BorderRadius.circular(46),
+                                        )),
                                     ],
                                   ),
                                 ],
@@ -1630,8 +1676,8 @@ CommonWidgets.errorDialog(context, message);
                                                               value,
                                                               Widget? child) {
                                                         return Container(
-                                                          height: 52,
-                                                          width: 52,
+                                                          height: 50,
+                                                          width: 50,
                                                           alignment:
                                                               Alignment.center,
                                                           decoration:
@@ -1658,8 +1704,8 @@ CommonWidgets.errorDialog(context, message);
                                                                         .profileImage,
                                                                     fit: BoxFit
                                                                         .cover,
-                                                                    height: 52,
-                                                                    width: 52,
+                                                                    height: 50,
+                                                                    width: 50,
                                                                     progressIndicatorBuilder: (context,
                                                                             url,
                                                                             downloadProgress) =>
@@ -1697,6 +1743,20 @@ CommonWidgets.errorDialog(context, message);
                                                           CrossAxisAlignment
                                                               .start,
                                                       children: [
+                                                        if(type=='Shared'||type=='Published')
+
+                                                        Text(
+                                                          memoriesList[
+                                                                          index]
+                                                                      .user!.name!,
+                                                          style: const TextStyle(
+                                                              color: AppColors
+                                                                  .black,
+                                                              fontFamily:
+                                                                  robotoRegular,
+                                                              height: 17.2 / 13,
+                                                              fontSize: 12),
+                                                        ),
                                                         Text(
                                                           memoriesList
                                                                   .isNotEmpty
@@ -1723,16 +1783,19 @@ CommonWidgets.errorDialog(context, message);
                                                               height: 17.2 / 15,
                                                               fontSize: 15),
                                                         ),
+
                                                         if(memoriesList[index].minUploadedImgDate!.isNotEmpty&&memoriesList[index].maxUploadedImgDate!.isNotEmpty)
+                                                                                                                (type=='Shared'||type=='Published')?Container():
+
                                                         Text(
-                                                          "${CommonWidgets.dateRetrun(memoriesList[index].minUploadedImgDate!)}-${memoriesList[index].maxUploadedImgDate!.split('-')[2]}/${memoriesList[index].maxUploadedImgDate!.split('-')[0].substring(2, 4)}",
+                                                          "${CommonWidgets.dateRetrun(memoriesList[index].minUploadedImgDate!)}-${CommonWidgets.maxDateRetrun(memoriesList[index].maxUploadedImgDate!)}",
                                                           style: const TextStyle(
                                                               color: AppColors
                                                                   .black,
                                                               fontFamily:
                                                                   robotoRegular,
                                                               height: 17.2 / 13,
-                                                              fontSize: 13),
+                                                              fontSize: 10),
                                                         ),
                                                       ],
                                                     ),
@@ -1863,9 +1926,144 @@ CommonWidgets.errorDialog(context, message);
    String getSelectedCategory() {
     for (var category in categoryModel.categories!) {
       if (category.isSelected) {
+        print(category.name!);
         return category.name!;
       }
     }
     return '';
+  }
+
+   addLableBottomSheet(BuildContext context,String name, String id){
+     showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                builder: (context) {
+                                  TextEditingController memoryTitleController =
+                                      TextEditingController(text:name);
+                                  FocusNode focusNode = FocusNode();
+
+                                  // Ensure the keyboard is displayed when the bottom sheet opens
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    focusNode.requestFocus();
+                                  });
+
+                                  return StatefulBuilder(builder: (context, setState) {
+                                    return  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: MediaQuery.of(context)
+                                          .viewInsets
+                                          .bottom, // Adjust for keyboard
+                                      left: 16.0,
+                                      right: 16.0,
+                                      top: 16.0,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                            height: 48,
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                                                                                            Navigator.pop(context);
+
+                                    titleController.clear();
+
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 20.0),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Icon(Icons.close),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  name == ''
+                                      ? AppStrings.addCategory
+                                      : AppStrings.editCategory,
+                                  style: appTextStyle(
+                                      fm: robotoBold,
+                                      height: 25 / 20,
+                                      fz: 20,
+                                      color: AppColors.black),
+                                ),
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: () async {
+                                    Navigator.pop(context);
+                                    EasyLoading.show();
+                                    if (name == '') {
+                                      ApiCall.createCategory(
+                                          api: ApiUrl.createCategory,
+                                          name: memoryTitleController.text,
+                                          callack: this);
+                                    } else {
+                                      ApiCall.ediCategory(
+                                          api: ApiUrl.updateCategory,
+                                          id: id,
+                                          name: memoryTitleController.text,
+                                          callack: this);
+                                    }
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 20.0),
+                                    child: Text(AppStrings.done,
+                                        style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 17,
+                                            color:memoryTitleController.text.isNotEmpty? AppColors.primaryColor:AppColors.hintColor),
+                                  ),
+                                ))
+                              ],
+                            ),
+                          ),
+                                        const Divider(
+                                          color: AppColors.textfieldFillColor,
+                                        ),
+                                        Text(
+                              AppStrings.categoryTitle,
+                                          style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 14,
+                                            fw: FontWeight.w400,
+                                            color: AppColors.violetColor,
+                                          ),
+                                        ).paddingOnly(left: 8, top: 8),
+                                        const SizedBox(height: 10),
+                                        TextFormField(
+                                          controller: memoryTitleController,
+                                          focusNode: focusNode,
+                                          style:appTextStyle(
+                                              fm: interRegular,
+                                              fz: 21,
+                                              color: Colors.black,
+                                            ) ,
+                                            onChanged: (c){
+                                              setState(() {});
+
+                                        },
+                                          decoration: InputDecoration(
+                                            hintText: 'Add Category title here',
+                                            hintStyle: appTextStyle(
+                                              fm: interRegular,
+                                              fz: 21,
+                                              color: AppColors.hintColor,
+                                            ),
+                                          ),
+                                        ).paddingOnly(left: 8),
+                                        const SizedBox(height: 10),
+                                      ],
+                                    ),
+                                  );
+                                  },)
+                                 ;
+                                },
+                              );
   }
 }

@@ -45,9 +45,9 @@ static Future<void> postImageToFacebook(String shareUrl, String accessToken,Func
             message('Post uploaded successfully: ${responseData}');
 
     } else {
-                  message('Failed to upload photo: ${response.body}');
+                  message('Failed to upload post: ${response.body}');
 
-      print('Failed to upload photo: ${response.body}');
+      print('Failed to upload post: ${response.body}');
     }
   } catch (e) {
     print('Error: $e');

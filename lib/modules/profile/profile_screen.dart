@@ -835,9 +835,13 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       var img = json.decode(data.split("=")[0])['file'].toString();
       model.user!.profileImage = img;
       PrefUtils.instance.saveUserToPrefs(model);
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       ApiCall.updateProfile(
           api: ApiUrl.updateProfile, type: "image", value: img, callack: this);
     } else if (apiType == ApiUrl.updateProfile) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       changeUserName = false;
       setState(() {});
@@ -848,6 +852,8 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                             Navigator.of(context).pushNamedAndRemoveUntil(
                                 '/SignIn', (Route<dynamic> route) => false);
     } else if (apiType == ApiUrl.syncAccount) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       if (selectedType == "facebook_synced") {
         model.user!.facebookSynced = 0;

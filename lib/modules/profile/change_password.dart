@@ -217,9 +217,8 @@ class _ChangePasswordState extends State<ChangePassword>
   void onSuccess(String data, String apiType) {
     if (apiType == ApiUrl.changePassword) {
       EasyLoading.dismiss();
-      oldPasswordcontroller.clear();
-      newPasswordcontroller.clear();
-      confirmPasswordcontroller.clear();
+     
+      Navigator.pop(context);
 
       CommonWidgets.successDialog(context, json.decode(data)['message']);
     }

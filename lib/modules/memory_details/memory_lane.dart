@@ -281,7 +281,11 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 userProfileImage);
                             if (link.isNotEmpty) {
                               try {
-                                await Share.share(link);
+                                await Share.share(link).then((value) {
+                                  if(value.status.name=='success'){
+        CommonWidgets.successDialog(context, "Shared collaborator link successfully!");
+                                  }
+                                });
                               } catch (error) {
                                 debugPrint("Error sharing link: $error");
                               }
@@ -630,6 +634,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                     : Stack(
                         children: [
                           ListView.builder(
+                                    key: const PageStorageKey('detailList'), // Key for persistent scroll state
+addAutomaticKeepAlives: true,
                             padding:
                                 EdgeInsets.only(left: 20, right: 20, top: 5),
                             itemCount: memoriesModel.data!.data!.length,
@@ -821,8 +827,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                           BorderRadius.circular(
                                                               35),
                                                       child: CachedNetworkImage(
-                                                        height: 43,
-                                                        width: 43,
+                                                        height: 50,
+                                                        width: 50,
                                                         imageUrl: memoriesModel
                                                             .data!
                                                             .data![index]
@@ -842,8 +848,8 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                       ),
                                                     )
                                                   : Container(
-                                                      height: 43,
-                                                      width: 43,
+                                                      height: 50,
+                                                      width: 50,
                                                       alignment:
                                                           Alignment.center,
                                                       decoration: BoxDecoration(
@@ -980,12 +986,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                               ? RichText(
                                                   text: TextSpan(
                                                   children: [
-                                                    WidgetSpan(
-                                                      child: Image.asset(
-                                                        time,
-                                                        height: 20,
-                                                      ),
-                                                    ),
+                                                    
                                                     TextSpan(
                                                       text: CommonWidgets
                                                           .dateFormatRetrun(
@@ -999,7 +1000,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                         fz: 14,
                                                         height: 19.2 / 14,
                                                         color: AppColors
-                                                            .primaryColor,
+                                                            .black,
                                                       ),
                                                       // Customize the text style as needed
                                                     ),
@@ -1022,11 +1023,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.end,
                                                   children: [
-                                                    Image.asset(
-                                                      time,
-                                                      height: 20,
-                                                    ),
-                                                    SizedBox(width: 8),
+                                                    SizedBox(width: 5,),
                                                     Text(
                                                       CommonWidgets
                                                           .dateFormatRetrun(
@@ -1036,10 +1033,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                                                   .captureDate!),
                                                       style: appTextStyle(
                                                         fm: robotoItalic,
-                                                        fz: 14,
+                                                        fz: 16,
                                                         height: 19.2 / 14,
                                                         color: AppColors
-                                                            .primaryColor,
+                                                            .black,
                                                       ),
                                                     ),
                                                     SizedBox(width: 8),
@@ -1561,24 +1558,27 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
       },
     );
   }
-
-  var linksName = ["Web Link"];
+String type='Web Link';
+  var linksName = ["Web Link", "Socials"];
   var images = [
     "assets/images/attach.png",
+    "assets/images/share.png",
   ];
   var linksDescription = [
     "Embed a link in your blog, or share a link with friends, family or colleagues. No app required!",
+    "Memories were meant to be shared. Post a link back to your favorite social media sites.",
   ];
 
   _publishView() {
     return SizedBox(
-      height: 200,
+      height: 300,
       child: ListView.builder(
           itemCount: linksName.length,
           shrinkWrap: true,
           itemBuilder: (context, index) {
             return GestureDetector(
               onTap: () async {
+               type=linksName[index];
                 Navigator.pop(context);
                 EasyLoading.show();
                 ApiCall.memoryPublished(
@@ -1586,6 +1586,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                     status: "1",
                     id: widget.memoryId,
                     callack: this);
+                
               },
               child: Container(
                 height: 118,
@@ -1788,13 +1789,24 @@ widget.memoryTtile=memoriesModel.data!.data![0].memory!.title!;
       setState(() {});
     } else if (apiType == ApiUrl.memoryPublished) {
       var url = json.decode(data);
+      if(type=="Web link"){
       print('${url['link']}');
-      Share.share('${url['link']}');
-      // socialLinkMemoryBottomSheet(url['link'].toString());
+      Share.share('${url['link']}').then((value) {
+        CommonWidgets.successDialog(context, "Memory web link published successfully!");
+
+      });
+      }else{
+ socialLinkMemoryBottomSheet(url['link'].toString());
+      }
+      
       setState(() {});
     } else if (apiType == ApiUrl.deleteMemory) {
+            CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       Navigator.pop(context);
     } else if (apiType == ApiUrl.deleteMemoryFile) {
+            CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       _currentPage = 0;
       ApiCall.memoryDetails(
           api: ApiUrl.memoryDetail,

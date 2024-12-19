@@ -41,9 +41,19 @@ class AppColors {
   static const Color addButtonColor = Color(0XFF11D192B);
   static const Color dragColor = Color(0XFFE7E0EC);
   static const Color dialogMiddleFontColor = Color(0XFF49454F);
+  static const Color successColors = Color(0XFF43BD39);
+  static const Color errorColors = Color(0XFFFF3B30);
+    static const Color hintColors = Color(0XFF999999);
+
+
+
+  
   static const Color redColor = Color?.fromARGB(255, 192, 12, 12);
   static const Color whiteColor = Color?.fromARGB(255, 255, 255, 255);
   static const Color transparentColor = Color?.fromARGB(0, 0, 0, 0);
+  static const Color violetColor = Color(0XFF6C60FF);
+
+static const Color blackColor = Color(0x00000000);
 
 
 }

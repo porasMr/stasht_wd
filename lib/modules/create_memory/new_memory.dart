@@ -1,17 +1,23 @@
 import 'dart:convert';
 
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/modules/create_memory/model/group_modle.dart';
+import 'package:stasht/modules/create_memory/model/memory_item.dart';
 import 'package:stasht/modules/create_memory/model/sub_category_model.dart';
+import 'package:stasht/modules/invite_collaborator/invite_collaborator_screen.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
@@ -39,38 +45,25 @@ import 'package:http/http.dart' as http;
 import 'package:stasht/utils/progress_dialog.dart';
 
 // ignore: must_be_immutable
-class CreateMemoryScreen extends StatefulWidget {
-  CreateMemoryScreen(
+class NewMemoryScreen extends StatefulWidget {
+  NewMemoryScreen(
       {super.key,
       required this.future,
       required this.photosList,
-      required this.isBack,
-      this.isEdit,
-      this.memoryListData,
-      this.title,
-      this.memoryId,
-      this.cateId,
-      this.subId,
-      this.userId});
+      required this.driveGroupModel,
+      required this.instaGroupModel,
+      required this.fbGroupModel});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
-  List<MemoryListData>? memoryListData = [];
-  String? title = '';
-  String? memoryId = '';
-  String? cateId = '';
-  String? subId = '';
-  String? userId = '';
-
-  ScrollController driveController = ScrollController();
-
-  bool? isEdit;
-  bool isBack;
+  List<GroupedPhotoModel> driveGroupModel = [];
+  List<GroupedPhotoModel> instaGroupModel = [];
+  List<GroupedPhotoModel> fbGroupModel = [];
 
   @override
-  State<CreateMemoryScreen> createState() => _CreateMemoryScreenState();
+  State<NewMemoryScreen> createState() => _NewMemoryScreenScreenState();
 }
 
-class _CreateMemoryScreenState extends State<CreateMemoryScreen>
+class _NewMemoryScreenScreenState extends State<NewMemoryScreen>
     implements ApiCallback {
   List<String> tabListItem = [
     "All",
@@ -78,7 +71,6 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     "Drive",
     "Facebook",
     "Instagram",
-    
   ];
   String selectedTab = "";
 
@@ -87,6 +79,10 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   SubCategorymodel subCategoryModel = SubCategorymodel();
   TextEditingController titleController = TextEditingController();
   TextEditingController labelController = TextEditingController();
+  TextEditingController categoryController = TextEditingController();
+
+  FocusNode categoryFocusNode = FocusNode();
+  FocusNode labelFocusNode = FocusNode();
 
   final FocusNode titleFocusNode = FocusNode();
   bool isExpandedDrop = false;
@@ -105,8 +101,6 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   int _currentIndex = 1;
 
   String categoryId = '';
-  String subCategoryId = '';
-  String memoryId = '';
 
   List<PhotoDetailModel> driveModel = [];
   List<PhotoDetailModel> fbModel = [];
@@ -119,44 +113,81 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   UserModel model = UserModel();
   ScrollController driveController = ScrollController();
 
+  // Dummy List
+  List<String> memoryOptions = [];
+  List<MemoryItem> memoryItem = [];
+  List<String> memoryLabel = [];
+
+  String selectedMemory = "";
+  String selectedTitle = "Choose a Memory";
+  String selectLabel = "";
+  bool isMemoryTitleDropdownExpanded = false;
+  bool isMemoryCategoryDropDownExpanded = false;
+  bool isMemoryLabelDropDownExpanded = false;
   //--------------_Drive group model================
   List<GroupedPhotoModel> driveGroupModel = [];
   List<GroupedPhotoModel> instaGroupModel = [];
   List<GroupedPhotoModel> fbGroupModel = [];
   List<PhotoGroupModel> photoGroupModel = [];
+  void toggleMemoryTitleDropdown() {
+    setState(() {
+      isMemoryTitleDropdownExpanded = !isMemoryTitleDropdownExpanded;
+    });
+  }
+
+  void selectMemory(MemoryItem memory) {
+    setState(() {
+      selectedTitle = memory.title;
+      isMemoryTitleDropdownExpanded = false;
+    });
+    titleController.text = memory.title;
+  }
+
+  void selectCategory(String memory) {
+    setState(() {
+      selectedMemory = memory;
+      isMemoryCategoryDropDownExpanded = false;
+    });
+    categoryController.text = memory;
+  }
+
+  void selectedLabel(String memory) {
+    setState(() {
+      selectLabel = memory;
+      isMemoryLabelDropDownExpanded = false;
+    });
+    labelController.text = memory;
+  }
+
+  void toggleMemoryCategoryDropdown() {
+    setState(() {
+      isMemoryCategoryDropDownExpanded = !isMemoryCategoryDropDownExpanded;
+    });
+  }
+
+  void toggleMemoryLabelDropdown() {
+    setState(() {
+      isMemoryLabelDropDownExpanded = !isMemoryLabelDropDownExpanded;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    photoGroupModel=groupGalleryPhotosByDate(widget.photosList,widget.future);
+    EasyLoading.show();
+    ApiCall.category(api: ApiUrl.categories, callack: this);
+
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
       setState(() {});
     });
+    driveGroupModel=widget.driveGroupModel;
+        instaGroupModel=widget.instaGroupModel;
+                fbGroupModel=widget.fbGroupModel;
 
-    PrefUtils.instance.getDrivePrefs().then((value) {
-      for (var photoList in value) {
-        photoList.isSelected = false;
-      }
-      driveModel = value;
-      driveGroupModel = groupPhotosByDate(driveModel);
-    });
-    PrefUtils.instance.getFacebookPrefs().then((value) {
-      for (var photoList in value) {
-        photoList.isSelected = false;
-      }
-      fbModel = value;
-      fbGroupModel = groupPhotosForFBAndINSTAByDate(fbModel);
-    });
-    PrefUtils.instance.getInstaPrefs().then((value) {
-      for (var photoList in value) {
-        photoList.isSelected = false;
-      }
-      instaModel = value;
-      instaGroupModel = groupPhotosForFBAndINSTAByDate(instaModel);
-    });
 
-    deselectAll();
+   
+    //deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
     driveController.addListener(_onScrollEnd);
   }
@@ -169,12 +200,12 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     for (var photo in photoDetails) {
       // Group photos by month-year
       if (photo.thumbnailPath != null) {
-        if(photo.captureDate!=null){
-        if (groupedMap.containsKey(photo.captureDate)) {
-          groupedMap[photo.captureDate]!.add(photo);
-        } else {
-          groupedMap[photo.captureDate!] = [photo];
-        }
+        if (photo.captureDate != null) {
+          if (groupedMap.containsKey(photo.captureDate)) {
+            groupedMap[photo.captureDate]!.add(photo);
+          } else {
+            groupedMap[photo.captureDate!] = [photo];
+          }
         }
       }
     }
@@ -188,7 +219,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     }).toList();
   }
 
-   List<GroupedPhotoModel> groupPhotosForFBAndINSTAByDate(
+  List<GroupedPhotoModel> groupPhotosForFBAndINSTAByDate(
       List<PhotoDetailModel> photoDetails) {
     // Create a map to group photos by captureDate
     final groupedMap = <String, List<PhotoDetailModel>>{};
@@ -196,12 +227,12 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     for (var photo in photoDetails) {
       // Group photos by month-year
       if (photo.webLink != null) {
-        if(photo.captureDate!=null){
-        if (groupedMap.containsKey(photo.captureDate)) {
-          groupedMap[photo.captureDate]!.add(photo);
-        } else {
-          groupedMap[photo.captureDate!] = [photo];
-        }
+        if (photo.captureDate != null) {
+          if (groupedMap.containsKey(photo.captureDate)) {
+            groupedMap[photo.captureDate]!.add(photo);
+          } else {
+            groupedMap[photo.captureDate!] = [photo];
+          }
         }
       }
     }
@@ -215,132 +246,42 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     }).toList();
   }
 
-   List<PhotoGroupModel> groupGalleryPhotosByDate(
-    List<PhotoModel> photoDetails, List<Future<Uint8List?>> futures) {
-  // Create a map to group photos by captureDate
-  final groupedMap = <String, List<PhotoModel>>{};
-  final futureMap = <String, List<Future<Uint8List?>>>{};
+  List<PhotoGroupModel> groupGalleryPhotosByDate(
+      List<PhotoModel> photoDetails, List<Future<Uint8List?>> futures) {
+    // Create a map to group photos by captureDate
+    final groupedMap = <String, List<PhotoModel>>{};
+    final futureMap = <String, List<Future<Uint8List?>>>{};
 
-  for (int i = 0; i < photoDetails.length; i++) {
-    // Format the capture date to 'MMM yyyy'
-    String changeTime =
-        DateFormat('MMM yyyy').format(photoDetails[i].assetEntity.createDateTime);
+    for (int i = 0; i < photoDetails.length; i++) {
+      // Format the capture date to 'MMM yyyy'
+      String changeTime = DateFormat('MMM yyyy')
+          .format(photoDetails[i].assetEntity.createDateTime);
 
-    if (changeTime.isNotEmpty) {
-      // Group the photos
-      if (groupedMap.containsKey(changeTime)) {
-        groupedMap[changeTime]!.add(photoDetails[i]);
-        futureMap[changeTime]!.add(futures[i]);
-      } else {
-        groupedMap[changeTime] = [photoDetails[i]];
-        futureMap[changeTime] = [futures[i]];
-      }
-    }
-  }
-
-  // Convert the map to a list of PhotoGroupModel
-  return groupedMap.entries.map((entry) {
-    final date = entry.key;
-    final photos = entry.value;
-    final photoFutures = futureMap[date] ?? []; // Match futures with grouped photos
-
-    return PhotoGroupModel(
-      date: date,
-      photos: photos,
-      future: photoFutures,
-    );
-  }).toList();
-}
-
-
-  selectionOfAllPhoto() {
-    titleController.text = widget.title ?? '';
-    categoryId = widget.cateId ?? '';
-    memoryId = widget.memoryId ?? '';
-    subCategoryId = widget.subId ?? '';
-    if (subCategoryId.isNotEmpty) {
-      for (int sub = 0;
-          sub < categoryMemoryModelWithoutPage.subCategories!.length;
-          sub++) {
-        print(
-            "subCategoryId${categoryMemoryModelWithoutPage.subCategories![sub].id == int.parse(subCategoryId)}");
-
-        if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
-            int.parse(subCategoryId)) {
-          categoryMemoryModelWithoutPage.subCategories![sub].isselected = true;
+      if (changeTime.isNotEmpty) {
+        // Group the photos
+        if (groupedMap.containsKey(changeTime)) {
+          groupedMap[changeTime]!.add(photoDetails[i]);
+          futureMap[changeTime]!.add(futures[i]);
         } else {
-          categoryMemoryModelWithoutPage.subCategories![sub].isselected = false;
+          groupedMap[changeTime] = [photoDetails[i]];
+          futureMap[changeTime] = [futures[i]];
         }
       }
     }
-    for (int i = 0; i < categoryModel.categories!.length; i++) {
-      if (categoryModel.categories![i].id == int.parse(categoryId)) {
-        categoryModel.categories![i].isSelected = true;
-        categoryId = categoryModel.categories![i].id.toString();
-      } else {
-        categoryModel.categories![i].isSelected = false;
-      }
-    }
-    for (int p = 0; p < widget.memoryListData!.length; p++) {
-      if (widget.memoryListData![p].type == "image") {
-        updateSelectedValue(widget.memoryListData![p].typeId!);
-      } else if (widget.memoryListData![p].type == "insta") {
-        updateInstaSelectedValue(widget.memoryListData![p].typeId!.toString());
-      } else if (widget.memoryListData![p].type == "fb") {
-        updateFbSelectedValue(widget.memoryListData![p].typeId!.toString());
-      } else if (widget.memoryListData![p].type == "drive") {
-        updateDriveSelectedValue(widget.memoryListData![p].typeId!.toString());
-      }
-    }
-    setState(() {});
-  }
 
-  void updateSelectedValue(String selectedId) {
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].assetEntity.id == selectedId) {
-        widget.photosList[i].selectedValue = true;
-        widget.photosList[i].isEditmemory = true;
-      }
-    }
+    // Convert the map to a list of PhotoGroupModel
+    return groupedMap.entries.map((entry) {
+      final date = entry.key;
+      final photos = entry.value;
+      final photoFutures =
+          futureMap[date] ?? []; // Match futures with grouped photos
 
-    setState(() {});
-  }
-
-  void updateFbSelectedValue(String selectedId) {
-    for(int j=0;j<fbGroupModel.length;j++){
-    for (int i = 0; i < fbGroupModel[j].photos.length; i++) {
-      if (fbModel[i].id == selectedId) {
-        fbGroupModel[j].photos[i].isSelected = true;
-        fbGroupModel[j].photos[i].isEdit = true;
-      }
-    }
-    }
-
-    setState(() {});
-  }
-
-  void updateInstaSelectedValue(String selectedId) {
-    for(int j=0;j<instaGroupModel.length;j++){
-    for (int i = 0; i < instaGroupModel[j].photos.length; i++) {
-      if (instaGroupModel[j].photos[i].id == selectedId) {
-        instaGroupModel[j].photos[i].isSelected = true;
-        instaGroupModel[j].photos[i].isEdit = true;
-      }
-    }
-    }
-    setState(() {});
-  }
-
-  void updateDriveSelectedValue(String selectedId) {
-    for(int j=0;j<driveGroupModel.length;j++){
-    for (int i = 0; i < driveGroupModel[j].photos.length; i++) {
-      if (driveGroupModel[j].photos[i].id == selectedId) {
-        driveGroupModel[j].photos[i].isSelected = true;
-        driveGroupModel[j].photos[i].isEdit = true;
-      }
-    }
-    }
-    setState(() {});
+      return PhotoGroupModel(
+        date: date,
+        photos: photos,
+        future: photoFutures,
+      );
+    }).toList();
   }
 
   void deselectAll() {
@@ -383,393 +324,231 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
     return Scaffold(
-      appBar: widget.isBack
-          ? AppBar(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              leading: const IgnorePointer(),
-              leadingWidth: 0,
-              actions: [
-                GestureDetector(
-                  onTap: () {
-                    if (titleController.text.isEmpty) {
-                      CommonWidgets.errorDialog(context, "Enter memory title");
-
-                      //Get.snackbar("Error", "Enter memory title", colorText: AppColors.redColor);
-                    } else if (allSelectedPhotos() == 0) {
-                      CommonWidgets.errorDialog(context, "Please select photo");
-                    } else {
-                      uploadCount = 1;
-                      progressbarValue = 0.0;
-                      if (labelController.text.isEmpty) {
-                        uploadData(
-                            getSelectedCategory(), selectedSubCategory());
-                      } else {
-                        ApiCall.createSubCategory(
-                            api: ApiUrl.createSubCategory,
-                            name: labelController.text,
-                            id: categoryId,
-                            callack: this);
-                      }
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 15.0),
-                    child: Text(
-                      AppStrings.done,
-                      style: appTextStyle(
-                          fz: 17,
-                          fm: interMedium,
-                          color: (countSelectedPhotos() > 0 &&
-                                  titleController.text.isNotEmpty)
-                              ? AppColors.primaryColor
-                              : AppColors.greyColor),
-                    ),
-                  ),
-                )
-              ],
-              title: Row(
-                children: [
-                  GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Icon(Icons.arrow_back)),
-                  const SizedBox(
-                    width: 5,
-                  ),
-                  Text(
-                    widget.isEdit != null
-                        ? "Edit ${AppStrings.addMemory}"
-                        : "Add ${AppStrings.addMemory}",
-                    style: appTextStyle(
-                        fz: 22,
-                        height: 28 / 22,
-                        fm: robotoRegular,
-                        color: Colors.black),
-                  ),
-                ],
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        leading: const IgnorePointer(),
+        leadingWidth: 0,
+        actions: [
+          GestureDetector(
+            onTap: () {
+              if (titleController.text.isEmpty) {
+                CommonWidgets.errorDialog(context, "Enter memory title");
+              } else if (allSelectedPhotos() == 0) {
+                CommonWidgets.errorDialog(context, "Please select photo");
+              } else {
+                uploadCount = 1;
+                progressbarValue = 0.0;
+                if (labelController.text.isEmpty) {
+                  uploadData(getSelectedCategory(), "");
+                }
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(right: 15.0),
+              child: Text(
+                "Next",
+                style: appTextStyle(
+                    fz: 17,
+                    fm: interMedium,
+                    color: (countSelectedPhotos() > 0 &&
+                            titleController.text.isNotEmpty)
+                        ? AppColors.primaryColor
+                        : AppColors.hintColor),
               ),
-            )
-          : null,
+            ),
+          )
+        ],
+        title: Row(
+          children: [
+            GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: const Icon(Icons.arrow_back)),
+            const SizedBox(
+              width: 10,
+            ),
+            Text(
+              countSelectedPhotos() > 0
+                  ? "Add Memory (${countSelectedPhotos()})"
+                  : "Add Memory",
+              style: appTextStyle(
+                  fz: 22,
+                  height: 28 / 22,
+                  fm: robotoRegular,
+                  color: Colors.black),
+            ),
+          ],
+        ),
+      ),
       body: Column(
         children: [
-          const SizedBox(
-            height: 8,
+          const Divider(
+            color: AppColors.textfieldFillColor,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-            child: categoryModel.categories == null
-                ? Container()
-                : Row(
-                    children: [
-                      if (categoryModel.categories!.length > 1)
-                        GestureDetector(
-                          onTap: () {
-                            isExpandedDrop = !isExpandedDrop;
-                            setState(() {});
-                          },
-                          child: Container(
-                            width: 24.0,
-                            margin: const EdgeInsets.only(top: 8, bottom: 10),
-                            child: Image.asset(
-                              isExpandedDrop ? chevronDown : chevronLeft,
-                              width: 32,
-                              height: 32,
-                            ),
-                          ),
-                        ),
-                      Image.asset(
-                        book,
-                        height: 15,
-                        width: 15,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        selectedCategory(),
-                        style: appTextStyle(
-                            fm: robotoMedium, fz: 14, color: AppColors.black),
-                      ),
-                    ],
-                  ),
-          ),
-          isExpandedDrop
-              ? Container(
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: categoryModel.categories!
-                        .where((test) =>
-                            test.name != "Shared" && test.name != "Published")
-                        .length,
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      return InkWell(
-                        onTap: () {
-                          for (int i = 0;
-                              i < categoryModel.categories!.length;
-                              i++) {
-                            if (i == index) {
-                              categoryModel.categories![index].isSelected =
-                                  true;
-                            } else {
-                              categoryModel.categories![i].isSelected = false;
-                            }
-                          }
-                          setState(() {});
-                          ApiCall.getSubCategory(
-                              api: ApiUrl.subCategory +
-                                  categoryModel.categories![index].id
-                                      .toString(),
-                              callack: this);
-                        },
-                        child: Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 90, // Ensure the min width is 90
-                          ),
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(5),
-                            color: selectedCategory() ==
-                                    categoryModel.categories![index].name
-                                ? AppColors.subTitleColor
-                                : Colors.grey.withOpacity(.2),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 5),
-                          child: Center(
-                            child: Text(
-                              categoryModel.categories![index].name!,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                )
-              : const IgnorePointer(),
-          Divider(
-            color: AppColors.textfieldFillColor.withOpacity(.75),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  AppStrings.memoryTitle,
-                  style: appTextStyle(
-                      fm: interRegular,
-                      fz: 14,
-                      height: 19.2 / 14,
-                      color: AppColors.primaryColor),
-                ),
-                // categoryMemoryModelWithoutPage.data == null
-                //     ? Container()
-                //     : Row(
-                //         mainAxisSize: MainAxisSize.min,
-                //         children: [
-                //           const Icon(
-                //             Icons.add,
-                //             size: 20,
-                //             color: AppColors.greyColor,
-                //           ),
-                //           TextButton(
-                //             onPressed: () {
-                //               //  labelFocusNode.unfocus();
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: titleController,
+                        focusNode: titleFocusNode,
+                        cursorColor: AppColors.primaryColor,
+                        readOnly: true,
+                        onChanged: (val) {},
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (context) {
+                              TextEditingController memoryTitleController =
+                                  TextEditingController();
+                              FocusNode focusNode = FocusNode();
 
-                //               // }
-                //             },
-                //             child: Text(
-                //               // controller.isLabelTexFormFeildShow.value
-                //               //     ? AppStrings.done
-                //               //     :
-                //               AppStrings.addNew,
-                //               style: appTextStyle(
-                //                   fm: interRegular,
-                //                   fz: 14,
-                //                   height: 19.2 / 14,
-                //                   color: AppColors.greyColor),
-                //             ),
-                //           ),
-                //         ],
-                //       )
-              ],
-            ),
-          ),
-          // categoryMemoryModelWithoutPage.data != null
-          //     ? Container()
-          //     :
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: TextFormField(
-              controller: titleController,
-              focusNode: titleFocusNode,
-              cursorColor: AppColors.primaryColor,
-              onChanged: (val) {},
-              style: appTextStyle(
-                fm: robotoRegular,
-                fz: 21,
-                height: 27 / 21,
-                color: AppColors.black,
-              ),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: AppStrings.memoryTitle,
-                hintStyle: appTextStyle(
-                  fz: isTitleFocused ? 14 : 21,
-                  color: isTitleFocused
-                      ? AppColors.primaryColor
-                      : const Color(0XFF999999),
-                  fm: robotoRegular,
+                              // Ensure the keyboard is displayed when the bottom sheet opens
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                focusNode.requestFocus();
+                              });
+
+                              return StatefulBuilder(builder: (context, setState) {
+                                return  Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: MediaQuery.of(context)
+                                      .viewInsets
+                                      .bottom, // Adjust for keyboard
+                                  left: 16.0,
+                                  right: 16.0,
+                                  top: 16.0,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                            onPressed: () {
+                                              focusNode.unfocus();
+                                              Navigator.pop(context);
+                                            },
+                                            icon: const Icon(
+                                              Icons.close,
+                                              color: Colors.black,
+                                            )),
+                                        Text(
+                                          'Add Title',
+                                          style: appTextStyle(
+                                            fm: interRegular,
+                                            fz: 20,
+                                            fw: FontWeight.bold,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        TextButton(
+                                          onPressed: () {
+                                            titleController.text =
+                                                memoryTitleController.text;
+                                            selectedTitle =
+                                                memoryTitleController.text;
+                                            focusNode.unfocus();
+                                                setState(() {});
+
+                                            viewRefersh();
+                                            Navigator.pop(context);
+                                          },
+                                          child: Text(
+                                            'Next',
+                                            style: appTextStyle(
+                                              fm: interRegular,
+                                              fz: 16,
+                                              color:memoryTitleController.text.isNotEmpty? AppColors.violetColor:AppColors.hintColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const Divider(
+                                      color: AppColors.textfieldFillColor,
+                                    ),
+                                    Text(
+                                      'Memory Title',
+                                      style: appTextStyle(
+                                        fm: interRegular,
+                                        fz: 14,
+                                        fw: FontWeight.w400,
+                                        color: AppColors.violetColor,
+                                      ),
+                                    ).paddingOnly(left: 8, top: 8),
+                                    const SizedBox(height: 10),
+                                    TextFormField(
+                                      controller: memoryTitleController,
+                                      focusNode: focusNode,
+                                      onChanged: (v){
+                                                setState(() {});
+
+                                      },
+                                      style:appTextStyle(
+                                          fm: interRegular,
+                                          fz: 21,
+                                          color: AppColors.black,
+                                        ) ,
+                                      decoration: InputDecoration(
+                                        hintText: 'Enter your memory title',
+                                        hintStyle: appTextStyle(
+                                          fm: interRegular,
+                                          fz: 21,
+                                          color: AppColors.hintColor,
+                                        ),
+                                      ),
+                                    ).paddingOnly(left: 8),
+                                    const SizedBox(height: 10),
+                                  ],
+                                ),
+                              );
+                              },)
+                              ;
+                            },
+                          );
+                        },
+                        style: appTextStyle(
+                          fm: robotoRegular,
+                          fz: 21,
+                          height: 27 / 21,
+                          color: Colors.black,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: memoryItem.isEmpty
+                              ? "Add memory title here"
+                              : selectedTitle,
+                          hintStyle: appTextStyle(
+                            fz: isTitleFocused ? 14 : 21,
+                            color: isTitleFocused
+                                ? AppColors.primaryColor
+                                : AppColors.hintColor,
+                            fm: robotoRegular,
+                          ),
+                        ),
+                      ).paddingOnly(left: memoryItem.isEmpty ? 18 : 0),
+                    ),
+                  ],
                 ),
-              ),
+              ],
             ),
           ),
           const Divider(
             color: AppColors.textfieldFillColor,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppStrings.label,
-                  style: appTextStyle(
-                      fm: interRegular,
-                      fz: 14,
-                      height: 19.2 / 14,
-                      color: AppColors.primaryColor),
-                ),
-                (categoryMemoryModelWithoutPage.subCategories == null ||
-                        categoryMemoryModelWithoutPage.subCategories!.isEmpty)
-                    ? Container()
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.add,
-                            size: 20,
-                            color: AppColors.greyColor,
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              addLable = true;
-                              setState(() {});
-                            },
-                            child: Text(
-                              // controller.isLabelTexFormFeildShow.value
-                              //     ? AppStrings.done
-                              //     :
-                              AppStrings.addNew,
-                              style: appTextStyle(
-                                  fm: interRegular,
-                                  fz: 14,
-                                  height: 19.2 / 14,
-                                  color: AppColors.greyColor),
-                            ),
-                          ),
-                        ],
-                      )
-              ],
-            ),
-          ),
-          addLable == false
-              ? Container(
-                  height: 40,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount:
-                        categoryMemoryModelWithoutPage.subCategories!.length,
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      print("gdfgdsgsdgds");
-                      return InkWell(
-                        onTap: () {
-                          for (int i = 0;
-                              i <
-                                  categoryMemoryModelWithoutPage
-                                      .subCategories!.length;
-                              i++) {
-                            if (i == index) {
-                              categoryMemoryModelWithoutPage
-                                  .subCategories![index].isselected = true;
-                            } else {
-                              categoryMemoryModelWithoutPage
-                                  .subCategories![i].isselected = false;
-                            }
-                          }
-                          subCategoryId = categoryMemoryModelWithoutPage
-                              .subCategories![index].id
-                              .toString();
-                          setState(() {});
-                        },
-                        child: Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 90, // Ensure the min width is 90
-                          ),
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(5),
-                            color: categoryMemoryModelWithoutPage
-                                    .subCategories![index].isselected
-                                ? AppColors.subTitleColor
-                                : Colors.grey.withOpacity(.2),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 5),
-                          child: Center(
-                            child: Text(
-                              categoryMemoryModelWithoutPage
-                                  .subCategories![index].name!,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: TextFormField(
-                    controller: labelController,
-                    cursorColor: AppColors.primaryColor,
-                    onChanged: (val) {},
-                    style: appTextStyle(
-                      fm: robotoRegular,
-                      fz: 21,
-                      height: 27 / 21,
-                      color: AppColors.black,
-                    ),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: AppStrings.label,
-                      hintStyle: appTextStyle(
-                        fz: 14,
-                        color: const Color(0XFF999999),
-                        fm: robotoRegular,
-                      ),
-                    ),
-                  ),
-                ),
-          const SizedBox(
-            height: 16,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 16),
+            padding: const EdgeInsets.only(left: 16, top: 10),
             child: tab(),
           ),
           Expanded(
@@ -801,7 +580,9 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   selectedtabView(BuildContext context) {
     if (selectedIndex == 0) {
       return CommonWidgets.albumView(
-widget.future, widget.photosList,        viewRefersh,
+        widget.future,
+        widget.photosList,
+        viewRefersh,
       );
     } else if (selectedIndex == 1) {
       return CommonWidgets.albumView(
@@ -813,8 +594,7 @@ widget.future, widget.photosList,        viewRefersh,
         return CommonWidgets.drivePhtotView(driveGroupModel, viewRefersh,
             controller: driveController);
       }
-    }
-    else if (selectedIndex == 3) {
+    } else if (selectedIndex == 3) {
       if (fbGroupModel.isEmpty) {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
@@ -826,7 +606,7 @@ widget.future, widget.photosList,        viewRefersh,
       } else {
         return CommonWidgets.instaPhtotView(instaGroupModel, viewRefersh);
       }
-    } 
+    }
   }
 
   void _onScrollEnd() {
@@ -834,35 +614,32 @@ widget.future, widget.photosList,        viewRefersh,
         driveController.position.maxScrollExtent) {
       if (PrefUtils.instance.getDriveToken() != null &&
           PrefUtils.instance.getDriveToken()!.isNotEmpty) {
-            CommonWidgets.showBottomSheet(context,(){
- CommonWidgets.getFileFromGoogleDrive(context).then((value) {
-              getDriveView(value!, PrefUtils.instance.getDriveToken()!);
-            });
-            });
-       // _showLoadMoreSnackbar();
+        CommonWidgets.showBottomSheet(context, () {
+          CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+            getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+          });
+        });
+        // _showLoadMoreSnackbar();
       }
     }
   }
 
-  // void _showLoadMoreSnackbar() {
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //               behavior: SnackBarBehavior.floating,
-
-  //       content: const Text("Loading another 30 images"),
-  //       action: SnackBarAction(
-  //         label: 'Load more',
-          
-  //         onPressed: () {
-  //           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-  //           CommonWidgets.getFileFromGoogleDrive(context).then((value) {
-  //             getDriveView(value!, PrefUtils.instance.getDriveToken()!);
-  //           });
-  //         },
-  //       ),
-  //     ),
-  //   );
-  // }
+  void _showLoadMoreSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text("Loading more 30 photos"),
+        action: SnackBarAction(
+          label: 'Load more',
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+              getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+            });
+          },
+        ),
+      ),
+    );
+  }
 
   getFacebbokPhoto(AccessToken token) {
     fetchFacebookPhotos(token);
@@ -873,9 +650,6 @@ widget.future, widget.photosList,        viewRefersh,
   }
 
   getDriveView(GoogleSignIn v1, String pageToken) {
-   if(photoLinks.isNotEmpty){
-    photoLinks.clear();
-   }
     fetchPhotosFromDrive(v1, context, pageToken);
   }
 
@@ -949,48 +723,25 @@ widget.future, widget.photosList,        viewRefersh,
   @override
   void onFailure(String message) {
     EasyLoading.dismiss();
-    if (widget.isEdit!) {
-      CommonWidgets.errorDialog(context, message);
-      if (countSelectedPhotos() == 0) {
-        progressbarValue = 1.0;
-        progressNotifier.value = progressbarValue;
-        print(progressbarValue);
-
-        clossProgressDialog('',
-        []);
-      }
+    CommonWidgets.errorDialog(context, message);
+    if (countSelectedPhotos() == 0) {
+      progressbarValue = 1.0;
+      progressNotifier.value = progressbarValue;
+      print(progressbarValue);
+      clossProgressDialog('', []);
     }
   }
 
   @override
   void onSuccess(String data, String apiType) {
     print(data);
+    EasyLoading.dismiss();
     if (apiType == ApiUrl.categories) {
+      debugPrint("Categories Api hit");
       categoryModel = CategoryModel.fromJson(jsonDecode(data));
+      categoryController.text = categoryModel.categories![0].name!;
       categoryModel.categories![0].isSelected = true;
       categoryId = categoryModel.categories![0].id.toString();
-      setState(() {});
-      ApiCall.memoryByCategory(
-          api: ApiUrl.memoryByCategory,
-          id: categoryModel.categories![0].id.toString(),
-          sub_category_id: '',
-          type: 'no_page',
-          page: "1",
-          callack: this);
-    } else if (apiType == ApiUrl.memoryByCategory) {
-      EasyLoading.dismiss();
-
-      categoryMemoryModelWithoutPage =
-          CategoryMemoryModelWithoutPage.fromJson(jsonDecode(data));
-
-      if (widget.isEdit!) {
-        selectionOfAllPhoto();
-      }
-
-      if (categoryMemoryModelWithoutPage.subCategories!.isNotEmpty) {
-        addLable = false;
-        setState(() {});
-      }
     } else if (apiType == ApiUrl.uploadImageTomemory) {
       String count = data.split("=")[1];
       print(json.decode(data.split("=")[0])['file'].toString());
@@ -1009,7 +760,7 @@ widget.future, widget.photosList,        viewRefersh,
           json.decode(data.split("=")[0])['file'].toString();
 
       if (valueNotEmpty()) {
-        clossProgressDialog('',[]);
+        clossProgressDialog('', []);
         if (createModel.memoryId != null) {
           ApiCall.createMemory(
               api: ApiUrl.updateMemory, model: createModel, callack: this);
@@ -1024,34 +775,26 @@ widget.future, widget.photosList,        viewRefersh,
         progressNotifier.value = progressbarValue;
         print(progressbarValue);
 
-        clossProgressDialog('',[]);
+        clossProgressDialog('', []);
       }
 
       deselectAll();
       titleController.text = "";
       labelController.text = "";
       CommonWidgets.successDialog(context, json.decode(data)['message']);
-      Navigator.pop(context, true);
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (BuildContext context) => InviteCollaborator(
+                    title: json.decode(data)['memory']['title'].toString(),
+                    memoryId: json.decode(data)['memory']['id'].toString(),
+                    image: json
+                        .decode(data)['memory']['last_update_img']
+                        .toString(),
+                    photosList: widget.photosList,
+                  )));
 
       print(data);
-    } else if (apiType == ApiUrl.updateMemory) {
-      if (countSelectedPhotos() == 0) {
-        progressbarValue = 1.0;
-        progressNotifier.value = progressbarValue;
-        print(progressbarValue);
-
-        clossProgressDialog('',[]);
-      }
-      deselectAll();
-      titleController.text = "";
-      labelController.text = "";
-      CommonWidgets.successDialog(context, json.decode(data)['message']);
-      Navigator.pop(context, true);
-    } else if (apiType == ApiUrl.createSubCategory) {
-      SubCategoryResModel subCategoryResModel =
-          SubCategoryResModel.fromJson(json.decode(data));
-      uploadData(
-          getSelectedCategory(), subCategoryResModel.categories!.id.toString());
     } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
     }
@@ -1071,9 +814,24 @@ widget.future, widget.photosList,        viewRefersh,
     int i = widget.photosList
         .where((photo) => (photo.selectedValue && photo.isEditmemory == false))
         .length;
+        i=i+getDrivePhotosCount(driveGroupModel);
+                i=i+getDrivePhotosCount(fbGroupModel);
+                                i=i+getDrivePhotosCount(instaGroupModel);
+
+
     print("dfasf$i");
     return i;
   }
+  int getDrivePhotosCount(List<GroupedPhotoModel> groupedPhotos) {
+  int selectedCount = 0;
+
+  for (var group in groupedPhotos) {
+    selectedCount += group.photos.where((photo) => photo.isSelected).length;
+  }
+
+  return selectedCount;
+}
+
 
   String selectedCategory() {
     for (var category in categoryModel.categories!) {
@@ -1121,11 +879,8 @@ widget.future, widget.photosList,        viewRefersh,
 
   uploadData(String categoryId, String subCategoryId) {
     print('fsafasf');
-    if (memoryId != '') {
-      createModel.memoryId = memoryId;
-    }
+
     createModel.categoryId = categoryId;
-    createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
 
@@ -1147,69 +902,68 @@ widget.future, widget.photosList,        viewRefersh,
         imageFile.add(imp);
       }
     }
-    if (fbModel.isNotEmpty) {
-      for (int i = 0; i < fbModel.length; i++) {
-        if (fbModel[i].isSelected && fbModel[i].isEdit == false) {
-          ImagesFile imp = ImagesFile();
-          imp.typeId = fbModel[i].id;
-          imp.type = fbModel[i].type;
-          imp.captureDate = _getFormattedDateTime(fbModel[i].createdTime!);
-          imp.description = '';
-          imp.link = fbModel[i].webLink;
+    if (fbGroupModel.isNotEmpty) {
+      for (int i = 0; i < fbGroupModel.length; i++) {
+        for (int j = 0; j < fbGroupModel[i].photos.length; j++) {
+          if (fbGroupModel[i].photos[j].isSelected &&
+              fbGroupModel[i].photos[j].isEdit == false) {
+            ImagesFile imp = ImagesFile();
+            imp.typeId = fbGroupModel[i].photos[j].id;
+            imp.type = fbGroupModel[i].photos[j].type;
+            imp.captureDate =
+                _getFormattedDateTime(fbGroupModel[i].photos[j].createdTime!);
+            imp.description = '';
+            imp.link = fbGroupModel[i].photos[j].webLink;
 
-          imp.location = '';
-          imageFile.add(imp);
+            imp.location = '';
+            imageFile.add(imp);
+          }
         }
       }
     }
-    if (instaModel.isNotEmpty) {
-      for (int i = 0; i < instaModel.length; i++) {
-        if (instaModel[i].isSelected && instaModel[i].isEdit == false) {
-          ImagesFile imp = ImagesFile();
-          imp.typeId = instaModel[i].id;
-          imp.type = instaModel[i].type;
-          imp.captureDate = _getFormattedDateTime(instaModel[i].createdTime!);
-          imp.description = '';
-          imp.link = instaModel[i].webLink;
+    if (instaGroupModel.isNotEmpty) {
+      for (int i = 0; i < instaGroupModel.length; i++) {
+        for (int j = 0; j < instaGroupModel[i].photos.length; j++) {
+          if (instaGroupModel[i].photos[j].isSelected &&
+              instaGroupModel[i].photos[j].isEdit == false) {
+            ImagesFile imp = ImagesFile();
+            imp.typeId = instaGroupModel[i].photos[j].id;
+            imp.type = instaGroupModel[i].photos[j].type;
+            imp.captureDate = _getFormattedDateTime(
+                instaGroupModel[i].photos[j].createdTime!);
+            imp.description = '';
+            imp.link = instaGroupModel[i].photos[j].webLink;
 
-          imp.location = '';
-          imageFile.add(imp);
+            imp.location = '';
+            imageFile.add(imp);
+          }
         }
       }
     }
-    if (driveModel.isNotEmpty) {
-      for (int i = 0; i < driveModel.length; i++) {
-        if (driveModel[i].isSelected && driveModel[i].isEdit == false) {
-          ImagesFile imp = ImagesFile();
-          imp.typeId = driveModel[i].id;
-          imp.type = driveModel[i].type;
-          imp.captureDate = _getFormattedDateTime(driveModel[i].createdTime!);
-          imp.description = '';
-          imp.link = driveModel[i].webLink;
+    if (driveGroupModel.isNotEmpty) {
+      for (int i = 0; i < driveGroupModel.length; i++) {
+        for (int j = 0; j < driveGroupModel[i].photos.length; j++) {
+          if (driveGroupModel[i].photos[j].isSelected &&
+              driveGroupModel[i].photos[j].isEdit == false) {
+            ImagesFile imp = ImagesFile();
+            imp.typeId = driveGroupModel[i].photos[j].id;
+            imp.type = driveGroupModel[i].photos[j].type;
+            imp.captureDate = _getFormattedDateTime(
+                driveGroupModel[i].photos[j].createdTime!);
+            imp.description = '';
+            imp.link = driveGroupModel[i].photos[j].webLink;
 
-          imp.location = '';
-          imageFile.add(imp);
+            imp.location = '';
+            imageFile.add(imp);
+          }
         }
       }
     }
     createModel.images = imageFile;
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
-    //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-    if (countSelectedPhotos() == 0) {
-      clossProgressDialog('',[]);
-      if (createModel.memoryId != null) {
-        ApiCall.createMemory(
-            api: ApiUrl.updateMemory, model: createModel, callack: this);
-      } else {
-        ApiCall.createMemory(
-            api: ApiUrl.createMemory,
-            model: createModel,
-            callack: this); // Dismiss the dialog
-      }
-    } else {
-      processPhotos();
-    }
+
+    processPhotos();
 
     print(createModel.images!.length);
   }
@@ -1323,7 +1077,7 @@ widget.future, widget.photosList,        viewRefersh,
     print('Rate Limit: $rateLimit');
     print('Rate Limit Remaining: $rateLimitRemaining');
     print('Rate Limit Reset: $rateLimitReset');
-  List<PhotoDetailModel> tempPhotoLinks=[];
+    List<PhotoDetailModel> tempPhotoLinks = [];
     if (response.statusCode == 200) {
       // Successfully received the media
       var data = jsonDecode(response.body);
@@ -1333,7 +1087,8 @@ widget.future, widget.photosList,        viewRefersh,
         // requestStoragePermission();
         await Future.forEach(data["data"], (dynamic element) async {
           if (element["media_type"] == "IMAGE") {
-            String capturDate= convertTimeStampIntoDateTime(element["timestamp"]);
+            String capturDate =
+                convertTimeStampIntoDateTime(element["timestamp"]);
             tempPhotoLinks.add(PhotoDetailModel(
                 createdTime: convertTimeStampIntoDateTime(element["timestamp"]),
                 isSelected: false,
@@ -1348,7 +1103,7 @@ widget.future, widget.photosList,        viewRefersh,
           progressNotifier.value = progressbarValue;
           await Future.delayed(const Duration(seconds: 1));
           setState(() {});
-          clossProgressDialog('instagram_synced',tempPhotoLinks);
+          clossProgressDialog('instagram_synced', tempPhotoLinks);
         });
 
         await Future.delayed(const Duration(seconds: 2), () {});
@@ -1414,24 +1169,22 @@ widget.future, widget.photosList,        viewRefersh,
     );
   }
 
-  clossProgressDialog(String type,      List<PhotoDetailModel> tempPhotoLinks
-) {
+  clossProgressDialog(String type, List<PhotoDetailModel> tempPhotoLinks) {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
       progressbarValue = 0.0;
       uploadCount = 0;
       if (type == "google_drive_synced") {
-        photoLinks=tempPhotoLinks;
+        photoLinks = tempPhotoLinks;
         if (driveModel.isEmpty) {
           driveModel = photoLinks;
         } else {
           driveModel.addAll(photoLinks);
         }
         PrefUtils.instance.saveDrivePhotoLinks(driveModel);
-        if(driveGroupModel.isEmpty){
-        driveGroupModel = groupPhotosByDate(photoLinks);
-
-        }else{
+        if (driveGroupModel.isEmpty) {
+          driveGroupModel = groupPhotosByDate(photoLinks);
+        } else {
           driveGroupModel.addAll(groupPhotosByDate(photoLinks));
         }
 
@@ -1446,7 +1199,6 @@ widget.future, widget.photosList,        viewRefersh,
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == "instagram_synced") {
-
         instaModel = tempPhotoLinks;
         instaGroupModel = groupPhotosForFBAndINSTAByDate(instaModel);
 
@@ -1454,23 +1206,18 @@ widget.future, widget.photosList,        viewRefersh,
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
-     setState(() {
-          
-        });
+      setState(() {});
     }
   }
 
 //===============Drive===================
-    fetchPhotosFromDrive(
-    GoogleSignIn googleSignIn,
-    BuildContext context,
-    String? nextPageToken
-  ) async {
+  fetchPhotosFromDrive(GoogleSignIn googleSignIn, BuildContext context,
+      String? nextPageToken) async {
     try {
-      List<PhotoDetailModel> tempPhotoLinks=[];
+      List<PhotoDetailModel> tempPhotoLinks = [];
       List<File> allFiles = [];
       FileList fileList;
-      
+
       var httpClient = await googleSignIn.authenticatedClient();
       if (httpClient == null) {
         print('Failed to get authenticated client');
@@ -1484,12 +1231,12 @@ widget.future, widget.photosList,        viewRefersh,
 
       fileList = await driveApi.files.list(
         // q: "mimeType contains 'image/'",
-q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink' and not 'me' in owners",
-      pageToken: nextPageToken,
+        q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink' and not 'me' in owners",
+        pageToken: nextPageToken,
         $fields:
             "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink,permissions)",
       );
-      if (fileList.files != null||fileList.files!.isNotEmpty) {
+      if (fileList.files != null || fileList.files!.isNotEmpty) {
         // if (fileList.files!.length > 50) {
         //   allFiles.addAll(fileList.files!.take(50));
         // }
@@ -1498,16 +1245,15 @@ q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and tr
         //}
         nextPageToken = fileList.nextPageToken;
         print("dsfasfa${allFiles.length} $nextPageToken");
-         if (nextPageToken != null) {
+        if (nextPageToken != null) {
           PrefUtils.instance.driveToken(nextPageToken);
         } else {
           PrefUtils.instance.driveToken('');
         }
         for (int i = 0; i < allFiles.length; i++) {
           if (allFiles[i].webViewLink != null) {
-            
-
-String captureDate=   DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
+            String captureDate =
+                DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
 
             tempPhotoLinks.add(PhotoDetailModel(
                 id: allFiles[i].id,
@@ -1516,39 +1262,33 @@ String captureDate=   DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
                 isSelected: false,
                 isEdit: false,
                 type: "drive",
-             webLink: allFiles[i].webContentLink,
-                thumbnailPath: allFiles[i].thumbnailLink,captureDate: captureDate));
-           
-          
-                  uploadCount += 1;
+                webLink: allFiles[i].webContentLink,
+                thumbnailPath: allFiles[i].thumbnailLink,
+                captureDate: captureDate));
+
+            uploadCount += 1;
             progressbarValue = uploadCount / allFiles.length;
             progressNotifier.value = progressbarValue;
 
             await Future.delayed(const Duration(microseconds: 100));
-             
-           clossProgressDialog('google_drive_synced',tempPhotoLinks);
- 
-                                  }
-        }
-         
 
-            await Future.delayed(const Duration(microseconds: 100));
+            clossProgressDialog('google_drive_synced', tempPhotoLinks);
+          }
+        }
+
+        await Future.delayed(const Duration(microseconds: 100));
       } else {
-          PrefUtils.instance.driveToken('');
+        PrefUtils.instance.driveToken('');
 
         CommonWidgets.errorDialog(context, 'No image available in drive');
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
         print(progressbarValue);
-        clossProgressDialog('',[]);
+        clossProgressDialog('', []);
         PrefUtils.instance.driveToken('');
 
-        await Future.delayed(const Duration(seconds: 2), () {
-          
-        });
+        await Future.delayed(const Duration(seconds: 2), () {});
       }
-
-       
     } catch (e) {
       print('Error fetching files: $e');
       return null;
@@ -1666,14 +1406,15 @@ String captureDate=   DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
     );
 
     if (response.statusCode == 200) {
-    List<PhotoDetailModel> tempPhotoLinks = [];
+      List<PhotoDetailModel> tempPhotoLinks = [];
       final data = json.decode(response.body);
-      String captureDate=CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
+      String captureDate =
+          CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
       tempPhotoLinks.add(PhotoDetailModel(
           type: "fb",
           createdTime: DateTime.tryParse(element.createdTime ?? ""),
           webLink: data['images'][0]["source"],
-          captureDate:captureDate,
+          captureDate: captureDate,
           id: element.id));
       print(photoLinks);
       uploadCount += 1;
@@ -1682,7 +1423,7 @@ String captureDate=   DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
 
       await Future.delayed(const Duration(seconds: 2));
       setState(() {});
-      clossProgressDialog('facebook_synced',tempPhotoLinks);
+      clossProgressDialog('facebook_synced', tempPhotoLinks);
     } else {
       throw Exception('Failed to load photos');
     }

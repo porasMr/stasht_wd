@@ -118,6 +118,8 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
+
       backgroundColor: Colors.white,
       appBar: commonAppbar(
         context,

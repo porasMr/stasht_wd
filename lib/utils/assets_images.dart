@@ -64,6 +64,8 @@ const fbLogo = "${assetPath}facebookLogo.png";
 const instaLogo = "${assetPath}Instagram_logo.png";
 const camera = "${assetPath}camera.png";
 const driveLogo = "${assetPath}drive_logo.png";
+const timeImg = "${assetPath}time_img.png";
+
 
 
 

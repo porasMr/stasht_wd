@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info/device_info.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -17,6 +18,7 @@ import 'package:googleapis/apigeeregistry/v1.dart';
 import 'package:googleapis/drive/v3.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:stasht/modules/create_memory/model/group_modle.dart';
 import 'package:stasht/modules/media/image_grid.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
@@ -134,9 +136,6 @@ class CommonWidgets {
     try {
       googleSignIn = GoogleSignIn(
         scopes: <String>[
-          DriveApi.driveScope,
-          DriveApi.driveFileScope,
-          DriveApi.driveMetadataScope,
           DriveApi.drivePhotosReadonlyScope,
         ],
       );
@@ -339,7 +338,8 @@ class CommonWidgets {
     );
   }
 
-  static driveView(BuildContext context, Function(GoogleSignIn v,String pageToken) callBack) {
+  static driveView(BuildContext context,
+      Function(GoogleSignIn v, String pageToken) callBack) {
     return SizedBox(
       height: MediaQuery.of(context).size.height * .7,
       child: SingleChildScrollView(
@@ -373,7 +373,7 @@ class CommonWidgets {
             GestureDetector(
               onTap: () {
                 getFileFromGoogleDrive(context).then((value) {
-                  callBack(value!,PrefUtils.instance.getDriveToken()!);
+                  callBack(value!, PrefUtils.instance.getDriveToken()!);
                 });
               },
               child: button(
@@ -539,22 +539,14 @@ class CommonWidgets {
           child: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Color.fromARGB(255, 245, 74, 74),
+              color: AppColors.errorColors,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Error',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 8),
+              
                 Text(
                   message,
                   style: TextStyle(color: Colors.white, fontSize: 14),
@@ -586,22 +578,14 @@ class CommonWidgets {
           child: Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Color.fromARGB(255, 12, 160, 2),
+              color: AppColors.successColors,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Success',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 8),
+               
                 Text(
                   message,
                   style: TextStyle(color: Colors.white, fontSize: 14),
@@ -624,373 +608,450 @@ class CommonWidgets {
   static String dateRetrun(String value) {
     return DateFormat("MMM d").format(DateTime.parse(value));
   }
+   static String daysWithYearRetrun(String value) {
+    return DateFormat("MMM yyyy").format(DateTime.parse(value));
+  }
+
+
+  static String maxDateRetrun(String value) {
+    return DateFormat("MMM d/yy").format(DateTime.parse(value));
+  }
 
   static String dateFormatRetrun(String value) {
     return DateFormat("MMM d, yyyy").format(DateTime.parse(value));
   }
 
   static drivePhtotView(
-    List<PhotoDetailModel> photosList,
+      List<GroupedPhotoModel> photosList,
+ 
     VoidCallback onPressed, {
     ValueNotifier<int>? selectedCountNotifier,
     ScrollController? controller,
   }) {
-    print(photosList);
 
-    return GridView.builder(
-      controller: controller,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // Number of columns
-        crossAxisSpacing: 10.0,
-        mainAxisSpacing: 10.0,
-        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-      ),
+    return ListView.builder(
+            controller: controller,
       itemCount: photosList.length,
-      addAutomaticKeepAlives: false,
       itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-            showDialog(
-              context: context,
-              barrierColor: Colors.transparent,
-              builder: (context) {
-                return WebImagePreview(path: photosList[index].webLink!);
-              },
-            );
-          },
-          child: Stack(
-            children: [
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                      imageUrl: photosList[index].thumbnailPath!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => SizedBox(
-                            height: 120,
-                            width: MediaQuery.of(context).size.width,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.primaryColor,
+      return  Wrap(
+      
+      children: [
+        Padding(
+             padding:index==0?EdgeInsets.zero: const EdgeInsets.only(top:16.0),
+          child: Text(photosList[index].date,style:const TextStyle(color: AppColors.monthColor, fontFamily: robotoRegular,
+                                fontSize: 22,
+                                height: 28 / 22,),),
+        ),
+           Padding(
+             padding: const EdgeInsets.only(top:16.0),
+             child: GridView.builder(
+              shrinkWrap: true,
+              physics:const NeverScrollableScrollPhysics(),
+              key:
+                  const PageStorageKey('photosGrid'), // Key for persistent scroll state
+                       
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3, // Number of columns
+                crossAxisSpacing: 10.0,
+                mainAxisSpacing: 10.0,
+                childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+              ),
+              itemCount: photosList[index].photos.length,
+              addAutomaticKeepAlives: false,
+              itemBuilder: (context, index1) {
+                return GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.transparent,
+                      builder: (context) {
+                        return WebImagePreview(path:photosList[index].photos[index1].webLink!);
+                      },
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 120,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                              imageUrl: photosList[index].photos[index1].thumbnailPath!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => SizedBox(
+                                    height: 120,
+                                    width: MediaQuery.of(context).size.width,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.primaryColor,
+                                      ),
+                                    ),
+                                  )),
+                        ),
+                      ),
+                      Container(
+                        height: 120,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: photosList[index].photos[index1].isSelected
+                                ? AppColors.primaryColor.withOpacity(.65)
+                                : null),
+                      ),
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 4, right: 4),
+                          child: PhysicalModel(
+                            borderRadius: BorderRadius.circular(8),
+                            elevation: 4,
+                            color: Colors.transparent,
+                            child: GestureDetector(
+                              onTap: () {
+             
+                                 if (photosList[index].photos[index1].isEdit) {
+                                  unSelectedDialog(context);
+                                } else {
+                                  photosList[index].photos[index1].isSelected =
+                                      !photosList[index].photos[index1].isSelected;
+                                  if (selectedCountNotifier != null) {
+                                    if (photosList[index].photos[index1].isSelected) {
+                                      selectedCountNotifier.value =
+                                          selectedCountNotifier.value + 1;
+                                    } else {
+                                      selectedCountNotifier.value =
+                                          selectedCountNotifier.value - 1;
+                                    }
+                                  }
+                                }
+                                onPressed();
+                              },
+                              child: Container(
+                                height: 21.87,
+                                width: 30.07,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(.5),
+                                        width: 1.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: photosList[index].photos[index1].isSelected
+                                        ? Colors.white
+                                        : Colors.black.withOpacity(.3)),
+                                child: photosList[index].photos[index1].isSelected
+                                    ? Image.asset(
+                                        correct,
+                                        height: 12,
+                                        width: 12,
+                                      )
+                                    : const IgnorePointer(),
                               ),
                             ),
-                          )),
-                ),
-              ),
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: photosList[index].isSelected
-                        ? AppColors.primaryColor.withOpacity(.65)
-                        : null),
-              ),
-              Positioned(
-                top: 5,
-                right: 5,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 4, right: 4),
-                  child: PhysicalModel(
-                    borderRadius: BorderRadius.circular(8),
-                    elevation: 4,
-                    color: Colors.transparent,
-                    child: GestureDetector(
-                      onTap: () {
-                        
-
-                        if (selectedCountNotifier != null) {
-                          if (photosList[index].isEdit) {
-                            unSelectedDialog(context);
-                          } else {
-                            photosList[index].isSelected =
-                            !photosList[index].isSelected;
-                            if (photosList[index].isSelected) {
-                              selectedCountNotifier.value =
-                                  selectedCountNotifier.value + 1;
-                            } else {
-                              selectedCountNotifier.value =
-                                  selectedCountNotifier.value - 1;
-                            }
-                          }
-                        }
-                        onPressed();
-                      },
-                      child: Container(
-                        height: 21.87,
-                        width: 30.07,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            border: Border.all(
-                                color: Colors.white.withOpacity(.5),
-                                width: 1.5),
-                            borderRadius: BorderRadius.circular(8),
-                            color: photosList[index].isSelected
-                                ? Colors.white
-                                : Colors.black.withOpacity(.3)),
-                        child: photosList[index].isSelected
-                            ? Image.asset(
-                                correct,
-                                height: 12,
-                                width: 12,
-                              )
-                            : const IgnorePointer(),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+                );
+              },
+                       ),
+           ),
+        
+      ],
     );
+    },);
+   
   }
 
   static instaPhtotView(
-    List<PhotoDetailModel> photosList,
+    List<GroupedPhotoModel> photosList,
     VoidCallback onPressed, {
     ValueNotifier<int>? selectedCountNotifier,
   }) {
-    return GridView.builder(
-      shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // Number of columns
-        crossAxisSpacing: 10.0,
-        mainAxisSpacing: 10.0,
-        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-      ),
+     return ListView.builder(
       itemCount: photosList.length,
-      addAutomaticKeepAlives: false,
       itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-            showDialog(
-              context: context,
-              barrierColor: Colors.transparent,
-              builder: (context) {
-                return WebImagePreview(path: photosList[index].webLink!);
-              },
-            );
-          },
-          child: Stack(
-            children: [
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                      imageUrl: photosList[index].webLink ?? "",
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => SizedBox(
-                            height: 120,
-                            width: MediaQuery.of(context).size.width,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.primaryColor,
+      return  Wrap(
+      
+      children: [
+        Padding(
+             padding:index==0?EdgeInsets.zero: const EdgeInsets.only(top:16.0),
+          child: Text(photosList[index].date,style:const TextStyle(color: AppColors.monthColor, fontFamily: robotoRegular,
+                                fontSize: 22,
+                                height: 28 / 22,),),
+        ),
+           Padding(
+             padding: const EdgeInsets.only(top:16.0),
+             child: GridView.builder(
+              shrinkWrap: true,
+              physics:const NeverScrollableScrollPhysics(),
+              key:
+                  const PageStorageKey('instaPhotosGrid'), // Key for persistent scroll state
+                       
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3, // Number of columns
+                crossAxisSpacing: 10.0,
+                mainAxisSpacing: 10.0,
+                childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+              ),
+              itemCount: photosList[index].photos.length,
+              addAutomaticKeepAlives: false,
+              itemBuilder: (context, index1) {
+                return GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.transparent,
+                      builder: (context) {
+                        return WebImagePreview(path:photosList[index].photos[index1].webLink!);
+                      },
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 120,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                              imageUrl: photosList[index].photos[index1].webLink!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => SizedBox(
+                                    height: 120,
+                                    width: MediaQuery.of(context).size.width,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.primaryColor,
+                                      ),
+                                    ),
+                                  )),
+                        ),
+                      ),
+                      Container(
+                        height: 120,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: photosList[index].photos[index1].isSelected
+                                ? AppColors.primaryColor.withOpacity(.65)
+                                : null),
+                      ),
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 4, right: 4),
+                          child: PhysicalModel(
+                            borderRadius: BorderRadius.circular(8),
+                            elevation: 4,
+                            color: Colors.transparent,
+                            child: GestureDetector(
+                              onTap: () {
+             
+                                 if (photosList[index].photos[index1].isEdit) {
+                                  unSelectedDialog(context);
+                                } else {
+                                  photosList[index].photos[index1].isSelected =
+                                      !photosList[index].photos[index1].isSelected;
+                                  if (selectedCountNotifier != null) {
+                                    if (photosList[index].photos[index1].isSelected) {
+                                      selectedCountNotifier.value =
+                                          selectedCountNotifier.value + 1;
+                                    } else {
+                                      selectedCountNotifier.value =
+                                          selectedCountNotifier.value - 1;
+                                    }
+                                  }
+                                }
+                                onPressed();
+                              },
+                              child: Container(
+                                height: 21.87,
+                                width: 30.07,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(.5),
+                                        width: 1.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: photosList[index].photos[index1].isSelected
+                                        ? Colors.white
+                                        : Colors.black.withOpacity(.3)),
+                                child: photosList[index].photos[index1].isSelected
+                                    ? Image.asset(
+                                        correct,
+                                        height: 12,
+                                        width: 12,
+                                      )
+                                    : const IgnorePointer(),
                               ),
                             ),
-                          )),
-                ),
-              ),
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: photosList[index].isSelected
-                        ? AppColors.primaryColor.withOpacity(.65)
-                        : null),
-              ),
-              Positioned(
-                top: 5,
-                right: 5,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 4, right: 4),
-                  child: PhysicalModel(
-                    borderRadius: BorderRadius.circular(8),
-                    elevation: 4,
-                    color: Colors.transparent,
-                    child: GestureDetector(
-                      onTap: () {
-                        
-
-                        if (selectedCountNotifier != null) {
-                          if (photosList[index].isEdit) {
-                            unSelectedDialog(context);
-                          } else {
-                            photosList[index].isSelected =
-                            !photosList[index].isSelected;
-                            if (photosList[index].isSelected) {
-                              selectedCountNotifier.value =
-                                  selectedCountNotifier.value + 1;
-                            } else {
-                              selectedCountNotifier.value =
-                                  selectedCountNotifier.value - 1;
-                            }
-                          }
-                        }
-                        onPressed();
-                      },
-                      child: Container(
-                        height: 21.87,
-                        width: 30.07,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            border: Border.all(
-                                color: Colors.white.withOpacity(.5),
-                                width: 1.5),
-                            borderRadius: BorderRadius.circular(8),
-                            color: photosList[index].isSelected
-                                ? Colors.white
-                                : Colors.black.withOpacity(.3)),
-                        child: photosList[index].isSelected
-                            ? Image.asset(
-                                correct,
-                                height: 12,
-                                width: 12,
-                              )
-                            : const IgnorePointer(),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+                );
+              },
+                       ),
+           ),
+        
+      ],
     );
+    },);
   }
 
   static fbPhtotView(
-    List<PhotoDetailModel> photosList,
+    List<GroupedPhotoModel> photosList,
     VoidCallback onPressed, {
     ValueNotifier<int>? selectedCountNotifier,
   }) {
-    return GridView.builder(
-      shrinkWrap: true,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, // Number of columns
-        crossAxisSpacing: 10.0,
-        mainAxisSpacing: 10.0,
-        childAspectRatio: 2 / 2, // Aspect ratio of each grid item
-      ),
+    print(photosList.length);
+     return ListView.builder(
       itemCount: photosList.length,
-      addAutomaticKeepAlives: false,
       itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () {
-            showDialog(
-              context: context,
-              barrierColor: Colors.transparent,
-              builder: (context) {
-                return WebImagePreview(path: photosList[index].webLink!);
-              },
-            );
-          },
-          child: Stack(
-            children: [
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                      imageUrl: photosList[index].webLink ?? "",
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => SizedBox(
-                            height: 120,
-                            width: MediaQuery.of(context).size.width,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.primaryColor,
+      return  Wrap(
+      
+      children: [
+        Padding(
+             padding:index==0?EdgeInsets.zero: const EdgeInsets.only(top:16.0),
+          child: Text(photosList[index].date,style:const TextStyle(color: AppColors.monthColor, fontFamily: robotoRegular,
+                                fontSize: 22,
+                                height: 28 / 22,),),
+        ),
+           Padding(
+             padding: const EdgeInsets.only(top:16.0),
+             child: GridView.builder(
+              shrinkWrap: true,
+              physics:const NeverScrollableScrollPhysics(),
+              key:
+                  const PageStorageKey('fbPhotosGrid'), // Key for persistent scroll state
+                       
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3, // Number of columns
+                crossAxisSpacing: 10.0,
+                mainAxisSpacing: 10.0,
+                childAspectRatio: 2 / 2, // Aspect ratio of each grid item
+              ),
+              itemCount: photosList[index].photos.length,
+              addAutomaticKeepAlives: false,
+              itemBuilder: (context, index1) {
+                print(photosList[index].photos[index1]);
+                return GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.transparent,
+                      builder: (context) {
+                        return WebImagePreview(path:photosList[index].photos[index1].webLink!);
+                      },
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 120,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                              imageUrl: photosList[index].photos[index1].webLink!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => SizedBox(
+                                    height: 120,
+                                    width: MediaQuery.of(context).size.width,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.primaryColor,
+                                      ),
+                                    ),
+                                  )),
+                        ),
+                      ),
+                      Container(
+                        height: 120,
+                        width: MediaQuery.of(context).size.width,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: photosList[index].photos[index1].isSelected
+                                ? AppColors.primaryColor.withOpacity(.65)
+                                : null),
+                      ),
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 4, right: 4),
+                          child: PhysicalModel(
+                            borderRadius: BorderRadius.circular(8),
+                            elevation: 4,
+                            color: Colors.transparent,
+                            child: GestureDetector(
+                              onTap: () {
+             
+                                 if (photosList[index].photos[index1].isEdit) {
+                                  unSelectedDialog(context);
+                                } else {
+                                  photosList[index].photos[index1].isSelected =
+                                      !photosList[index].photos[index1].isSelected;
+                                  if (selectedCountNotifier != null) {
+                                    if (photosList[index].photos[index1].isSelected) {
+                                      selectedCountNotifier.value =
+                                          selectedCountNotifier.value + 1;
+                                    } else {
+                                      selectedCountNotifier.value =
+                                          selectedCountNotifier.value - 1;
+                                    }
+                                  }
+                                }
+                                onPressed();
+                              },
+                              child: Container(
+                                height: 21.87,
+                                width: 30.07,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(.5),
+                                        width: 1.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: photosList[index].photos[index1].isSelected
+                                        ? Colors.white
+                                        : Colors.black.withOpacity(.3)),
+                                child: photosList[index].photos[index1].isSelected
+                                    ? Image.asset(
+                                        correct,
+                                        height: 12,
+                                        width: 12,
+                                      )
+                                    : const IgnorePointer(),
                               ),
                             ),
-                          )),
-                ),
-              ),
-              Container(
-                height: 120,
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: photosList[index].isSelected
-                        ? AppColors.primaryColor.withOpacity(.65)
-                        : null),
-              ),
-              Positioned(
-                top: 5,
-                right: 5,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 4, right: 4),
-                  child: PhysicalModel(
-                    borderRadius: BorderRadius.circular(8),
-                    elevation: 4,
-                    color: Colors.transparent,
-                    child: GestureDetector(
-                      onTap: () {
-                       
-                       // photosList[index].isEdit = false;
-
-                        if (selectedCountNotifier != null) {
-                           photosList[index].isSelected =
-                            !photosList[index].isSelected;
-                         if (photosList[index].isEdit) {
-                            unSelectedDialog(context);
-                          } else {
-                            if (photosList[index].isSelected) {
-                              selectedCountNotifier.value =
-                                  selectedCountNotifier.value + 1;
-                            } else {
-                              selectedCountNotifier.value =
-                                  selectedCountNotifier.value - 1;
-                            }
-                          }
-                        }
-                        onPressed();
-                      },
-                      child: Container(
-                        height: 21.87,
-                        width: 30.07,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            border: Border.all(
-                                color: Colors.white.withOpacity(.5),
-                                width: 1.5),
-                            borderRadius: BorderRadius.circular(8),
-                            color: photosList[index].isSelected
-                                ? Colors.white
-                                : Colors.black.withOpacity(.3)),
-                        child: photosList[index].isSelected
-                            ? Image.asset(
-                                correct,
-                                height: 12,
-                                width: 12,
-                              )
-                            : const IgnorePointer(),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+                );
+              },
+                       ),
+           ),
+        
+      ],
     );
+    },);
   }
 
   static Widget allAlbumView(
@@ -1442,25 +1503,23 @@ class CommonWidgets {
                     color: Colors.transparent,
                     child: GestureDetector(
                       onTap: () {
-                        debugPrint("Image Selected");
-                        
+                        debugPrint("${photosList[index].isEditmemory}");
 
-                       
                         if (photosList[index].isEditmemory) {
-                            unSelectedDialog(context);
-                          } else {
-                            photosList[index].selectedValue =
-                            !photosList[index].selectedValue;
-                            if (selectedCountNotifier != null) {
-                          if (photosList[index].selectedValue) {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value + 1;
-                          } else {
-                            selectedCountNotifier.value =
-                                selectedCountNotifier.value - 1;
+                          unSelectedDialog(context);
+                        } else {
+                          photosList[index].selectedValue =
+                              !photosList[index].selectedValue;
+                          if (selectedCountNotifier != null) {
+                            if (photosList[index].selectedValue) {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value + 1;
+                            } else {
+                              selectedCountNotifier.value =
+                                  selectedCountNotifier.value - 1;
+                            }
                           }
                         }
-                          }
 
                         onPressed();
                       },
@@ -1636,5 +1695,44 @@ class CommonWidgets {
       barrierColor: Colors.transparent,
     );
   }
-
-  }
+  static void showBottomSheet(BuildContext context,VoidCallback callBack) {
+  showModalBottomSheet(
+    
+    context: context,
+        isDismissible: true, // Allows dismissal by tapping outside
+backgroundColor: Colors.transparent,
+   
+    builder: (context) {
+       // Start a timer to automatically close the bottom sheet
+      Future.delayed(const Duration(seconds: 4), () {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context); // Close the bottom sheet
+        }
+      });
+      return Container(
+        width: MediaQuery.of(context).size.width,
+        decoration: BoxDecoration(
+          color: AppColors.black,
+          borderRadius: BorderRadius.circular(10)),
+        margin:const EdgeInsets.all(16) ,
+        padding:const EdgeInsets.all(16),
+        child: Row(
+mainAxisAlignment: MainAxisAlignment.spaceBetween,          children: [
+           const Text(
+              'Load another  images',
+              style: const TextStyle(fontSize: 12,color: Colors.white,fontFamily: robotoRegular),
+            ),
+            SizedBox(height: 16),
+            GestureDetector(
+              onTap: () { Navigator.pop(context);
+              callBack();},
+              child: Text('Load More',
+                            style: const TextStyle(fontSize: 16,color: Colors.white,fontFamily: robotoRegular)),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+}

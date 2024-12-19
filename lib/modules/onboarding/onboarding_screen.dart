@@ -8,6 +8,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
+import 'package:intl/intl.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
@@ -54,6 +55,8 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
   List<Future<Uint8List?>> future = [];
 
   UserModel model = UserModel();
+  bool showDataFetch = false;
+  bool isFb = false;
   @override
   void initState() {
     PrefUtils.instance.getUserFromPrefs().then((value) {
@@ -99,6 +102,8 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
       alignment: Alignment.topRight,
       children: [
         _backgroudImage(context),
+         showDataFetch == false
+            ?
         SizedBox(
           height: MediaQuery.of(context).size.height,
           child: Padding(
@@ -221,7 +226,38 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
                       )
                     ]),
               )),
-        ),
+        ):SizedBox(
+                height: MediaQuery.of(context).size.height,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * .8 / 3,
+                      ),
+                      Center(
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width * .4,
+                          child: isFb == true
+                              ? Image.asset(fbLogo, height: 100)
+                              : Image.asset(driveLogo, height: 100),
+                        ).paddingOnly(right: 70),
+                      ),
+                      const SizedBox(
+                        height: 1,
+                      ),
+                      const Center(
+                        child: Text(
+                          "Please wait,while we gather \nyour images...",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.black,
+                              fontFamily: robotoMedium,
+                              fontWeight: FontWeight.w500,
+                              height: 26.2 / 20),
+                        ),
+                      ),
+                    ]))
       ],
     );
   }
@@ -335,6 +371,9 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
       }
       var driveApi = DriveApi(httpClient);
       print(httpClient.credentials.accessToken.data);
+      setState(() {
+        showDataFetch = true;
+      });
       showProgressDialog(context);
 
       // do {
@@ -342,8 +381,7 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
       fileList = await driveApi.files.list(
         // q: "mimeType contains 'image/'",
 q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",
-        pageToken: nextPageToken,
-        pageSize: 30,
+      
         $fields:
             "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
       );
@@ -356,13 +394,15 @@ q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and tr
         //}
         nextPageToken = fileList.nextPageToken;
         print("dsfasfa${allFiles.length} $nextPageToken");
-        if (fileList.nextPageToken != null) {
-          PrefUtils.instance.driveToken(fileList.nextPageToken!);
+         if (nextPageToken != null) {
+          PrefUtils.instance.driveToken(nextPageToken);
         } else {
           PrefUtils.instance.driveToken('');
         }
         for (int i = 0; i < allFiles.length; i++) {
           if (allFiles[i].webViewLink != null) {
+                                    String captureDate=   DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
+
             photoLinks.add(PhotoDetailModel(
                 id: allFiles[i].id,
                 createdTime: allFiles[i].createdTime,
@@ -371,21 +411,23 @@ q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and tr
                 isEdit: false,
                 type: "drive",
              webLink: allFiles[i].webContentLink,
-                thumbnailPath: allFiles[i].thumbnailLink));
+                thumbnailPath: allFiles[i].thumbnailLink,captureDate: captureDate));
             uploadCount += 1;
             progressbarValue = uploadCount / allFiles.length;
             progressNotifier.value = progressbarValue;
 
-        await Future.delayed(const Duration(milliseconds: 100), () {});
+            await Future.delayed(const Duration(microseconds: 500));
             setState(() {});
             clossProgressDialog('google_drive_synced');
           }
         }
 
-        await Future.delayed(const Duration(seconds: 1), () {});
+            await Future.delayed(const Duration(microseconds: 500));
       } else {
-        PrefUtils.instance.driveToken('');
-
+          PrefUtils.instance.driveToken('');
+setState(() {
+        showDataFetch = false;
+      });
         CommonWidgets.errorDialog(context, 'No image available in drive');
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
@@ -660,6 +702,10 @@ q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and tr
             id: element["id"], createdTime: element["created_time"]));
       });
       if (faceBook.isNotEmpty) {
+        setState(() {
+        showDataFetch = true;
+        isFb=true;
+      });
         showProgressDialog(context);
 
         await Future.forEach(faceBook, (dynamic element) async {
@@ -738,6 +784,10 @@ q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and tr
   @override
   void onSuccess(String data, String apiType) {
     if (apiType == ApiUrl.syncAccount) {
+      setState(() {
+        showDataFetch = false;
+        isFb=false;
+      });
       if (model.hasMemory == 1) {
         Navigator.pushReplacement(
             context,

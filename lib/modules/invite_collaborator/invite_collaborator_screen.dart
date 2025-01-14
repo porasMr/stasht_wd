@@ -1,10 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/contact.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:http/io_client.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/photos/photos_screen.dart';
+import 'package:stasht/network/api_url.dart';
 import 'package:stasht/utils/app_colors.dart';
 import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
@@ -34,15 +40,15 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
   List<Contact> selectedContacts = [];
   var selectedIndex = [];
   bool permissionDenied = false;
-   String accountSid ='';
-    String authToken = '';
-     
+  String accountSid = '';
+  String authToken = '';
+
   @override
   void initState() {
     fetchContacts();
-    accountSid=dotenv.env['TWILIO_ACCOUNT_SID'] ?? 'No SID';
-    authToken=dotenv.env['TWILIO_AUTH_TOKEN'] ?? 'No Token';
-    print('$accountSid  $authToken' );
+    accountSid = dotenv.env['TWILIO_ACCOUNT_SID'] ?? 'No SID';
+    authToken = dotenv.env['TWILIO_AUTH_TOKEN'] ?? 'No Token';
+    print('$accountSid  $authToken');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       showInviteCollabDialog(context);
     });
@@ -51,9 +57,16 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     // TODO: implement build
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: Text(
           AppStrings.inviteCollab,
           style: appTextStyle(fm: robotoRegular, fz: 22, height: 28 / 22),
@@ -62,22 +75,34 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
         actions: [
           GestureDetector(
             onTap: () async {
-              String baseUrl =
-                  "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
-              String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
-              String link = await CommonWidgets.createDynamicLink(
-                  widget.memoryId, widget.title, imageIdentifier,"","");
-              EasyLoading.show();
-              if (link.isNotEmpty) {
-                for (var element in selectedContacts) {
-                  sendLinkBySms(
-                      phoneNumber: element.phones.first.normalizedNumber,
-                      link: Uri.parse(link),
-                      title: TextEditingController(text: widget.title));
-                }
-                EasyLoading.dismiss();
+              if (selectedContacts.isNotEmpty) {
+                String baseUrl =
+                    "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
+                String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
+                String link = await CommonWidgets.createDynamicLink(
+                    widget.memoryId, widget.title, imageIdentifier, "", "");
+                    EasyLoading.show();
+                if (link.isNotEmpty) {
+                  for (var element in selectedContacts) {
+                    sendLinkBySms(
+                        phoneNumber: element.phones.first.normalizedNumber,
+                        link: Uri.parse(link),
+                        title: TextEditingController(text: widget.title));
+                  }
+                   EasyLoading.dismiss();
 
-                Navigator.pushReplacement(
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (BuildContext context) => PhotosView(
+                              photosList: widget.photosList,
+                              isSkip: false,
+                            )));
+                            openSentLink(context,link);
+
+                }
+              } else {
+                 Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                         builder: (BuildContext context) => PhotosView(
@@ -87,11 +112,11 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
               }
             },
             child: Padding(
-              padding: const EdgeInsets.only(right: 15.0),
+              padding: const EdgeInsets.only(right: 16.0),
               child: Text(
-                AppStrings.done,
+                selectedContacts.isNotEmpty ? AppStrings.done : AppStrings.skip,
                 style: appTextStyle(
-                    color: AppColors.primaryColor, fm: robotoRegular, fz: 22),
+                    color: selectedContacts.isNotEmpty?AppColors.primaryColor:AppColors.hintColor, fm: robotoRegular, fz: 18),
               ),
             ),
           ),
@@ -105,6 +130,80 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
               : _contactListView(context)
         ],
       ),
+    );
+  }
+openSentLink(BuildContext context,String link){
+    showDialog(
+      builder: (context) {
+        return  Dialog(
+        backgroundColor: AppColors.textfieldFillColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Container(
+          width: 312,
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          height: 312,
+          // Add padding for spacing
+          decoration: BoxDecoration(
+            color: AppColors.textfieldFillColor,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            // Center content vertically
+            children: [
+              const SizedBox(
+                height: 25,
+              ),
+              Text(
+                AppStrings.shareLinkText,
+                style: appTextStyle(
+                  fz: 24,
+                  height: 32 / 24,
+                  fm: robotoRegular,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              const SizedBox(height: 16), // Add spacing between elements
+              Text(
+                "The following link “$link” has been sent. Please make sure they have Stasht downloaded on their phones. Once installed, this memory will appear in their shared folder. ",
+                style: appTextStyle(
+                  fz: 14,
+                  height: 20 / 14,
+                  fm: robotoRegular,
+                  color: AppColors.dialogMiddleFontColor,
+                ),
+              ),
+              const SizedBox(height: 30), // Add spacing before the close button
+              Container(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      AppStrings.close,
+                      style: appTextStyle(
+                        fz: 14,
+                        height: 20 / 14,
+                        fm: robotoMedium,
+                        color: AppColors.primaryColor,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      },
+      context: context,
     );
   }
 
@@ -194,9 +293,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
                     // If not, add it to the selected list
                     selectedContacts.add(selectedContact);
                   }
-                  setState(() {
-                    
-                  });
+                  setState(() {});
                 },
                 child: Container(
                   height: 20,
@@ -229,29 +326,52 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
   }
 
   _sreachFiled(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: 30, right: 30, top: 20, bottom: 20),
-      height: 30,
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15), color: Color(0XFFEFEFEF)),
-      child: TextFormField(
-        onChanged: (value) {
-          searchContacts(value);
+    return Padding(
+      padding:
+          const EdgeInsets.only(left: 16.0, right: 16.0, top: 8, bottom: 8),
+      child: TextField(
+        onChanged: (v){
+                    searchContacts(v);
+
         },
         decoration: InputDecoration(
-            contentPadding: const EdgeInsets.only(top: -7.5),
-            hintText: AppStrings.search,
-            hintStyle: appTextStyle(
-                fz: 16, fm: robotoRegular, color: const Color(0XFF8A8A8D)),
-            border: InputBorder.none,
-            prefixIcon: Transform.scale(
-              scale: .7,
-              child: Image.asset(
-                search,
-              ),
-            )),
+          hintText: "Search",
+          hintStyle: const TextStyle(color: AppColors.hintColor),
+          filled: true,
+        
+          fillColor: Colors.grey[200], // Background color
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15), // Rounded corners
+            borderSide: BorderSide.none, // Remove underline
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          prefixIcon: const Icon(
+            Icons.search,
+            color: Colors.black,
+          ),
+        ),
       ),
     );
+
+    // Container(
+    //   margin: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 20),
+    //   decoration: BoxDecoration(
+    //       borderRadius: BorderRadius.circular(15), color: Color(0XFFEFEFEF)),
+    //   child: TextFormField(
+    //     onChanged: (value) {
+    //       searchContacts(value);
+    //     },
+    //     decoration: InputDecoration(
+    //         hintText: AppStrings.search,
+    //         hintStyle: appTextStyle(
+    //             fz: 16, fm: robotoRegular, color: AppColors.hintColor),
+    //         border: InputBorder.none,
+    //         prefixIcon:Icon(Icons.search,size: 30,)),
+    //   ),
+    // );
   }
 
   String searchTerm = '';
@@ -266,9 +386,8 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
   }
 
   Future fetchContacts() async {
-    await FlutterContacts.requestPermission(readonly: true).then((value) async{
-      if(value){
-
+    await FlutterContacts.requestPermission(readonly: true).then((value) async {
+      if (value) {
         final contacts = await FlutterContacts.getContacts(
             withPhoto: true, withProperties: true);
         contactsList = contacts;
@@ -282,8 +401,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
           print('name===${filteredContactsList[i].displayName}');
         }
         setState(() {});
-
-      }else{
+      } else {
         permissionDenied = true;
         setState(() {});
       }
@@ -296,38 +414,42 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
       {String? phoneNumber,
       Uri? link,
       required TextEditingController title}) async {
+    final ioc = HttpClient()
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) =>
+              true; // Bypass SSL verification
+    final httpClient = IOClient(ioc);
+    final body = {
+      'To': phoneNumber ?? "",
+      'From': '+18076977883',
+      'Body':
+          '$userName has invited you to collaborate in a memory called ${title.text} : $link'
+    };
+    print('https://api.twilio.com/2010-04-01/Accounts/$accountSid/Messages.json');
     try {
-      var headers = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization':
-            '$authToken'
-      };
+      final response = await httpClient.post(
+        Uri.parse(
+            'https://api.twilio.com/2010-04-01/Accounts/$accountSid/Messages.json'),
+        body: body,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': authToken
+        },
+      );
 
-      var request = http.Request(
-          'POST',
-          Uri.parse(
-              'https://api.twilio.com/2010-04-01/Accounts/$accountSid/Messages.json'));
-
-      request.bodyFields = {
-        'To': phoneNumber ?? "",
-        'From': '+18076977883',
-        'Body':
-            '$userName has invited you to collaborate in a memory called ${title.text} : $link'
-      };
-
-      request.headers.addAll(headers);
-
-      http.StreamedResponse response = await request.send();
-
-      if (response.statusCode == 200) {
-        print(await response.stream.bytesToString());
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        print("request success");
+        EasyLoading.dismiss();
       } else {
-        print(response.reasonPhrase);
-      }
+        print("request failed");
+                EasyLoading.dismiss();
 
-     
+      }
     } catch (e) {
-      print(e.toString());
+      print("request failed");
+              EasyLoading.dismiss();
+
+
     }
   }
 
@@ -343,7 +465,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
           child: Container(
             width: 312,
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            height: 312,
+            height: 272,
             // Add padding for spacing
             decoration: BoxDecoration(
               color: AppColors.textfieldFillColor,
@@ -368,7 +490,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
                 ),
                 const SizedBox(height: 16), // Add spacing between elements
                 Text(
-                  "Invite friends to share in the memory.\n Once they receive the invite link they will \nbe able to contribute by stashing their \nphotos to your memory. ",
+                  "Invite friends to share in the memory.\nOnce they receive the invite link they will \nbe able to contribute by stashing their \nphotos to your memory. ",
                   style: appTextStyle(
                     fz: 14,
                     height: 20 / 14,

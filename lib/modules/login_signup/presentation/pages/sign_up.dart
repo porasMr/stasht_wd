@@ -55,6 +55,8 @@ class _SignupState extends State<Signup> implements ApiCallback {
 
   @override
   void initState() {
+       CommonWidgets.initPlatformState();
+
     CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
@@ -95,8 +97,11 @@ class _SignupState extends State<Signup> implements ApiCallback {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     return Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
@@ -134,6 +139,7 @@ class _SignupState extends State<Signup> implements ApiCallback {
                                 fontSize: 27,
                                 color: AppColors.primaryColor,
                                 fontFamily: robotoBold,
+                                fontWeight: FontWeight.w700,
                                 height: 30 / 27),
                           ),
                         ),
@@ -145,6 +151,7 @@ class _SignupState extends State<Signup> implements ApiCallback {
                                 fontSize: 20,
                                 color: Colors.black,
                                 fontFamily: robotoMedium,
+                                fontWeight: FontWeight.w500,
                                 height: 26.2 / 20),
                           ),
                         ),
@@ -414,7 +421,7 @@ class _SignupState extends State<Signup> implements ApiCallback {
                               btnText: AppStrings.signUpBtnText,
                             )),
                         const SizedBox(
-                          height: 20,
+                          height: 36,
                         ),
                         InkWell(
                           onTap: () async {
@@ -488,6 +495,9 @@ class _SignupState extends State<Signup> implements ApiCallback {
         email: emailController.value.text,
         password: passwordController.value.text,
         name: userNameController.value.text,
+      deviceToken:PrefUtils.instance.getOneSingalToken()??'',
+      deviceType: Platform.isAndroid?"android":"ios",
+
         callack: this);
   }
 

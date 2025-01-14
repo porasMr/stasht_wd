@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:get/get.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
 
@@ -16,14 +16,19 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/bottom_bar_visibility_provider.dart';
-import 'package:stasht/modules/invite_collaborator/invite_collaborator_screen.dart';
-import 'package:stasht/modules/media/image_grid.dart';
+import 'package:stasht/modules/create_memory/create_memory_copy.dart';
+import 'package:stasht/modules/create_memory/model/group_modle.dart';
+import 'package:stasht/modules/create_memory/new_memory.dart';
+
+import 'package:stasht/modules/media/model/CombinedPhotoModel.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
 import 'package:stasht/modules/memories/model/category_model.dart';
 import 'package:stasht/modules/memories/model/subcategory.dart';
+import 'package:stasht/modules/onboarding/domain/model/all_photo_model.dart';
 import 'package:stasht/modules/onboarding/domain/model/favebook_photo.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
+import 'package:stasht/modules/onboarding/domain/model/photo_group_model.dart';
 import 'package:stasht/modules/photos/photos_screen.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
@@ -50,23 +55,26 @@ class MediaScreen extends StatefulWidget {
       {super.key,
       required this.future,
       required this.photosList,
-      required this.isFromSignUp});
+      required this.isFromSignUp,
+      required this.type});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
   List<PhotoModel> isFrom = [];
   bool isFromSignUp;
+  String type;
 
   @override
   State<MediaScreen> createState() => _MediaScreenState();
 }
 
 class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
-  List<String> tabListItem = [
-    "All",
-    "Camera Roll",
-    "Facebook",
-    "Instagram",
-    "Drive"
+  final List<Map<String, dynamic>> tabListItem = [
+    {"label": "All", "icon": null},
+    {"label": "Camera Roll", "icon": null},
+    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
+    {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
+    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
+// Example icon
   ];
   String selectedTab = "";
 
@@ -105,6 +113,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   var progressbarValue = 0.0;
   bool isBottomSheetOpen = false;
   ValueNotifier<int> selectedCountNotifier = ValueNotifier<int>(0);
+  ScrollController driveController = ScrollController();
 
   double radians(double degree) {
     return ((degree * 180) / pi);
@@ -140,6 +149,15 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     }
   }
 
+  //-------------Drive group model-------
+//--------------_Drive group model================
+  List<GroupedPhotoModel> driveGroupModel = [];
+  List<GroupedPhotoModel> instaGroupModel = [];
+  List<GroupedPhotoModel> fbGroupModel = [];
+  List<PhotoGroupModel> photoGroupModel = [];
+
+  List<CombinedPhotoModel> allPhotoGroupModel = [];
+
   @override
   void dispose() {
     titleFocusNode.dispose();
@@ -149,48 +167,116 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   @override
   void initState() {
     super.initState();
+    photoGroupModel = CommonWidgets.groupGalleryPhotosByDate(
+        widget.photosList, widget.future);
+
     PrefUtils.instance.getDrivePrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       driveModel = value;
+      driveGroupModel = CommonWidgets.groupPhotosByDate(driveModel);
+
+      changeTab();
     });
     PrefUtils.instance.getFacebookPrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
+      print(value.length);
       fbModel = value;
+      fbGroupModel = CommonWidgets.groupPhotosForFBAndINSTAByDate(fbModel);
+
+      changeTab();
     });
     PrefUtils.instance.getInstaPrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       instaModel = value;
+      instaGroupModel =
+          CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
+
+      changeTab();
     });
+    openDialogFirstTime();
     deselectAll();
-    ApiCall.category(api: ApiUrl.categories, callack: this);
+    // ApiCall.category(api: ApiUrl.categories, callack: this);
+    driveController.addListener(_onScrollEnd);
   }
+
+  
+  openDialogFirstTime() {
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      if (widget.isFromSignUp) {
+        showFirstMemoryDialog(context);
+      }
+    });
+  }
+
+  changeTab() {
+    allPhotoGroupModel = CommonWidgets.allPhotoGroup(
+        driveGroupModel, instaGroupModel, fbGroupModel, photoGroupModel);
+    if (widget.isFromSignUp) {
+      //  Future.delayed(const Duration(milliseconds: 500), () async {
+      print(widget.type);
+
+      if (widget.type == 'instagram_synced') {
+        selectedIndex = 4;
+        setState(() {});
+      } else if (widget.type == 'facebook_synced') {
+        selectedIndex = 3;
+        setState(() {});
+      } else if (widget.type == 'google_drive_synced') {
+        selectedIndex = 2;
+        setState(() {});
+      }
+       else {
+        selectedIndex = 0;
+        setState(() {});
+      }
+      //   });
+    }
+            setState(() {});
+
+  }
+  
 
   void deselectAll() {
     selectedMemoryId = "";
-    for (var photoList in widget.photosList) {
-      photoList.selectedValue = false;
-    }
-    if (fbModel.isNotEmpty) {
-      for (var photoList in fbModel) {
-        photoList.isSelected = false;
+    for (var photoGropupList in photoGroupModel) {
+      for (var photoList in photoGropupList.photos) {
+        photoList.selectedValue = false;
+        photoList.isEditmemory = false;
       }
     }
-    if (driveModel.isNotEmpty) {
-      for (var photoList in driveModel) {
-        photoList.isSelected = false;
+    if (driveGroupModel.isNotEmpty) {
+      for (var groupPhoto in driveGroupModel) {
+        for (var photoList in groupPhoto.photos) {
+          photoList.isSelected = false;
+          photoList.isEdit = false;
+        }
       }
     }
-    if (instaModel.isNotEmpty) {
-      for (var photoList in instaModel) {
-        photoList.isSelected = false;
+    if (fbGroupModel.isNotEmpty) {
+      for (var groupPhoto in fbGroupModel) {
+        for (var photoList in groupPhoto.photos) {
+          photoList.isSelected = false;
+          photoList.isEdit = false;
+        }
       }
     }
+    if (instaGroupModel.isNotEmpty) {
+      for (var groupPhoto in instaGroupModel) {
+        for (var photoList in groupPhoto.photos) {
+          photoList.isSelected = false;
+          photoList.isEdit = false;
+        }
+      }
+    }
+    allPhotoGroupModel = CommonWidgets.allPhotoGroup(
+        driveGroupModel, instaGroupModel, fbGroupModel, photoGroupModel);
+    setState(() {});
   }
 
   Future<XFile?> _compressAsset(AssetEntity asset) async {
@@ -211,8 +297,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     return Scaffold(
+      backgroundColor: Colors.white,
       key: _scaffoldKey,
       appBar: widget.isFromSignUp
           ? AppBar(
@@ -238,17 +329,12 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                         style: appTextStyle(
                             fz: 17,
                             fm: interMedium,
-                            color: AppColors.primaryColor),
+                            color: AppColors.hintColor),
                       ),
                     ))
               ],
               title: Row(
                 children: [
-                  GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Icon(Icons.arrow_back)),
                   const SizedBox(
                     width: 5,
                   ),
@@ -275,7 +361,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
           ),
           Expanded(
               child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.only(left:16.0,right: 16,bottom:16),
                   child: selectedtabView(context))),
         ],
       ),
@@ -285,35 +371,70 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   selectedtabView(BuildContext context) {
     if (selectedIndex == 0) {
       debugPrint("Index is 0");
-      return CommonWidgets.albumView(
-          widget.future, widget.photosList, viewRefersh,
-          selectedCountNotifier: selectedCountNotifier);
+      return CommonWidgets.allAlbumView(allPhotoGroupModel, viewRefersh,
+          selectedCountNotifier: selectedCountNotifier
+          );
     } else if (selectedIndex == 1) {
-      return CommonWidgets.albumView(
-          widget.future, widget.photosList, viewRefersh,
+      return CommonWidgets.albumView(photoGroupModel, viewRefersh,
           selectedCountNotifier: selectedCountNotifier);
     } else if (selectedIndex == 2) {
-      if (fbModel.isEmpty) {
-        return CommonWidgets.fbView(context, getFacebbokPhoto);
+      if (driveGroupModel.isEmpty) {
+        return CommonWidgets.driveView(context, getDriveView);
       } else {
-        return CommonWidgets.fbPhtotView(fbModel, viewRefersh,
-            selectedCountNotifier: selectedCountNotifier);
+        return CommonWidgets.drivePhtotView(driveGroupModel, viewRefersh,
+            selectedCountNotifier: selectedCountNotifier,
+            controller: driveController);
       }
     } else if (selectedIndex == 3) {
-      if (instaModel.isEmpty) {
-        return CommonWidgets.instaView(context, getInstaView);
+      if (fbGroupModel.isEmpty) {
+        return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
-        return CommonWidgets.instaPhtotView(instaModel, viewRefersh,
+        return CommonWidgets.fbPhtotView(fbGroupModel, viewRefersh,
             selectedCountNotifier: selectedCountNotifier);
       }
     } else if (selectedIndex == 4) {
-      if (driveModel.isEmpty) {
-        return CommonWidgets.driveView(context, getDriveView);
+      if (instaGroupModel.isEmpty) {
+        return CommonWidgets.photoView(context, getInstaView);
       } else {
-        return CommonWidgets.drivePhtotView(driveModel, viewRefersh,
+        return CommonWidgets.instaPhtotView(instaGroupModel, viewRefersh,
             selectedCountNotifier: selectedCountNotifier);
       }
     }
+  }
+
+  void _onScrollEnd() {
+    print("scroll end");
+    if (driveController.position.pixels >=
+        driveController.position.maxScrollExtent) {
+      if (PrefUtils.instance.getDriveToken() != null &&
+          PrefUtils.instance.getDriveToken()!.isNotEmpty) {
+        CommonWidgets.showBottomSheet(context, () {
+          CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+            getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+          });
+        });
+        //_showLoadMoreSnackbar();
+      }
+    }
+  }
+
+  void _showLoadMoreSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        // behavior: SnackBarBehavior.floating,
+
+        content: const Text("Loading another 30 images"),
+        action: SnackBarAction(
+          label: 'Load more',
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+              getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+            });
+          },
+        ),
+      ),
+    );
   }
 
   getFacebbokPhoto(AccessToken token) {
@@ -324,24 +445,122 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     instaRequestForAccessToken(token);
   }
 
-  getDriveView(GoogleSignIn v1) {
-    fetchPhotosFromDrive(v1, context);
+  getDriveView(GoogleSignIn v1, String pageToken) {
+    fetchPhotosFromDrive(v1, context, pageToken);
   }
 
   viewRefersh() {
-    debugPrint("Refresh Function Count");
     setState(() {});
-    if(widget.isFromSignUp){
-      if(categoryMemoryModelWithoutPage
-          .data!=null) {
-        openAddPillBottomSheetForSignUp(context);
+    int selectedCount = 0;
+    int gridItemCount=0;
+    if (selectedIndex == 1) {
+      for (int j = 0; j < photoGroupModel.length; j++) {
+        for (int i = 0; i < photoGroupModel[j].photos.length; i++) {
+          if (photoGroupModel[j].photos[i].selectedValue) {
+  selectedCount = j;
+            gridItemCount=i;          }
+        }
       }
-    }else{
-      if(categoryMemoryModelWithoutPage
-          .data!=null) {
-        openAddPillBottomSheet(context);
+    } else {
+      for (int j = 0; j < allPhotoGroupModel.length; j++) {
+        for (int i = 0; i < allPhotoGroupModel[j].photos.length; i++) {
+          if (allPhotoGroupModel[j].photos[i].isSelected) {
+            selectedCount = j;
+            gridItemCount=i;
+          } 
+        }
       }
+    }
+    if (widget.isFromSignUp) {
+      print(widget.type);
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          transitionDuration:
+              Duration(milliseconds: 800), // Adjust animation duration
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              NewMemoryScreen(
+            photosList: widget.photosList,
+            future: widget.future,
+            driveGroupModel: driveGroupModel,
+            instaGroupModel: instaGroupModel,
+            fbGroupModel: fbGroupModel,
+            selectedIndexTab: selectedIndex,
+            selectedCount: selectedCount,
+                                                            gridItemCount: gridItemCount,
 
+            photoGroupModel: photoGroupModel,
+            allPhotoGroupModel: allPhotoGroupModel,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.0, 1.0); // Start at the bottom
+            const end = Offset.zero; // End at the center
+            const curve = Curves.easeInOut;
+
+            var tween =
+                Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+
+            return SlideTransition(
+              position: offsetAnimation,
+              child: child,
+            );
+          },
+        ),
+      ).then((value) {
+        deselectAll();
+        widget.type = "";
+        setState(() {});
+      });
+      debugPrint("This One Invoekd");
+    } else {
+    
+      debugPrint("Total Selected photos are $selectedCount");
+      Navigator.push(
+        context,
+        PageRouteBuilder(
+          transitionDuration:
+              Duration(milliseconds: 800), // Adjust animation duration
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              CreateMemoryCopyScreen(
+            photosList: widget.photosList,
+            future: widget.future,
+            isBack: true,
+            fromMediaScreen: true,
+            driveGroupModel: driveGroupModel,
+            instaGroupModel: instaGroupModel,
+            fbGroupModel: fbGroupModel,
+            photoGroupModel: photoGroupModel,
+                        selectedCount: selectedCount,
+                                                gridItemCount: gridItemCount,
+
+
+            selectedIndexTab: selectedIndex,
+            allPhotoGroupModel: allPhotoGroupModel,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.0, 1.0); // Start at the bottom
+            const end = Offset.zero; // End at the center
+            const curve = Curves.easeInOut;
+
+            var tween =
+                Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+
+            return SlideTransition(
+              position: offsetAnimation,
+              child: child,
+            );
+          },
+        ),
+      ).then((value) {
+        deselectAll();
+        widget.type = "";
+        for (var photo in widget.photosList) {
+          photo.selectedValue = false;
+        }
+        setState(() {});
+      });
     }
   }
 
@@ -355,30 +574,47 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () {
-              selectedTab = tabListItem[index];
+              selectedTab = tabListItem[index]['label'];
               selectedIndex = index;
               setState(() {});
             },
             child: Container(
-              height: 35,
-              margin: const EdgeInsets.only(right: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: selectedIndex != -1 && selectedIndex == index
-                      ? AppColors.black
-                      : AppColors.selectedTabColor),
-              child: Text(
-                tabListItem[index],
-                style: appTextStyle(
-                    fm: interMedium,
-                    height: 27 / 14,
-                    fz: 14,
+                height: 35,
+                margin: const EdgeInsets.only(right: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
                     color: selectedIndex != -1 && selectedIndex == index
-                        ? Colors.white
-                        : AppColors.black),
-              ),
-            ),
+                        ? AppColors.black
+                        : AppColors.selectedTabColor),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                     Row(children: [
+                            if (tabListItem[index]["icon"] !=
+                                null) // Add icon if available
+                              FaIcon(tabListItem[index]["icon"],
+                                  size: 20,
+                                  color: selectedIndex != -1 &&
+                                          selectedIndex == index
+                                      ? Colors.white
+                                      : Colors.black),
+                            if (tabListItem[index]["icon"] != null)
+                              SizedBox(width: 6),
+                          ]),
+                    Text(
+                      tabListItem[index]["label"],
+                      style: appTextStyle(
+                          fm: interMedium,
+                          height: 27 / 14,
+                          fz: 14,
+                          color: selectedIndex != -1 && selectedIndex == index
+                              ? Colors.white
+                              : AppColors.black),
+                    )
+                  ],
+                )),
           );
         },
       ),
@@ -462,7 +698,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
           json.decode(data.split("=")[0])['file'].toString();
 
       if (valueNotEmpty()) {
-        clossProgressDialog('');
+        clossProgressDialog('', []);
         if (createModel.memoryId != null) {
           ApiCall.createMemory(
               api: ApiUrl.updateMemory, model: createModel, callack: this);
@@ -474,26 +710,28 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         }
       }
     } else if (apiType == ApiUrl.createMemory) {
+      if (countSelectedPhotos() == 0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('', []);
+      }
       deselectAll();
       titleController.text = "";
       labelController.text = "";
 
       CommonWidgets.successDialog(context, json.decode(data)['message']);
-      if (widget.isFromSignUp) {
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (BuildContext context) => InviteCollaborator(
-                      title: json.decode(data)['memory']['title'].toString(),
-                      memoryId: json.decode(data)['memory']['id'].toString(),
-                      image: json
-                          .decode(data)['memory']['last_update_img']
-                          .toString(),
-                      photosList: widget.photosList,
-                    )));
-      }
+
       setState(() {});
     } else if (apiType == ApiUrl.updateMemory) {
+      if (countSelectedPhotos() == 0) {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+
+        clossProgressDialog('', []);
+      }
       deselectAll();
       titleController.text = "";
       labelController.text = "";
@@ -502,10 +740,11 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       setState(() {});
     } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
-    }else if(apiType==ApiUrl.createSubCategory){
+    } else if (apiType == ApiUrl.createSubCategory) {
       SubCategoryResModel subCategoryResModel =
-      SubCategoryResModel.fromJson(json.decode(data));
-      uploadData(selectedCategoryId(), subCategoryResModel.categories!.id.toString());
+          SubCategoryResModel.fromJson(json.decode(data));
+      uploadData(
+          selectedCategoryId(), subCategoryResModel.categories!.id.toString());
     }
   }
 
@@ -514,7 +753,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         createModel.images!.every((element) => element.link!.isNotEmpty);
     return allNonEmpty;
   }
-
 
   @override
   void tokenExpired(String message) {}
@@ -566,8 +804,6 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     return '';
   }
 
-
-
 /*==============================================================================================================================================================================================*/
 
   void openAddPillBottomSheet(BuildContext context) {
@@ -594,7 +830,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height:MediaQuery.of(context).size.height/2,
+                      height: MediaQuery.of(context).size.height / 2,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -712,8 +948,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               if (labelController
                                                   .text.isEmpty) {
                                                 isLabelTexFormFeildShow = false;
-                                                uploadData(
-                                                    selectedCategoryId(), selectedSubCategory());
+                                                uploadData(selectedCategoryId(),
+                                                    selectedSubCategory());
                                               } else {
                                                 isLabelTexFormFeildShow = false;
 
@@ -912,9 +1148,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                   color: AppColors.greyColor,
                                                 ),
                                               )
-                                            :
-
-                                        Row(
+                                            : Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   const Icon(
@@ -947,154 +1181,148 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                     ],
                                   ),
                                 ),
-
-                                  categoryMemoryModelWithoutPage
-                                      .data!.isNotEmpty &&
-                                      isLabelTexFormFeildShow == false
-                                      ? Container(
-
-                                      height:categoryMemoryModelWithoutPage
-                                          .data!.isEmpty?50:100,
-                                      width:
-                                      MediaQuery
-                                          .of(context)
-                                          .size
-                                          .width,
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                            left: 10, right: 10),
-                                        child: ListView.builder(
-                                            padding: EdgeInsets.zero,
-                                            itemCount:
-                                            categoryMemoryModelWithoutPage
-                                                .data!.length,
-                                            itemBuilder: (context, index) {
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  isLabelTexFormFeildShow =
-                                                  true;
-                                                  isReadOnly = true;
-                                                  selectedMemoryId =
-                                                      categoryMemoryModelWithoutPage
-                                                          .data![index].id
-                                                          .toString();
-                                                  print(selectedMemoryId);
-                                                  titleController.text =
+                                categoryMemoryModelWithoutPage
+                                            .data!.isNotEmpty &&
+                                        isLabelTexFormFeildShow == false
+                                    ? Container(
+                                        height: categoryMemoryModelWithoutPage
+                                                .data!.isEmpty
+                                            ? 50
+                                            : 100,
+                                        width:
+                                            MediaQuery.of(context).size.width,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                              left: 10, right: 10),
+                                          child: ListView.builder(
+                                              padding: EdgeInsets.zero,
+                                              itemCount:
                                                   categoryMemoryModelWithoutPage
-                                                      .data![index]
-                                                      .title!;
-                                                  setState(() {});
-                                                },
-                                                child: Column(
-                                                  mainAxisSize:
-                                                  MainAxisSize.min,
-                                                  children: [
-                                                    if (index > 0)
-                                                      const SizedBox(
-                                                        height: 5,
-                                                      ),
-                                                    Padding(
-                                                      padding:
-                                                      const EdgeInsets
-                                                          .only(
-                                                          left: 8.0,
-                                                          right: 8.0),
-                                                      child: Row(
-                                                        children: [
-                                                          ClipRRect(
-                                                              borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                  5.0),
-                                                              child: CachedNetworkImage(
-                                                                  imageUrl: categoryMemoryModelWithoutPage
+                                                      .data!.length,
+                                              itemBuilder: (context, index) {
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    isLabelTexFormFeildShow =
+                                                        true;
+                                                    isReadOnly = true;
+                                                    selectedMemoryId =
+                                                        categoryMemoryModelWithoutPage
+                                                            .data![index].id
+                                                            .toString();
+                                                    print(selectedMemoryId);
+                                                    titleController.text =
+                                                        categoryMemoryModelWithoutPage
+                                                            .data![index]
+                                                            .title!;
+                                                    setState(() {});
+                                                  },
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      if (index > 0)
+                                                        const SizedBox(
+                                                          height: 5,
+                                                        ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                left: 8.0,
+                                                                right: 8.0),
+                                                        child: Row(
+                                                          children: [
+                                                            ClipRRect(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            5.0),
+                                                                child: CachedNetworkImage(
+                                                                    imageUrl: categoryMemoryModelWithoutPage
+                                                                        .data![
+                                                                            index]
+                                                                        .lastUpdateImg!,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    height: 30,
+                                                                    width: 30,
+                                                                    progressIndicatorBuilder: (context,
+                                                                            url,
+                                                                            downloadProgress) =>
+                                                                        CircularProgressIndicator(
+                                                                            value:
+                                                                                downloadProgress.progress))),
+                                                            SizedBox(
+                                                              width: 5,
+                                                            ),
+                                                            Column(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Text(
+                                                                  categoryMemoryModelWithoutPage
                                                                       .data![
-                                                                  index]
-                                                                      .lastUpdateImg!,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  height: 30,
-                                                                  width: 30,
-                                                                  progressIndicatorBuilder: (
-                                                                      context,
-                                                                      url,
-                                                                      downloadProgress) =>
-                                                                      CircularProgressIndicator(
-                                                                          value:
-                                                                          downloadProgress
-                                                                              .progress))),
-                                                          SizedBox(
-                                                            width: 5,
-                                                          ),
-                                                          Column(
-                                                            mainAxisSize:
-                                                            MainAxisSize
-                                                                .min,
-                                                            children: [
-                                                              Text(
-                                                                categoryMemoryModelWithoutPage
-                                                                    .data![
-                                                                index]
-                                                                    .title!,
-                                                                style: appTextStyle(
-                                                                    fm:
-                                                                    interRegular,
-                                                                    fz: 14,
-                                                                    height:
-                                                                    19.2 /
-                                                                        14,
-                                                                    color: AppColors
-                                                                        .black),
-                                                              ),
-                                                            ],
-                                                          )
-                                                        ],
+                                                                          index]
+                                                                      .title!,
+                                                                  style: appTextStyle(
+                                                                      fm:
+                                                                          interRegular,
+                                                                      fz: 14,
+                                                                      height:
+                                                                          19.2 /
+                                                                              14,
+                                                                      color: AppColors
+                                                                          .black),
+                                                                ),
+                                                              ],
+                                                            )
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            }),
-                                      ))
-                                      : Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0),
-                                    child: TextFormField(
-                                      controller: titleController,
-                                      focusNode: titleFocusNode,
-                                      readOnly: isReadOnly,
-                                      cursorColor: AppColors.primaryColor,
-                                      onChanged: (val) {},
-                                      style: appTextStyle(
-                                        fm: robotoRegular,
-                                        fz: 21,
-                                        height: 27 / 21,
-                                        color: AppColors.black,
-                                      ),
-                                      decoration: InputDecoration(
-                                        border: InputBorder.none,
-                                        hintText: AppStrings.memoryTitle,
-                                        hintStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
+                                                    ],
+                                                  ),
+                                                );
+                                              }),
+                                        ))
+                                    : Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16.0),
+                                        child: TextFormField(
+                                          controller: titleController,
+                                          focusNode: titleFocusNode,
+                                          readOnly: isReadOnly,
+                                          cursorColor: AppColors.primaryColor,
+                                          onChanged: (val) {},
+                                          style: appTextStyle(
+                                            fm: robotoRegular,
+                                            fz: 21,
+                                            height: 27 / 21,
+                                            color: AppColors.black,
+                                          ),
+                                          decoration: InputDecoration(
+                                            border: InputBorder.none,
+                                            hintText: AppStrings.memoryTitle,
+                                            hintStyle: appTextStyle(
+                                              fz: isTitleFocused ? 14 : 21,
+                                              color: isTitleFocused
+                                                  ? AppColors.primaryColor
+                                                  : const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                            labelStyle: appTextStyle(
+                                              fz: isTitleFocused ? 14 : 21,
+                                              height: isTitleFocused
+                                                  ? 19.2 / 21
+                                                  : null,
+                                              color: isTitleFocused
+                                                  ? AppColors.primaryColor
+                                                  : const Color(0XFF999999),
+                                              fm: robotoRegular,
+                                            ),
+                                          ),
                                         ),
-                                        labelStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          height: isTitleFocused
-                                              ? 19.2 / 21
-                                              : null,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
-                                        ),
                                       ),
-                                    ),
-                                  ),
-
                                 const Divider(
                                   color: AppColors.textfieldFillColor,
                                 ),
@@ -1283,7 +1511,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       bool isReadOnly = false;
 
       _scaffoldKey.currentState!.showBottomSheet(
-            (BuildContext context) {
+        (BuildContext context) {
           return SafeArea(
             top: true,
             bottom: false,
@@ -1292,7 +1520,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                 debugPrint("Update on bottomSheet");
                 return SingleChildScrollView(
                   child: Container(
-                      height:MediaQuery.of(context).size.height/2,
+                      height: MediaQuery.of(context).size.height / 2,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: const BorderRadius.only(
@@ -1317,7 +1545,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                             child: ListView(
                               shrinkWrap: true,
                               keyboardDismissBehavior:
-                              ScrollViewKeyboardDismissBehavior.onDrag,
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
                               children: [
                                 const SizedBox(height: 8),
                                 Row(
@@ -1328,7 +1556,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       width: 36,
                                       decoration: BoxDecoration(
                                         borderRadius:
-                                        BorderRadius.circular(100),
+                                            BorderRadius.circular(100),
                                         color: Colors.grey,
                                       ),
                                     ),
@@ -1341,7 +1569,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                         horizontal: 16.0),
                                     child: Row(
                                       mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Row(
                                           children: [
@@ -1355,8 +1583,8 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                                 Navigator.pop(context);
                                                 isBottomSheetOpen = false;
                                                 Provider.of<BottomBarVisibilityProvider>(
-                                                    context,
-                                                    listen: false)
+                                                        context,
+                                                        listen: false)
                                                     .showBottomBar();
                                               },
                                             ),
@@ -1373,7 +1601,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                             const SizedBox(width: 5),
                                             ValueListenableBuilder<int>(
                                               valueListenable:
-                                              selectedCountNotifier,
+                                                  selectedCountNotifier,
                                               builder: (context, selectedCount,
                                                   child) {
                                                 return Text(
@@ -1408,12 +1636,12 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               uploadCount = 1;
                                               progressbarValue = 0.0;
 
-                                                uploadData(
-                                                    selectedCategoryId(), '');
+                                              uploadData(
+                                                  selectedCategoryId(), '');
 
                                               Provider.of<BottomBarVisibilityProvider>(
-                                                  context,
-                                                  listen: false)
+                                                      context,
+                                                      listen: false)
                                                   .showBottomBar();
                                             }
                                           },
@@ -1423,7 +1651,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                               fm: robotoRegular,
                                               fz: 17,
                                               color: titleController
-                                                  .text.isNotEmpty
+                                                      .text.isNotEmpty
                                                   ? AppColors.black
                                                   : const Color(0XFF858484),
                                             ),
@@ -1444,7 +1672,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                   child: Row(
                                     children: [
                                       if ((categoryModel.categories?.length ??
-                                          0) >
+                                              0) >
                                           1)
                                         GestureDetector(
                                           onTap: () {
@@ -1478,78 +1706,77 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                 ),
                                 isExpandedDrop
                                     ? Container(
-                                  height: 40,
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 20),
-                                  child: ListView.builder(
-                                    itemCount: categoryModel.categories!
-                                        .where((test) =>
-                                    test.name != "Shared" &&
-                                        test.name != "Published")
-                                        .length,
-                                    scrollDirection: Axis.horizontal,
-                                    itemBuilder: (context, index) {
-                                      return InkWell(
-                                        onTap: () {
-                                          for (int i = 0;
-                                          i <
-                                              categoryModel
-                                                  .categories!.length;
-                                          i++) {
-                                            if (i == index) {
-                                              categoryModel
-                                                  .categories![index]
-                                                  .isSelected = true;
-                                            } else {
-                                              categoryModel.categories![i]
-                                                  .isSelected = false;
-                                            }
-                                          }
-
-                                        },
-                                        child: Container(
-                                          constraints:
-                                          const BoxConstraints(
-                                            minWidth:
-                                            90, // Ensure the min width is 90
-                                          ),
-                                          margin:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 5),
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                            BorderRadius.circular(5),
-                                            color: selectedCategory() ==
-                                                categoryModel
-                                                    .categories![
-                                                index]
-                                                    .name
-                                                ? AppColors.subTitleColor
-                                                : Colors.grey
-                                                .withOpacity(.2),
-                                          ),
-                                          padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 5),
-                                          child: Center(
-                                            child: Text(
-                                              categoryModel
-                                                  .categories![index]
-                                                  .name!,
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                color: Colors.black,
-                                                fontWeight:
-                                                FontWeight.bold,
+                                        height: 40,
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 20),
+                                        child: ListView.builder(
+                                          itemCount: categoryModel.categories!
+                                              .where((test) =>
+                                                  test.name != "Shared" &&
+                                                  test.name != "Published")
+                                              .length,
+                                          scrollDirection: Axis.horizontal,
+                                          itemBuilder: (context, index) {
+                                            return InkWell(
+                                              onTap: () {
+                                                for (int i = 0;
+                                                    i <
+                                                        categoryModel
+                                                            .categories!.length;
+                                                    i++) {
+                                                  if (i == index) {
+                                                    categoryModel
+                                                        .categories![index]
+                                                        .isSelected = true;
+                                                  } else {
+                                                    categoryModel.categories![i]
+                                                        .isSelected = false;
+                                                  }
+                                                }
+                                              },
+                                              child: Container(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                  minWidth:
+                                                      90, // Ensure the min width is 90
+                                                ),
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 5),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                  color: selectedCategory() ==
+                                                          categoryModel
+                                                              .categories![
+                                                                  index]
+                                                              .name
+                                                      ? AppColors.subTitleColor
+                                                      : Colors.grey
+                                                          .withOpacity(.2),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 5),
+                                                child: Center(
+                                                  child: Text(
+                                                    categoryModel
+                                                        .categories![index]
+                                                        .name!,
+                                                    style: const TextStyle(
+                                                      fontSize: 15,
+                                                      color: Colors.black,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                          ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    },
-                                  ),
-                                )
+                                      )
                                     : const IgnorePointer(),
                                 const SizedBox(height: 10),
                                 Divider(
@@ -1561,7 +1788,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                       horizontal: 16.0),
                                   child: Row(
                                     mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         AppStrings.memoryTitle,
@@ -1571,54 +1798,50 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
                                             height: 19.2 / 14,
                                             color: AppColors.primaryColor),
                                       ),
-
-
                                     ],
                                   ),
                                 ),
                                 Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0),
-                                    child: TextFormField(
-                                      controller: titleController,
-                                      focusNode: titleFocusNode,
-                                      readOnly: isReadOnly,
-                                      cursorColor: AppColors.primaryColor,
-                                      onChanged: (val) {},
-                                      style: appTextStyle(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
+                                  child: TextFormField(
+                                    controller: titleController,
+                                    focusNode: titleFocusNode,
+                                    readOnly: isReadOnly,
+                                    cursorColor: AppColors.primaryColor,
+                                    onChanged: (val) {},
+                                    style: appTextStyle(
+                                      fm: robotoRegular,
+                                      fz: 21,
+                                      height: 27 / 21,
+                                      color: AppColors.black,
+                                    ),
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: AppStrings.memoryTitle,
+                                      hintStyle: appTextStyle(
+                                        fz: isTitleFocused ? 14 : 21,
+                                        color: isTitleFocused
+                                            ? AppColors.primaryColor
+                                            : const Color(0XFF999999),
                                         fm: robotoRegular,
-                                        fz: 21,
-                                        height: 27 / 21,
-                                        color: AppColors.black,
                                       ),
-                                      decoration: InputDecoration(
-                                        border: InputBorder.none,
-                                        hintText: AppStrings.memoryTitle,
-                                        hintStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
-                                        ),
-                                        labelStyle: appTextStyle(
-                                          fz: isTitleFocused ? 14 : 21,
-                                          height: isTitleFocused
-                                              ? 19.2 / 21
-                                              : null,
-                                          color: isTitleFocused
-                                              ? AppColors.primaryColor
-                                              : const Color(0XFF999999),
-                                          fm: robotoRegular,
-                                        ),
+                                      labelStyle: appTextStyle(
+                                        fz: isTitleFocused ? 14 : 21,
+                                        height:
+                                            isTitleFocused ? 19.2 / 21 : null,
+                                        color: isTitleFocused
+                                            ? AppColors.primaryColor
+                                            : const Color(0XFF999999),
+                                        fm: robotoRegular,
                                       ),
                                     ),
                                   ),
-
+                                ),
                                 const Divider(
                                   color: AppColors.textfieldFillColor,
                                 ),
-                               ],
+                              ],
                             ),
                           ),
                         )
@@ -1645,22 +1868,25 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
-if(countSelectedPhotos()>0) {
-  for (int i = 0; i < widget.photosList.length; i++) {
-    if (widget.photosList[i].selectedValue) {
-      ImagesFile imp = ImagesFile();
-      imp.typeId = widget.photosList[i].assetEntity.id;
-      imp.type = "image";
-      imp.captureDate = _getFormattedDateTime(
-          widget.photosList[i].assetEntity.createDateTime);
-      imp.description = '';
-      imp.link = '';
+    if (countSelectedPhotos() > 0) {
+      for (int i = 0; i < widget.photosList.length; i++) {
+        if (widget.photosList[i].selectedValue) {
+          ImagesFile imp = ImagesFile();
+          imp.typeId = widget.photosList[i].assetEntity.id;
+          imp.type = "image";
+          imp.captureDate = _getFormattedDateTime(
+              widget.photosList[i].assetEntity.createDateTime);
+          imp.description = '';
+          imp.link = '';
 
-      imp.location = '';
-      imageFile.add(imp);
+          FilePath.getImageLocation(widget.photosList[i].assetEntity)!
+              .then((value) {
+            imp.location = value;
+          });
+          imageFile.add(imp);
+        }
+      }
     }
-  }
-}
     if (fbModel.isNotEmpty) {
       for (int i = 0; i < fbModel.length; i++) {
         if (fbModel[i].isSelected) {
@@ -1710,8 +1936,8 @@ if(countSelectedPhotos()>0) {
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-    if(countSelectedPhotos()==0){
-      clossProgressDialog('');
+    if (countSelectedPhotos() == 0) {
+      clossProgressDialog('', []);
       if (createModel.memoryId != null) {
         ApiCall.createMemory(
             api: ApiUrl.updateMemory, model: createModel, callack: this);
@@ -1721,9 +1947,8 @@ if(countSelectedPhotos()>0) {
             model: createModel,
             callack: this); // Dismiss the dialog
       }
-    }else{
+    } else {
       processPhotos();
-
     }
 
     print(createModel.images!.length);
@@ -1844,25 +2069,27 @@ if(countSelectedPhotos()>0) {
       var data = jsonDecode(response.body);
       if (data["data"] != null) {
         showProgressDialog(context);
+        List<PhotoDetailModel> tempPhotoLinks = [];
 
         // requestStoragePermission();
         await Future.forEach(data["data"], (dynamic element) async {
           if (element["media_type"] == "IMAGE") {
-            photoLinks.add(PhotoDetailModel(
-              createdTime: convertTimeStampIntoDateTime(element["timestamp"]),
-              isSelected: false,
-              isEdit: false,
-              type: "insta",
-              id: element["id"],
-              webLink: element["media_url"],
-            ));
+            tempPhotoLinks.add(PhotoDetailModel(
+                createdTime: convertTimeStampIntoDateTime(element["timestamp"]),
+                isSelected: false,
+                isEdit: false,
+                type: "insta",
+                id: element["id"],
+                webLink: element["media_url"],
+                captureDate: DateFormat('MMM yyyy').format(
+                    convertTimeStampIntoDateTime(element["timestamp"]))));
           }
           uploadCount += 1;
           progressbarValue = uploadCount / data["data"].length;
           progressNotifier.value = progressbarValue;
           await Future.delayed(const Duration(seconds: 1));
           setState(() {});
-          clossProgressDialog('instagram_synced');
+          clossProgressDialog('instagram_synced', tempPhotoLinks);
         });
 
         await Future.delayed(const Duration(seconds: 2), () {});
@@ -1948,42 +2175,59 @@ if(countSelectedPhotos()>0) {
     );
   }
 
-  clossProgressDialog(String type) {
+  clossProgressDialog(String type, List<PhotoDetailModel> tempPhotoLinks) {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
       progressbarValue = 0.0;
       uploadCount = 0;
       if (type == "google_drive_synced") {
-        driveModel = photoLinks;
-        PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+       // photoLinks = tempPhotoLinks;
+        if (driveModel.isEmpty) {
+          driveModel = tempPhotoLinks;
+        } else {
+          driveModel.addAll(tempPhotoLinks);
+        }
+        PrefUtils.instance.saveDrivePhotoLinks(driveModel);
+       // if (driveGroupModel.isEmpty) {
+          driveGroupModel = CommonWidgets.groupPhotosByDate(driveModel);
+        // } else {
+        //   driveGroupModel.addAll(CommonWidgets.groupPhotosByDate(driveModel));
+
+        //  // driveGroupModel=CommonWidgets.combinedGroupPhotosByDate(photoLinks,driveGroupModel);
+        // }
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
-        fbModel = photoLinks;
+        fbModel = tempPhotoLinks;
 
-        PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
+        fbGroupModel = CommonWidgets.groupPhotosForFBAndINSTAByDate(fbModel);
+
+        PrefUtils.instance.saveFacebookPhotoLinks(fbModel);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == "instagram_synced") {
-        instaModel = photoLinks;
+        instaModel = tempPhotoLinks;
+        instaGroupModel =
+            CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
 
-        PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+        PrefUtils.instance.saveInstaPhotoLinks(instaModel);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
+      allPhotoGroupModel = CommonWidgets.allPhotoGroup(
+          driveGroupModel, instaGroupModel, fbGroupModel, photoGroupModel);
+      setState(() {});
     }
   }
 
 //===============Drive===================
-  fetchPhotosFromDrive(
-    GoogleSignIn googleSignIn,
-    BuildContext context,
-  ) async {
+  fetchPhotosFromDrive(GoogleSignIn googleSignIn, BuildContext context,
+      String? nextPageToken) async {
     try {
-      photoLinks.clear();
+      List<PhotoDetailModel> tempPhotoLinks = [];
       List<File> allFiles = [];
       FileList fileList;
-      String? nextPageToken;
+
       var httpClient = await googleSignIn.authenticatedClient();
       if (httpClient == null) {
         print('Failed to get authenticated client');
@@ -1994,93 +2238,77 @@ if(countSelectedPhotos()>0) {
       showProgressDialog(context);
 
       // do {
-      do {
-        fileList = await driveApi.files.list(
-          // q: "mimeType contains 'image/'",
-          q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and visibility='anyoneWithLink'",
-          pageToken: nextPageToken,
-          $fields:
-              "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
-        );
-        if (fileList.files != null) {
-          if (fileList.files!.length > 50) {
-            allFiles.addAll(fileList.files!.take(50));
-          }
-          {
-            allFiles.addAll(fileList.files!);
-          }
-        }
+
+      fileList = await driveApi.files.list(
+        // q: "mimeType contains 'image/'",
+        q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",
+        pageToken: nextPageToken,
+        $fields:
+            "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
+      );
+      if (fileList.files != null || fileList.files!.isNotEmpty) {
+        // if (fileList.files!.length > 50) {
+        //   allFiles.addAll(fileList.files!.take(50));
+        // }
+        // {
+        allFiles.addAll(fileList.files!);
+        //}
         nextPageToken = fileList.nextPageToken;
-      } while (nextPageToken != null);
-      if (allFiles.isNotEmpty) {
-        if (allFiles.length > 50) {
-          for (int i = 0; i < allFiles.take(50).length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.take(50).length;
-              progressNotifier.value = progressbarValue;
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-            }
-          }
-          clossProgressDialog('google_drive_synced');
+        print("dsfasfa${allFiles.length} $nextPageToken");
+        if (nextPageToken != null) {
+          PrefUtils.instance.driveToken(nextPageToken);
         } else {
-          for (int i = 0; i < allFiles.length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.length;
-              progressNotifier.value = progressbarValue;
+          PrefUtils.instance.driveToken('');
+        }
+        for (int i = 0; i < allFiles.length; i++) {
+          if (allFiles[i].webViewLink != null) {
+            String captureDate =
+                DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
 
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-              clossProgressDialog('google_drive_synced');
-            }
+            tempPhotoLinks.add(PhotoDetailModel(
+                id: allFiles[i].id,
+                createdTime: allFiles[i].createdTime,
+                modifiedTime: allFiles[i].modifiedTime,
+                isSelected: false,
+                isEdit: false,
+                type: "drive",
+                webLink: allFiles[i].webContentLink,
+                thumbnailPath: allFiles[i].thumbnailLink,
+                captureDate: captureDate));
+            uploadCount += 1;
+            progressbarValue = uploadCount / allFiles.length;
+            progressNotifier.value = progressbarValue;
+
+            await Future.delayed(const Duration(microseconds: 500));
+            setState(() {
+              // if (allFiles.length - 1 == i) {
+              //   photoLinks.addAll(tempPhotoLinks);
+              // }
+            });
+            clossProgressDialog('google_drive_synced', tempPhotoLinks);
           }
         }
 
-        await Future.delayed(const Duration(seconds: 1), () {});
+        await Future.delayed(const Duration(microseconds: 500));
       } else {
-        CommonWidgets.errorDialog(context, 'No image available in drive');
+        PrefUtils.instance.driveToken('');
+        print('Error fetching files: $e');
 
-        await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true
-          // });
-        });
-        // goToMemories(false);
+        CommonWidgets.errorDialog(context, 'No image available in drive');
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('', []);
+        PrefUtils.instance.driveToken('');
+
+        await Future.delayed(const Duration(seconds: 2), () {});
       }
     } catch (e) {
+      CommonWidgets.errorDialog(context, 'No image available in drive');
+      progressbarValue = 1.0;
+      progressNotifier.value = progressbarValue;
+      print(progressbarValue);
+      clossProgressDialog('', []);
       print('Error fetching files: $e');
       return null;
     }
@@ -2136,7 +2364,7 @@ if(countSelectedPhotos()>0) {
 
 //=============facebook=======================
   fetchFacebookPhotos(AccessToken accessToken) async {
-    photoLinks.clear();
+    tempPhotoLinks.clear();
     // EasyLoading.show(status: 'Processing');
 
     final response = await http.get(
@@ -2162,7 +2390,7 @@ if(countSelectedPhotos()>0) {
               .then((value) {});
         });
       }
-      if (photoLinks.isNotEmpty) {
+      if (tempPhotoLinks.isNotEmpty) {
         await Future.delayed(const Duration(seconds: 2), () {
           // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
           //   "photoList": photoLinks,
@@ -2184,6 +2412,8 @@ if(countSelectedPhotos()>0) {
   }
 
   ///Fetch facebook url by photo id
+  List<PhotoDetailModel> tempPhotoLinks = [];
+
   Future fetchFacebookPhotosById(
     String accessToken,
     FaceBookPhoto element,
@@ -2197,19 +2427,22 @@ if(countSelectedPhotos()>0) {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      photoLinks.add(PhotoDetailModel(
+      String captureDate =
+          CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
+      tempPhotoLinks.add(PhotoDetailModel(
           type: "fb",
           createdTime: DateTime.tryParse(element.createdTime ?? ""),
           webLink: data['images'][0]["source"],
+          captureDate: captureDate,
           id: element.id));
-      print(photoLinks);
+      print(tempPhotoLinks);
       uploadCount += 1;
       progressbarValue = uploadCount / faceBook.length;
       progressNotifier.value = progressbarValue;
 
       await Future.delayed(const Duration(seconds: 1));
       setState(() {});
-      clossProgressDialog('facebook_synced');
+      clossProgressDialog('facebook_synced', tempPhotoLinks);
     } else {
       throw Exception('Failed to load photos');
     }

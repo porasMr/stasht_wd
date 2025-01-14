@@ -7,6 +7,7 @@ const interRegular = "interRegular";
 const interMedium = "interMedium";
 const interBold = "interBold";
 const robotoItalic = "robotoItalic";
+const robotoCondensed = "RobotoCondensed";
 const gibsonBold = "gibsonbold";
 const gibsonRegular = "gibsonRegular";
 const gibsonRegularItalic = "gibsonRegularItalic";
@@ -34,6 +35,8 @@ const addMemory = "${assetPath}addMemory.png";
 const search = "${assetPath}search.png";
 const fbSmall = "${assetPath}small_fb.png";
 const instaSmall = "${assetPath}small_insta.png";
+const googlePhotsSmall = "${assetPath}google_photos_big.png";
+
 const driveSmall = "${assetPath}small_drive.png";
 const book = "${assetPath}Icon.png";
 const correct = "${assetPath}correct.png";
@@ -62,8 +65,12 @@ const publishIcon = "${assetPath}publish_icon.png";
 const profileIcon = "${assetPath}profile.png";
 const fbLogo = "${assetPath}facebookLogo.png";
 const instaLogo = "${assetPath}Instagram_logo.png";
+const googlePhotoLogo = "${assetPath}google_photo.png";
+
 const camera = "${assetPath}camera.png";
 const driveLogo = "${assetPath}drive_logo.png";
+const timeImg = "${assetPath}time_img.png";
+
 
 
 

@@ -79,13 +79,20 @@ dependencies:
   http_parser: ^4.0.0
   path_provider: ^2.0.14 
   timeago:
-  flutter_social_content_share:
+  #flutter_social_content_share:
   firebase_dynamic_links: 
   provider: ^6.1.2
   flutter_contacts: ^1.1.9+2
   flutter_dotenv: ^5.0.2
   share_plus: any
   exif: ^3.1.1
+  flutter_swipe_action_cell:
+  font_awesome_flutter: ^10.8.0
+  scrollview_observer: ^1.24.0
+  # crypto: ^3.0.0
+  # dio: ^5.0.0 
+  # #amazon_s3_cognito: ^0.8.1
+  # aws_s3_upload: ^1.5.0
 
 
  
@@ -179,6 +186,10 @@ flutter:
     - family: interBold
       fonts:
         - asset: assets/fonts/Inter-Bold.ttf
+
+    - family: RobotoCondensed
+      fonts:
+        - asset: assets/fonts/RobotoCondensed-ExtraLightItalic.ttf
 
   #
   # For details regarding fonts from package dependencies,

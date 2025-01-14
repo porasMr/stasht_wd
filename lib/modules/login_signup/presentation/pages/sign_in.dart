@@ -57,6 +57,8 @@ class _SignInState extends State<SignIn> implements ApiCallback {
 
   @override
   void initState() {
+       CommonWidgets.initPlatformState();
+
     CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
@@ -92,8 +94,11 @@ class _SignInState extends State<SignIn> implements ApiCallback {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
-
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     return Scaffold(
         body: Stack(
       alignment: Alignment.topRight,
@@ -416,6 +421,7 @@ class _SignInState extends State<SignIn> implements ApiCallback {
         ),
       ],
     ));
+
   }
 
   signIn(BuildContext context) async {
@@ -424,6 +430,8 @@ class _SignInState extends State<SignIn> implements ApiCallback {
         api: ApiUrl.loginWithEmailPassword,
         email: emailController.value.text,
         password: passwordController.value.text,
+        deviceToken:PrefUtils.instance.getOneSingalToken()??'',
+      deviceType: Platform.isAndroid?"android":"ios",
         callack: this);
   }
 

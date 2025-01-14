@@ -1,7 +1,7 @@
 class GetCommentsResponseModel {
-  var status;
-  var message;
-  List<Data>? data;
+  int? status;
+  String? message;
+  List<CommentData>? data;
 
   GetCommentsResponseModel({this.status, this.message, this.data});
 
@@ -9,9 +9,9 @@ class GetCommentsResponseModel {
     status = json['status'];
     message = json['message'];
     if (json['data'] != null) {
-      data = <Data>[];
+      data = <CommentData>[];
       json['data'].forEach((v) {
-        data!.add(new Data.fromJson(v));
+        data!.add(new CommentData.fromJson(v));
       });
     }
   }
@@ -27,31 +27,31 @@ class GetCommentsResponseModel {
   }
 }
 
-class Data {
-  var id;
-  var userId;
-  var commentId;
-  var memoryId;
-  var imageId;
-  var description;
-  var createdAt;
-  var updatedAt;
-  var deletedAt;
+class CommentData {
+  int? id;
+  int? userId;
+  dynamic commentId;
+  int? memoryId;
+  int? imageId;
+  String? description;
+  String? createdAt;
+  String? updatedAt;
+  dynamic deletedAt;
   User? user;
 
-  Data(
+  CommentData(
       {this.id,
-        this.userId,
-        this.commentId,
-        this.memoryId,
-        this.imageId,
-        this.description,
-        this.createdAt,
-        this.updatedAt,
-        this.deletedAt,
-        this.user});
+      this.userId,
+      this.commentId,
+      this.memoryId,
+      this.imageId,
+      this.description,
+      this.createdAt,
+      this.updatedAt,
+      this.deletedAt,
+      this.user});
 
-  Data.fromJson(Map<String, dynamic> json) {
+  CommentData.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     userId = json['user_id'];
     commentId = json['comment_id'];
@@ -83,63 +83,61 @@ class Data {
 }
 
 class User {
-  var id;
-  var name;
-  var email;
-  var emailVerifiedAt;
-  var userName;
-  var status;
-  var profileImage;
-  var profileColor;
-  var notificationsCount;
-  var instagramSynced;
-  var facebookSynced;
-  var googleDriveSynced;
-  var deviceType;
-  var deviceToken;
-  var appVersion;
-  var googleId;
-  var appleId;
-  var createdAt;
-  var updatedAt;
-  var deletedAt;
+  int? id;
+  String? role;
+  String? name;
+  String? email;
+  dynamic emailVerifiedAt;
+  dynamic userName;
+  int? status;
+  String? profileImage;
+  String? profileColor;
+  int? notificationsCount;
+  dynamic instagramSynced;
+  dynamic facebookSynced;
+  dynamic googleDriveSynced;
+  dynamic deviceType;
+  dynamic deviceToken;
+  dynamic appVersion;
+  String? googleId;
+  dynamic appleId;
+  String? createdAt;
+  String? updatedAt;
+  dynamic deletedAt;
 
   User(
       {this.id,
-        this.name,
-        this.email,
-        this.emailVerifiedAt,
-        this.userName,
-        this.status,
-        this.profileImage,
-        this.profileColor,
-        this.notificationsCount,
-        this.instagramSynced,
-        this.facebookSynced,
-        this.googleDriveSynced,
-        this.deviceType,
-        this.deviceToken,
-        this.appVersion,
-        this.googleId,
-        this.appleId,
-        this.createdAt,
-        this.updatedAt,
-        this.deletedAt});
+      this.role,
+      this.name,
+      this.email,
+      this.emailVerifiedAt,
+      this.userName,
+      this.status,
+      this.profileImage,
+      this.profileColor,
+      this.notificationsCount,
+      this.instagramSynced,
+      this.facebookSynced,
+      this.googleDriveSynced,
+      this.deviceType,
+      this.deviceToken,
+      this.appVersion,
+      this.googleId,
+      this.appleId,
+      this.createdAt,
+      this.updatedAt,
+      this.deletedAt});
 
   User.fromJson(Map<String, dynamic> json) {
     id = json['id'];
+    role = json['role'];
     name = json['name'];
     email = json['email'];
     emailVerifiedAt = json['email_verified_at'];
     userName = json['user_name'];
     status = json['status'];
-    if( json['profile_image']!=null){
-profileImage = json['profile_image'];
-    }else{
-profileImage = '';
-    }
     profileImage = json['profile_image']??'';
-    profileColor = json['profile_color'];
+    profileColor = json['profile_color']??'';
     notificationsCount = json['notifications_count'];
     instagramSynced = json['instagram_synced'];
     facebookSynced = json['facebook_synced'];
@@ -157,6 +155,7 @@ profileImage = '';
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['id'] = this.id;
+    data['role'] = this.role;
     data['name'] = this.name;
     data['email'] = this.email;
     data['email_verified_at'] = this.emailVerifiedAt;
@@ -179,5 +178,3 @@ profileImage = '';
     return data;
   }
 }
-
-

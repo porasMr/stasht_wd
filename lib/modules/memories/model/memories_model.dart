@@ -212,13 +212,15 @@ class User {
   String? name;
   String? email;
   dynamic profileImage;
+  String? profileColor;
 
-  User({this.id, this.name, this.profileImage,this.email});
+  User({this.id, this.name, this.profileImage,this.email,this.profileColor});
 
   User.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
     profileImage = json['profile_image']??'';
+    profileColor=json['profile_color']??'';
   }
 
   Map<String, dynamic> toJson() {
@@ -227,6 +229,7 @@ class User {
     data['name'] = this.name;
     data['email']=this.email;
     data['profile_image'] = this.profileImage;
+    data['profileColor']=this.profileColor;
     return data;
   }
 }

@@ -31,12 +31,13 @@ void configLoading() {
     ..indicatorColor = Colors.yellow
     ..textColor = Colors.yellow
     ..maskColor = Colors.blue
-    ..userInteractions = true
+    ..userInteractions = false
     ..dismissOnTap = false;
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
     await Firebase.initializeApp();
     debugPrint("Firebase initialized successfully");
@@ -86,8 +87,7 @@ class MyApp extends StatelessWidget {
         fontFamily: robotoRegular,
         primaryColor: AppColors.primaryColor,
         splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
+        highlightColor: Colors.transparent,    ),
     );
   }
 

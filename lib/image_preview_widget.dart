@@ -14,7 +14,10 @@ class ImagePreview extends StatelessWidget {
       future: assetEntity.originBytes,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(3.0),
+            child: CircularProgressIndicator(),
+          ));
         }
         if (snapshot.data == null) {
           return const Center(child: Text('Failed to load image.'));

@@ -1,19 +1,31 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/memory_detail_bottom_sheet.dart';
-import 'package:stasht/modules/create_memory/create_memory.dart';
+import 'package:stasht/modules/create_memory/create_memory_copy.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/media_screen.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/memories_screen.dart';
+import 'package:stasht/modules/memory_details/memory_lane.dart';
+import 'package:stasht/modules/memory_details/model/memory_detail_model.dart';
+import 'package:stasht/modules/notifications/notifications.dart';
 import 'package:stasht/modules/profile/profile_screen.dart';
+import 'package:stasht/network/api_call.dart';
+import 'package:stasht/network/api_callback.dart';
+import 'package:stasht/network/api_url.dart';
 
 import 'package:stasht/utils/app_colors.dart';
+import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
+import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/pref_utils.dart';
 import '../../bottom_bar_visibility_provider.dart';
@@ -41,7 +53,9 @@ class PhotosView extends StatefulWidget {
   State<PhotosView> createState() => _PhotosViewState();
 }
 
-class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
+class _PhotosViewState extends State<PhotosView>
+    with WidgetsBindingObserver
+    implements ApiCallback {
   int selectedIndex = 0; // Default selected index
   // final MediaController mediaController = Get.put(MediaController());
 
@@ -49,10 +63,16 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
   final GlobalKey<MemoriesScreenState> _scaffoldKey =
       GlobalKey<MemoriesScreenState>();
   List<Future<Uint8List?>> future = [];
+  final ScrollController _scrollController = ScrollController();
+  int categorySelectedIndex = 0;
+  int notificationCount=0;
+
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
-
+    ApiCall.getNotifications(api: ApiUrl.notificationCount, callack: this);
+    CommonWidgets.initPlatformState(returnBack: getMemoryIdFromNotification);
+    _initDynamicLinks();
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
       setState(() {});
@@ -64,7 +84,8 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
       // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
     }
 
-    if (widget.memoryId != null) {
+    if (PrefUtils.instance.getMemoryId() != null &&
+        PrefUtils.instance.getMemoryId()!.isNotEmpty) {
       Future.delayed(Duration.zero, () {
         _showMemoryDetailsBottomSheet();
       });
@@ -78,15 +99,37 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
       context: context,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return MemoryDetailsBottomSheet(
-            memoryId: widget.memoryId,
-            title: widget.title,
-            imageLink: widget.imageLink,
-            userName: widget.userName,
-            profileImage: widget.profileImge,
-            userId: model.user?.id);
+        return Container(
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24), color: Colors.white),
+          child: MemoryDetailsBottomSheet(
+            memoryId: PrefUtils.instance.getMemoryId(),
+            title: PrefUtils.instance.getMemoryTitle(),
+            imageLink: PrefUtils.instance.getMemoryImageLink(),
+            userName: PrefUtils.instance.getMemoryUserName(),
+            profileImage: PrefUtils.instance.getMemoryProfileImage(),
+            userId: model.user?.id,
+            callBak: () {
+              if (_scaffoldKey.currentState!.mounted) {
+                _scaffoldKey.currentState!.refrehScreen();
+                PrefUtils.instance.memoryId("");
+                PrefUtils.instance.setTtile("");
+                PrefUtils.instance.imageLink("");
+                PrefUtils.instance.profileImage("");
+                PrefUtils.instance.userName("");
+              }
+            },
+          ),
+        );
       },
     );
+  }
+
+  void getMemoryIdFromNotification(memoryId) {
+//CommonWidgets.successDialog(context, memoryId);
+    EasyLoading.show();
+    ApiCall.memoryDetails(
+        api: ApiUrl.memoryDetail, id: memoryId, page: "", callack: this);
   }
 
   @override
@@ -112,7 +155,13 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       appBar: commonAppbar(
         context,
@@ -225,15 +274,17 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                                   context,
                                   MaterialPageRoute(
                                     builder: (BuildContext context) =>
-                                        CreateMemoryScreen(
+                                        CreateMemoryCopyScreen(
                                       photosList: widget.photosList,
                                       future: future,
                                       isBack: true,
+                                      fromMediaScreen: false,
                                     ),
                                   ),
                                 ).then((value) {
                                   if (value != null) {
                                     _scaffoldKey.currentState!.refrehScreen();
+                                    categorySelectedIndex = value;
                                     setState(() {});
                                   }
                                 });
@@ -243,7 +294,7 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                                 children: [
                                   Image.asset(
                                     "assets/images/fabIcon.png",
-                                    height: 67,
+                                    height: 90,
                                   ),
                                   Image.asset(
                                     "assets/images/addFabIcon.png",
@@ -276,13 +327,14 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
               key: _scaffoldKey,
               photosList: widget.photosList,
               isSkip: () {},
+              categorySelectedIndex: categorySelectedIndex,
             )
           : selectedIndex == 1
               ? MediaScreen(
                   future: future,
                   photosList: widget.photosList,
                   isFromSignUp: false,
-                )
+                  type: "")
               : Container(),
     );
   }
@@ -321,7 +373,22 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
             Stack(
               children: [
                 InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (BuildContext context) =>
+                                NotificationScreen(
+                                  future: future,
+                                  photosList: widget.photosList,
+                                ))).then((value) {
+                                      ApiCall.getNotifications(api: ApiUrl.notificationCount, callack: this);
+
+                      if (_scaffoldKey.currentState!.mounted) {
+                        _scaffoldKey.currentState!.refrehScreen();
+                      }
+                    });
+                  },
                   child: Stack(
                     children: [
                       Container(
@@ -342,19 +409,19 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                       Positioned(
                         right: 17,
                         top: 7,
-                        child: notificationCount.value > 0
+                        child: notificationCount > 0
                             ? Container(
-                                width: 18.0,
-                                height: 18.0,
+                                width: 20.0,
+                                height: 20.0,
                                 alignment: Alignment.center,
                                 decoration: const BoxDecoration(
                                     borderRadius:
                                         BorderRadius.all(Radius.circular(30)),
-                                    color: Colors.red),
+                                    color: AppColors.redBgColor),
                                 child: Text(
-                                  '${notificationCount.value}',
+                                  '${notificationCount}',
                                   style: const TextStyle(
-                                      fontSize: 10, color: Colors.white),
+                                      fontSize: 9, color: Colors.white),
                                   textAlign: TextAlign.center,
                                 ),
                               )
@@ -376,17 +443,21 @@ class _PhotosViewState extends State<PhotosView> with WidgetsBindingObserver {
                       MaterialPageRoute(
                           builder: (BuildContext context) =>
                               const ProfileScreen())).then((value) {
-PrefUtils.instance.getUserFromPrefs().then((value) {
-      model = value!;
-      setState(() {});
-    });                  });
+                    setState(() {});
+                    if (_scaffoldKey.currentState!.mounted) {
+                      _scaffoldKey.currentState!.refrehScreen();
+                    }
+                    PrefUtils.instance.getUserFromPrefs().then((value) {
+                      model = value!;
+                      setState(() {});
+                    });
+                  });
                 },
                 child: Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(50.0),
-                      color: convertColor(color: userProfileColor.value) ??
-                          AppColors.primaryColor,
+                      color: convertColor(color: model.user!.profileColor),
                       border: Border.all(color: Colors.grey, width: 0.3)),
                   height: 46,
                   width: 46,
@@ -419,5 +490,132 @@ PrefUtils.instance.getUserFromPrefs().then((value) {
         )
       ],
     );
+  }
+
+  Future<void> _initDynamicLinks() async {
+    FirebaseDynamicLinks dynamicLinks = FirebaseDynamicLinks.instance;
+    debugPrint("Dyanmic Link is $dynamicLinks");
+    final PendingDynamicLinkData? data = await dynamicLinks.getInitialLink();
+    print("Data is $data");
+    _handleDynamicLink(data);
+    dynamicLinks.onLink.listen((PendingDynamicLinkData dynamicLinkData) {
+      _handleDynamicLink(dynamicLinkData);
+    }).onError((error) {
+      debugPrint('onLink error: $error');
+    });
+  }
+
+  void _handleDynamicLink(PendingDynamicLinkData? data) {
+    try {
+      final Uri? deepLink = data?.link;
+
+      if (deepLink != null) {
+        debugPrint("Received deep link: $deepLink");
+
+        String fixedLink = deepLink.toString();
+        if (!fixedLink.contains('?')) {
+          fixedLink = fixedLink.replaceFirst('/memory_id', '?memory_id');
+        }
+
+        final Uri fixedUri = Uri.parse(fixedLink);
+
+        String? memoryId = fixedUri.queryParameters['memory_id'];
+        String? title = fixedUri.queryParameters['title'];
+        String? imageLink = fixedUri.queryParameters['image_link'];
+        String? userName = fixedUri.queryParameters['user_name'];
+        String? profileImage = fixedUri.queryParameters['profile_image'];
+
+        if (memoryId != null &&
+            title != null &&
+            imageLink != null &&
+            userName != null) {
+          debugPrint(
+              "Received memoryId: $memoryId, title: $title, imageLink: $imageLink, profileImage: $profileImage,userName: $userName");
+
+          String decodedImageLink = Uri.decodeComponent(imageLink);
+          debugPrint("Decoded imageLink: $decodedImageLink");
+          PrefUtils.instance.memoryId(memoryId);
+          PrefUtils.instance.setTtile(title);
+          PrefUtils.instance.imageLink(imageLink);
+          PrefUtils.instance.profileImage(profileImage!);
+          PrefUtils.instance.userName(userName);
+
+          if (PrefUtils.instance.getMemoryId() != null &&
+              PrefUtils.instance.getMemoryId()!.isNotEmpty) {
+            Future.delayed(Duration.zero, () {
+              _showMemoryDetailsBottomSheet();
+            });
+          }
+
+          // if (MyApp.navigatorKey.currentState != null) {
+          //   MyApp.navigatorKey.currentState?.pushReplacement(
+          //     MaterialPageRoute(
+          //       builder: (context) => PhotosView(
+          //         memoryId: memoryId,
+          //         title: title,
+          //         imageLink: decodedImageLink,
+          //         photosList: photosList,
+          //         profileImge: profileImage,
+          //         userName: userName,
+          //         isSkip: false,
+          //       ),
+          //     ),
+          //   );
+          // }
+        } else {
+          debugPrint("Error: Missing parameters in the deep link");
+        }
+      } else {
+        debugPrint("Error: No deep link found");
+      }
+    } catch (error) {
+      debugPrint("Error handling dynamic link: $error");
+    }
+  }
+
+  @override
+  void onFailure(String message) {
+    EasyLoading.dismiss();
+  }
+
+  @override
+  void onSuccess(String data, String apiType) {
+    EasyLoading.dismiss();
+    if (apiType == ApiUrl.memoryDetail) {
+      MemoryDetailsModel details =
+          MemoryDetailsModel.fromJson(json.decode(data));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (BuildContext context) => MemoryDetailPage(
+                    memoryTtile: details.data![0].memory!.title!,
+                    memoryId: details.data![0].memory!.id.toString(),
+                    userName: details.data![0].user!.name!,
+                    sharedCount: "0",
+                    email: details.data![0].user!.id.toString(),
+                    imageLink: details.data![0].memory!.lastUpdateImg!,
+                    imageCaptions: details.data![0].user!.profileImage,
+                    pubLished: details.data![0].memory!.published.toString(),
+                    future: future,
+                    photosList: widget.photosList,
+                    subId: details.data![0].memory!.subCategoryId.toString(),
+                    catId: details.data![0].memory!.categoryId.toString(),
+                    selectionType: "Personal",
+                  ))).then((value) {
+        if (_scaffoldKey.currentState!.mounted) {
+          _scaffoldKey.currentState!.refrehScreen();
+        }
+      });
+    }else{
+      notificationCount=json.decode(data)['data'];
+      setState(() {
+        
+      });
+    }
+  }
+
+  @override
+  void tokenExpired(String message) {
+    // TODO: implement tokenExpired
   }
 }

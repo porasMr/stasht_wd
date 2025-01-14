@@ -62,6 +62,9 @@ class AppStrings {
   static String delete = "Delete";
   static String next = "Next";
 
+    static var comment = "Comments";
+
+
   static String addAMemory = "Add a Memory";
 
   static var memoryTitle = "Memory Title";
@@ -80,11 +83,14 @@ class AppStrings {
   static String editCategory = "Edit Category";
   static String editLabel = "Edit Label";
   static String instaPhotos = "Instagram Photos";
+    static String googlePhotos = "Google Photos";
+
   static String fbPhotos = "Facebook Photos";
   static String googleDrive = "Google Drive";
 
   static String done="Done";
 
   static String noDataFound="No data found...";
+  static String oneSingalToken="80908c2d-25b2-4c8a-86aa-19fbba65b168";
 
 }

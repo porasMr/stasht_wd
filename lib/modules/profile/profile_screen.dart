@@ -4,9 +4,11 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
@@ -47,8 +49,10 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
   String selectedType = "";
   @override
   void initState() {
+    
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
+      print("token${model.user!.deviceToken}");
       nameController.text = model.user!.name!;
       if (model.user!.googleDriveSynced == 1) {
         isDriveSync = true;
@@ -106,6 +110,11 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -194,7 +203,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                   BorderRadius.all(Radius.circular(100)),
                             ),
                             margin: const EdgeInsets.only(top: 10),
-                            child: model.user!.profileImage != ''
+                            child: model.user?.profileImage != ''&& model.user?.profileImage != null
                                 ? ClipRRect(
                                     borderRadius:
                                         BorderRadius.circular(10000.0),
@@ -217,7 +226,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: AppColors.primaryColor,
+                                        color:convertColor(color: model.user?.profileColor?? "FFFFFF"),
                                         /*??
                                                       AppColors
                                                           .primaryColor,*/
@@ -409,7 +418,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              AppStrings.instagram,
+                              AppStrings.googlePhotos,
                               style: appTextStyle(
                                   fm: robotoRegular, fz: 17, height: 18 / 17),
                             ),
@@ -528,16 +537,12 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                             horizontal: 15, vertical: 13),
                         child: GestureDetector(
                           onTap: () async{
-                            
-   final appDir = await getApplicationSupportDirectory();
-
-    if(appDir.existsSync()){
-      appDir.deleteSync(recursive: true);
-    }
- EasyLoading.show();
+                             changePassowrd = false;
+                             isDriveSync = false;
+                             isFbSync = false;
+                       GoogleSignIn().signOut();
+                       EasyLoading.show();
                       ApiCall.deleteUserAccount(api: ApiUrl.unSyncAccount, callack: this);
-
-                            
                           },
                           child: Text(
                             AppStrings.logout,
@@ -668,7 +673,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
 
   void changeUserNameFunc() {
     if (formkey.currentState!.validate()) {
-      model.user!.profileImage = nameController.text;
+      model.user!.name = nameController.text;
 
       EasyLoading.show();
       ApiCall.updateProfile(
@@ -742,7 +747,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                     topRight: Radius.circular(15),
                     topLeft: Radius.circular(15)),
                 color: Colors.white),
-            height:  300,
+            height:  200,
             child: Column(
               children: [
                 const Padding(
@@ -762,9 +767,34 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
                     Expanded(
                         child: InkWell(
                       onTap: () {
+
                         Navigator.pop(context);
-                        EasyLoading.show();
-                      ApiCall.deleteUserAccount(api: ApiUrl.deleteUserAccount, callack: this);
+                        showDialog(
+                          barrierDismissible: false,
+                            
+                            context: context, builder: (context) =>  AlertDialog( backgroundColor: Color(0xFFE2E3FF),
+
+                          title: Text("Are you sure want to delete your account ?"),
+                          content: Text('By tapping "Delete" , you are choosing to delete this account , permanently .'),
+                          actions: [
+                               TextButton(onPressed:(){
+                                 Navigator.pop(context);
+                               }, child: Text("Cancel", style: TextStyle(
+                                   fontSize: 14,
+                                   color: AppColors.primaryColor,
+                                   fontFamily: robotoBold),)),
+                               TextButton(onPressed:(){
+                                 Navigator.pop(context);
+                                   GoogleSignIn().signOut();
+                                   EasyLoading.show();
+                                 ApiCall.deleteUserAccount(api: ApiUrl.deleteUserAccount, callack: this);
+                               }, child: Text("Delete", style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.primaryColor,
+                        fontFamily: robotoBold),)),
+                          ],
+                        ));
+
                       },
                       child: Container(
                         padding: const EdgeInsets.all(30),
@@ -835,16 +865,25 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       var img = json.decode(data.split("=")[0])['file'].toString();
       model.user!.profileImage = img;
       PrefUtils.instance.saveUserToPrefs(model);
+                  //CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       ApiCall.updateProfile(
           api: ApiUrl.updateProfile, type: "image", value: img, callack: this);
     } else if (apiType == ApiUrl.updateProfile) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       changeUserName = false;
       setState(() {});
     } else if (apiType == ApiUrl.deleteUserAccount) {
+              PrefUtils.instance.driveToken('');
+
       PrefUtils.instance.clearPreferance();
-      Navigator.popUntil(context, ModalRoute.withName("/SignIn"));
+                            Navigator.of(context).pushNamedAndRemoveUntil(
+                                '/SignIn', (Route<dynamic> route) => false);
     } else if (apiType == ApiUrl.syncAccount) {
+                  CommonWidgets.successDialog(context, json.decode(data)['message']);
+
       EasyLoading.dismiss();
       if (selectedType == "facebook_synced") {
         model.user!.facebookSynced = 0;
@@ -853,6 +892,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       } else if (selectedType == "google_drive_synced") {
         isDriveSync = false;
         model.user!.googleDriveSynced = 0;
+        PrefUtils.instance.driveToken('');
         PrefUtils.instance.saveDrivePhotoLinks([]);
       } 
       else {
@@ -863,12 +903,16 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       }
       PrefUtils.instance.saveUserToPrefs(model);
     }else if(apiType==ApiUrl.unSyncAccount){
+              PrefUtils.instance.driveToken('');
+
       PrefUtils.instance.clearPreferance();
                             Navigator.of(context).pushNamedAndRemoveUntil(
                                 '/SignIn', (Route<dynamic> route) => false);
     }
-
-    setState(() {});
+if(mounted){
+ setState(() {});
+}
+   
   }
 
   @override

@@ -1,22 +1,26 @@
 class MemoryDetailsModel {
   int? status;
   String? message;
-  Data? data;
+  List<MemoryListData>? data;
 
   MemoryDetailsModel({this.status, this.message, this.data});
 
   MemoryDetailsModel.fromJson(Map<String, dynamic> json) {
     status = json['status'];
     message = json['message'];
-    data = json['data'] != null ? new Data.fromJson(json['data']) : null;
-  }
+ if (json['data'] != null) {
+      data = <MemoryListData>[];
+      json['data'].forEach((v) {
+        data!.add( MemoryListData.fromJson(v));
+      });
+    }  }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['status'] = this.status;
     data['message'] = this.message;
-    if (this.data != null) {
-      data['data'] = this.data!.toJson();
+     if (this.data != null) {
+      data['data'] = this.data!.map((v) => v.toJson()).toList();
     }
     return data;
   }
@@ -261,7 +265,7 @@ class User {
   dynamic userName;
   int? status;
   dynamic profileImage;
-  dynamic profileColor;
+  String? profileColor;
   int? notificationsCount;
   dynamic instagramSynced;
   int? facebookSynced;

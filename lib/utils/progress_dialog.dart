@@ -12,8 +12,12 @@ class ProgressDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-        backgroundColor: Colors.transparent,
+    return 
+    AlertDialog(
+      shadowColor:Colors.transparent ,
+      
+
+        backgroundColor: Colors.transparent,elevation: 0, insetPadding: EdgeInsets.zero,
         content:ValueListenableBuilder<double>(
         valueListenable: progressNotifier,
         builder: (context, progress, child) {
@@ -28,7 +32,7 @@ class ProgressDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               '${(progressNotifier.value * 100).toStringAsFixed(0)}%',
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.primaryColor),
             ),
           ],
         );

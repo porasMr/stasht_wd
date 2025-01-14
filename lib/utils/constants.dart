@@ -229,14 +229,13 @@ String colorToHex(Color color) {
   return '#${color.value.toRadixString(16).padLeft(8, '0')}';
 }
 
-convertColor({String?color}) {
-
+convertColor({String? color}) {
+print(color);
   Color userColor;
   if(color!=null && color!=""){
-    String hexColor = userProfileColor.value.replaceAll("#", "");
 
 // Convert the hex string to an integer, specifying radix 16
-    userColor = Color(int.parse(hexColor, radix: 16));
+    userColor = Color(int.parse("0XFF"+color));
   }
   else{
     userColor=AppColors.primaryColor;

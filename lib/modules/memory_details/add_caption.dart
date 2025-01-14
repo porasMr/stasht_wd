@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -58,7 +60,7 @@ Navigator.pop(context);
               
             }
             },
-            child: const Row(
+            child:  Row(
               children: [
                 Text(
                   'Done',
@@ -128,6 +130,8 @@ CommonWidgets.errorDialog(context, message);
   @override
   void onSuccess(String data, String apiType) {
     print(data);
+          CommonWidgets.successDialog(context, json.decode(data)['message']);
+
     EasyLoading.dismiss();
     Navigator.pop(context,captionController.text);
   }

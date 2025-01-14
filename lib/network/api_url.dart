@@ -29,6 +29,21 @@ class ApiUrl {
   static const String getComments = "comments";
   static const String addComment = "add-comment";
     static const String unSyncAccount = "un_sync_account";
+  static const String collabortor = "collabortor";
+    static const String removeCollaborator = "remove-collaborator";
+      static const String notifications = "notifications";
+            static const String readNotification = "read_notification";
+            static const String notificationCount = "notificationCount";
+
+
+      
+
+
+
+  
+
+
+    
 
   
 }

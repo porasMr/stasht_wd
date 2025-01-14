@@ -96,7 +96,7 @@ static Future<http.Response> getTypeWithTokenApi({
     final ioc = HttpClient()
       ..badCertificateCallback = (X509Certificate cert, String host, int port) => true; // Bypass SSL verification
     final httpClient = IOClient(ioc);
-
+print(ApiUrl.baseUrl+api);
 
     final response = await httpClient.get(
       Uri.parse(ApiUrl.baseUrl+api),

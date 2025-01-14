@@ -30,8 +30,11 @@ class WebImagePreview extends StatelessWidget {
                     fit: BoxFit.cover,
                    
                     progressIndicatorBuilder: (context, url, downloadProgress) =>
-                        CircularProgressIndicator(
-                            value: downloadProgress.progress)),
+                        Padding(
+                          padding: const EdgeInsets.all(3.0),
+                          child: CircularProgressIndicator(
+                              value: downloadProgress.progress),
+                        )),
               )),
           Positioned(
             top: 0,

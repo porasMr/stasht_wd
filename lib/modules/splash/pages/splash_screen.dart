@@ -1,7 +1,11 @@
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/photos/photos_screen.dart';
+import 'package:stasht/utils/app_colors.dart';
+import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/pref_utils.dart';
@@ -25,8 +29,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+   CommonWidgets.initPlatformState();
+        _initDynamicLinks();
+
     handleNavigation();
-    _initDynamicLinks();
   }
 
   Future<void> _initDynamicLinks() async {
@@ -71,22 +77,30 @@ class _SplashScreenState extends State<SplashScreen> {
 
           String decodedImageLink = Uri.decodeComponent(imageLink);
           debugPrint("Decoded imageLink: $decodedImageLink");
+          PrefUtils.instance.memoryId(memoryId);
+                    PrefUtils.instance.setTtile(title);
+                                        PrefUtils.instance.imageLink(imageLink);
+                                        PrefUtils.instance.profileImage(profileImage!);
+                                        PrefUtils.instance.userName(userName);
 
-          if (MyApp.navigatorKey.currentState != null) {
-            MyApp.navigatorKey.currentState?.pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => PhotosView(
-                  memoryId: memoryId,
-                  title: title,
-                  imageLink: decodedImageLink,
-                  photosList: photosList,
-                  profileImge: profileImage,
-                  userName: userName,
-                  isSkip: false,
-                ),
-              ),
-            );
-          }
+
+          
+
+          // if (MyApp.navigatorKey.currentState != null) {
+          //   MyApp.navigatorKey.currentState?.pushReplacement(
+          //     MaterialPageRoute(
+          //       builder: (context) => PhotosView(
+          //         memoryId: memoryId,
+          //         title: title,
+          //         imageLink: decodedImageLink,
+          //         photosList: photosList,
+          //         profileImge: profileImage,
+          //         userName: userName,
+          //         isSkip: false,
+          //       ),
+          //     ),
+          //   );
+          // }
         } else {
           debugPrint("Error: Missing parameters in the deep link");
         }
@@ -127,6 +141,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: AppColors.primaryColor,
+      ),
+    );
     return Scaffold(
         key: const Key('key-1'),
         body: Container(
@@ -140,4 +159,8 @@ class _SplashScreenState extends State<SplashScreen> {
                   ))),
         ));
   }
+
+  
+
+
 }

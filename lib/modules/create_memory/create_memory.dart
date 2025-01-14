@@ -10,7 +10,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stasht/modules/create_memory/model/group_modle.dart';
 import 'package:stasht/modules/create_memory/model/sub_category_model.dart';
+import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/category_memory_model_withoutpage.dart';
 import 'package:stasht/modules/media/model/create_memory_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
@@ -19,6 +21,7 @@ import 'package:stasht/modules/memories/model/subcategory.dart';
 import 'package:stasht/modules/memory_details/model/memory_detail_model.dart';
 import 'package:stasht/modules/onboarding/domain/model/favebook_photo.dart';
 import 'package:stasht/modules/onboarding/domain/model/photo_detail_model.dart';
+import 'package:stasht/modules/onboarding/domain/model/photo_group_model.dart';
 import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
 import 'package:stasht/network/api_url.dart';
@@ -43,15 +46,22 @@ class CreateMemoryScreen extends StatefulWidget {
       required this.photosList,
       required this.isBack,
       this.isEdit,
-      this.memoryListData,this.title,this.memoryId,this.cateId,this.subId});
+      this.memoryListData,
+      this.title,
+      this.memoryId,
+      this.cateId,
+      this.subId,
+      this.userId});
   List<Future<Uint8List?>> future = [];
   List<PhotoModel> photosList = [];
   List<MemoryListData>? memoryListData = [];
-  String? title='';
-  String? memoryId='';
-  String? cateId='';
-  String? subId='';
+  String? title = '';
+  String? memoryId = '';
+  String? cateId = '';
+  String? subId = '';
+  String? userId = '';
 
+  ScrollController driveController = ScrollController();
 
   bool? isEdit;
   bool isBack;
@@ -65,9 +75,10 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
   List<String> tabListItem = [
     "All",
     "Camera Roll",
+    "Drive",
     "Facebook",
     "Instagram",
-    "Drive"
+    
   ];
   String selectedTab = "";
 
@@ -105,62 +116,169 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   int uploadCount = 0;
   var progressbarValue = 0.0;
+  UserModel model = UserModel();
+  ScrollController driveController = ScrollController();
+
+  //--------------_Drive group model================
+  List<GroupedPhotoModel> driveGroupModel = [];
+  List<GroupedPhotoModel> instaGroupModel = [];
+  List<GroupedPhotoModel> fbGroupModel = [];
+  List<PhotoGroupModel> photoGroupModel = [];
 
   @override
   void initState() {
     super.initState();
+    photoGroupModel=groupGalleryPhotosByDate(widget.photosList,widget.future);
+    PrefUtils.instance.getUserFromPrefs().then((value) {
+      model = value!;
+      setState(() {});
+    });
+
     PrefUtils.instance.getDrivePrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       driveModel = value;
+      driveGroupModel = groupPhotosByDate(driveModel);
     });
     PrefUtils.instance.getFacebookPrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       fbModel = value;
+      fbGroupModel = groupPhotosForFBAndINSTAByDate(fbModel);
     });
     PrefUtils.instance.getInstaPrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       instaModel = value;
+      instaGroupModel = groupPhotosForFBAndINSTAByDate(instaModel);
     });
+
     deselectAll();
     ApiCall.category(api: ApiUrl.categories, callack: this);
+    driveController.addListener(_onScrollEnd);
   }
 
-  selectionOfAllPhoto() {
-    titleController.text = widget.title??'';
-    categoryId = widget.cateId??'';
-    memoryId = widget.memoryId ??'';
-    subCategoryId =
-        widget.subId??'';
-    if (subCategoryId.isNotEmpty) {
+  List<GroupedPhotoModel> groupPhotosByDate(
+      List<PhotoDetailModel> photoDetails) {
+    // Create a map to group photos by captureDate
+    final groupedMap = <String, List<PhotoDetailModel>>{};
 
+    for (var photo in photoDetails) {
+      // Group photos by month-year
+      if (photo.thumbnailPath != null) {
+        if(photo.captureDate!=null){
+        if (groupedMap.containsKey(photo.captureDate)) {
+          groupedMap[photo.captureDate]!.add(photo);
+        } else {
+          groupedMap[photo.captureDate!] = [photo];
+        }
+        }
+      }
+    }
+
+    // Convert the map to a list of GroupedPhotoModel
+    return groupedMap.entries.map((entry) {
+      return GroupedPhotoModel(
+        date: entry.key,
+        photos: entry.value,
+      );
+    }).toList();
+  }
+
+   List<GroupedPhotoModel> groupPhotosForFBAndINSTAByDate(
+      List<PhotoDetailModel> photoDetails) {
+    // Create a map to group photos by captureDate
+    final groupedMap = <String, List<PhotoDetailModel>>{};
+
+    for (var photo in photoDetails) {
+      // Group photos by month-year
+      if (photo.webLink != null) {
+        if(photo.captureDate!=null){
+        if (groupedMap.containsKey(photo.captureDate)) {
+          groupedMap[photo.captureDate]!.add(photo);
+        } else {
+          groupedMap[photo.captureDate!] = [photo];
+        }
+        }
+      }
+    }
+
+    // Convert the map to a list of GroupedPhotoModel
+    return groupedMap.entries.map((entry) {
+      return GroupedPhotoModel(
+        date: entry.key,
+        photos: entry.value,
+      );
+    }).toList();
+  }
+
+   List<PhotoGroupModel> groupGalleryPhotosByDate(
+    List<PhotoModel> photoDetails, List<Future<Uint8List?>> futures) {
+  // Create a map to group photos by captureDate
+  final groupedMap = <String, List<PhotoModel>>{};
+  final futureMap = <String, List<Future<Uint8List?>>>{};
+
+  for (int i = 0; i < photoDetails.length; i++) {
+    // Format the capture date to 'MMM yyyy'
+    String changeTime =
+        DateFormat('MMM yyyy').format(photoDetails[i].assetEntity.createDateTime);
+
+    if (changeTime.isNotEmpty) {
+      // Group the photos
+      if (groupedMap.containsKey(changeTime)) {
+        groupedMap[changeTime]!.add(photoDetails[i]);
+        futureMap[changeTime]!.add(futures[i]);
+      } else {
+        groupedMap[changeTime] = [photoDetails[i]];
+        futureMap[changeTime] = [futures[i]];
+      }
+    }
+  }
+
+  // Convert the map to a list of PhotoGroupModel
+  return groupedMap.entries.map((entry) {
+    final date = entry.key;
+    final photos = entry.value;
+    final photoFutures = futureMap[date] ?? []; // Match futures with grouped photos
+
+    return PhotoGroupModel(
+      date: date,
+      photos: photos,
+      future: photoFutures,
+    );
+  }).toList();
+}
+
+
+  selectionOfAllPhoto() {
+    titleController.text = widget.title ?? '';
+    categoryId = widget.cateId ?? '';
+    memoryId = widget.memoryId ?? '';
+    subCategoryId = widget.subId ?? '';
+    if (subCategoryId.isNotEmpty) {
       for (int sub = 0;
-      sub < categoryMemoryModelWithoutPage.subCategories!.length;
-      sub++) {
-        print("subCategoryId${categoryMemoryModelWithoutPage.subCategories![sub].id ==
-            int.parse(subCategoryId)}");
+          sub < categoryMemoryModelWithoutPage.subCategories!.length;
+          sub++) {
+        print(
+            "subCategoryId${categoryMemoryModelWithoutPage.subCategories![sub].id == int.parse(subCategoryId)}");
 
         if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
-            int.parse(subCategoryId) ) {
+            int.parse(subCategoryId)) {
           categoryMemoryModelWithoutPage.subCategories![sub].isselected = true;
-        }else{
+        } else {
           categoryMemoryModelWithoutPage.subCategories![sub].isselected = false;
         }
       }
     }
     for (int i = 0; i < categoryModel.categories!.length; i++) {
-      if (categoryModel.categories![i].id ==
-          int.parse(categoryId) ) {
+      if (categoryModel.categories![i].id == int.parse(categoryId)) {
         categoryModel.categories![i].isSelected = true;
         categoryId = categoryModel.categories![i].id.toString();
-      }else{
+      } else {
         categoryModel.categories![i].isSelected = false;
-
       }
     }
     for (int p = 0; p < widget.memoryListData!.length; p++) {
@@ -173,49 +291,57 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       } else if (widget.memoryListData![p].type == "drive") {
         updateDriveSelectedValue(widget.memoryListData![p].typeId!.toString());
       }
-
     }
     setState(() {});
   }
 
   void updateSelectedValue(String selectedId) {
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].assetEntity.id == selectedId) {
-        widget.photosList[i].selectedValue = true;
-        widget.photosList[i].isEditmemory = true;
+for(int i=0;i<photoGroupModel.length;i++){
+for(int j=0;j<photoGroupModel[i].photos.length;j++){
+if (photoGroupModel[i].photos[j].assetEntity.id == selectedId) {
+        photoGroupModel[i].photos[j].selectedValue = true;
+        photoGroupModel[i].photos[j].isEditmemory = true;
       }
-    }
+}
+}
 
+   
     setState(() {});
   }
 
   void updateFbSelectedValue(String selectedId) {
-    for (int i = 0; i < fbModel.length; i++) {
-      if (fbModel[i].id == selectedId) {
-        fbModel[i].isSelected = true;
-        fbModel[i].isEdit = true;
+    for(int j=0;j<fbGroupModel.length;j++){
+    for (int i = 0; i < fbGroupModel[j].photos.length; i++) {
+      if (fbGroupModel[j].photos[i].id == selectedId) {
+        fbGroupModel[j].photos[i].isSelected = true;
+        fbGroupModel[j].photos[i].isEdit = true;
       }
+    }
     }
 
     setState(() {});
   }
 
   void updateInstaSelectedValue(String selectedId) {
-    for (int i = 0; i < instaModel.length; i++) {
-      if (instaModel[i].id == selectedId) {
-        instaModel[i].isSelected = true;
-        fbModel[i].isEdit = true;
+    for(int j=0;j<instaGroupModel.length;j++){
+    for (int i = 0; i < instaGroupModel[j].photos.length; i++) {
+      if (instaGroupModel[j].photos[i].id == selectedId) {
+        instaGroupModel[j].photos[i].isSelected = true;
+        instaGroupModel[j].photos[i].isEdit = true;
       }
+    }
     }
     setState(() {});
   }
 
   void updateDriveSelectedValue(String selectedId) {
-    for (int i = 0; i < driveModel.length; i++) {
-      if (instaModel[i].id == selectedId) {
-        driveModel[i].isSelected = true;
-        fbModel[i].isEdit = true;
+    for(int j=0;j<driveGroupModel.length;j++){
+    for (int i = 0; i < driveGroupModel[j].photos.length; i++) {
+      if (driveGroupModel[j].photos[i].id == selectedId) {
+        driveGroupModel[j].photos[i].isSelected = true;
+        driveGroupModel[j].photos[i].isEdit = true;
       }
+    }
     }
     setState(() {});
   }
@@ -258,7 +384,11 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle.dark.copyWith(
+        systemNavigationBarColor: Colors.white,
+      ),
+    );
     return Scaffold(
       appBar: widget.isBack
           ? AppBar(
@@ -279,7 +409,8 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
                       uploadCount = 1;
                       progressbarValue = 0.0;
                       if (labelController.text.isEmpty) {
-                        uploadData(getSelectedCategory(), selectedSubCategory());
+                        uploadData(
+                            getSelectedCategory(), selectedSubCategory());
                       } else {
                         ApiCall.createSubCategory(
                             api: ApiUrl.createSubCategory,
@@ -660,48 +791,95 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   int allSelectedPhotos() {
     int value = 0;
+    for(int i=0;i<photoGroupModel.length;i++){
     value = value +
-        widget.photosList
-            .where(
-                (photo) => (photo.selectedValue || photo.isEditmemory))
+        photoGroupModel[i].photos
+            .where((photo) => (photo.selectedValue || photo.isEditmemory))
             .length;
-    value = value + fbModel.where((photo) => (photo.isSelected||photo.isEdit)).length;
-    value = value + instaModel.where((photo) =>(photo.isSelected||photo.isEdit)).length;
-    value = value + driveModel.where((photo) => (photo.isSelected||photo.isEdit)).length;
+    }
+    for(int i=0;i<fbGroupModel.length;i++){
+    value = value +
+        fbGroupModel[i].photos.where((photo) => (photo.isSelected || photo.isEdit)).length;
+    }
+        for(int i=0;i<instaGroupModel.length;i++){
 
+    value = value +
+        instaGroupModel[i].photos.where((photo) => (photo.isSelected || photo.isEdit)).length;
+        }
+                for(int i=0;i<driveGroupModel.length;i++){
+
+    value = value +
+        driveGroupModel[i].photos.where((photo) => (photo.isSelected || photo.isEdit)).length;
+                }
     return value;
   }
 
   selectedtabView(BuildContext context) {
     if (selectedIndex == 0) {
       return CommonWidgets.albumView(
-        widget.future,
-        widget.photosList,
-        viewRefersh,
+photoGroupModel,        viewRefersh,
       );
     } else if (selectedIndex == 1) {
       return CommonWidgets.albumView(
-          widget.future, widget.photosList, viewRefersh);
+photoGroupModel,        viewRefersh,
+      );
     } else if (selectedIndex == 2) {
-      if (fbModel.isEmpty) {
-        return CommonWidgets.fbView(context, getFacebbokPhoto);
-      } else {
-        return CommonWidgets.fbPhtotView(fbModel, viewRefersh);
-      }
-    } else if (selectedIndex == 3) {
-      if (instaModel.isEmpty) {
-        return CommonWidgets.instaView(context, getInstaView);
-      } else {
-        return CommonWidgets.instaPhtotView(instaModel, viewRefersh);
-      }
-    } else if (selectedIndex == 4) {
-      if (driveModel.isEmpty) {
+      if (driveGroupModel.isEmpty) {
         return CommonWidgets.driveView(context, getDriveView);
       } else {
-        return CommonWidgets.drivePhtotView(driveModel, viewRefersh);
+        return CommonWidgets.drivePhtotView(driveGroupModel, viewRefersh,
+            controller: driveController);
+      }
+    }
+    else if (selectedIndex == 3) {
+      if (fbGroupModel.isEmpty) {
+        return CommonWidgets.fbView(context, getFacebbokPhoto);
+      } else {
+        return CommonWidgets.fbPhtotView(fbGroupModel, viewRefersh);
+      }
+    } else if (selectedIndex == 4) {
+      if (instaGroupModel.isEmpty) {
+        return CommonWidgets.photoView(context, getInstaView);
+      } else {
+        return CommonWidgets.instaPhtotView(instaGroupModel, viewRefersh);
+      }
+    } 
+  }
+
+  void _onScrollEnd() {
+    if (driveController.position.pixels >=
+        driveController.position.maxScrollExtent) {
+      if (PrefUtils.instance.getDriveToken() != null &&
+          PrefUtils.instance.getDriveToken()!.isNotEmpty) {
+            CommonWidgets.showBottomSheet(context,(){
+ CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+              getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+            });
+            });
+       // _showLoadMoreSnackbar();
       }
     }
   }
+
+  // void _showLoadMoreSnackbar() {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //               behavior: SnackBarBehavior.floating,
+
+  //       content: const Text("Loading another 30 images"),
+  //       action: SnackBarAction(
+  //         label: 'Load more',
+          
+  //         onPressed: () {
+  //           ScaffoldMessenger.of(context).hideCurrentSnackBar();
+  //           CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+  //             getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+  //           });
+  //         },
+  //       ),
+  //     ),
+  //   );
+  // }
 
   getFacebbokPhoto(AccessToken token) {
     fetchFacebookPhotos(token);
@@ -711,8 +889,11 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     instaRequestForAccessToken(token);
   }
 
-  getDriveView(GoogleSignIn v1) {
-    fetchPhotosFromDrive(v1, context);
+  getDriveView(GoogleSignIn v1, String pageToken) {
+   if(photoLinks.isNotEmpty){
+    photoLinks.clear();
+   }
+    fetchPhotosFromDrive(v1, context, pageToken);
   }
 
   viewRefersh() {
@@ -784,20 +965,23 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   @override
   void onFailure(String message) {
-        EasyLoading.dismiss();
-
-    CommonWidgets.errorDialog(context, message);
-     if(countSelectedPhotos()==0) {
+    EasyLoading.dismiss();
+    if (widget.isEdit!) {
+      CommonWidgets.errorDialog(context, message);
+      if (countSelectedPhotos() == 0) {
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
         print(progressbarValue);
 
-        clossProgressDialog('');
+        clossProgressDialog('',
+        []);
       }
+    }
   }
 
   @override
   void onSuccess(String data, String apiType) {
+    print(data);
     if (apiType == ApiUrl.categories) {
       categoryModel = CategoryModel.fromJson(jsonDecode(data));
       categoryModel.categories![0].isSelected = true;
@@ -815,18 +999,15 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
       categoryMemoryModelWithoutPage =
           CategoryMemoryModelWithoutPage.fromJson(jsonDecode(data));
+
       if (widget.isEdit!) {
         selectionOfAllPhoto();
       }
 
-
-        if (categoryMemoryModelWithoutPage.subCategories!.isNotEmpty) {
-          addLable = false;
-          setState(() {
-
-          });
-        }
-
+      if (categoryMemoryModelWithoutPage.subCategories!.isNotEmpty) {
+        addLable = false;
+        setState(() {});
+      }
     } else if (apiType == ApiUrl.uploadImageTomemory) {
       String count = data.split("=")[1];
       print(json.decode(data.split("=")[0])['file'].toString());
@@ -845,7 +1026,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
           json.decode(data.split("=")[0])['file'].toString();
 
       if (valueNotEmpty()) {
-        clossProgressDialog('');
+        clossProgressDialog('',[]);
         if (createModel.memoryId != null) {
           ApiCall.createMemory(
               api: ApiUrl.updateMemory, model: createModel, callack: this);
@@ -855,12 +1036,12 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         } // Dismiss the dialog
       }
     } else if (apiType == ApiUrl.createMemory) {
-      if(countSelectedPhotos()==0) {
+      if (countSelectedPhotos() == 0) {
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
         print(progressbarValue);
 
-        clossProgressDialog('');
+        clossProgressDialog('',[]);
       }
 
       deselectAll();
@@ -870,25 +1051,24 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       Navigator.pop(context, true);
 
       print(data);
-    }
-    else if (apiType == ApiUrl.updateMemory) {
-      if(countSelectedPhotos()==0) {
+    } else if (apiType == ApiUrl.updateMemory) {
+      if (countSelectedPhotos() == 0) {
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
         print(progressbarValue);
 
-        clossProgressDialog('');
+        clossProgressDialog('',[]);
       }
       deselectAll();
       titleController.text = "";
       labelController.text = "";
       CommonWidgets.successDialog(context, json.decode(data)['message']);
       Navigator.pop(context, true);
-
-    }else if (apiType == ApiUrl.createSubCategory) {
+    } else if (apiType == ApiUrl.createSubCategory) {
       SubCategoryResModel subCategoryResModel =
           SubCategoryResModel.fromJson(json.decode(data));
-      uploadData(getSelectedCategory(), subCategoryResModel.categories!.id.toString());
+      uploadData(
+          getSelectedCategory(), subCategoryResModel.categories!.id.toString());
     } else if (apiType == ApiUrl.syncAccount) {
       setState(() {});
     }
@@ -905,10 +1085,13 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
 
   //-----------------bottom sheet-------------------------
   int countSelectedPhotos() {
-    int i = widget.photosList
+    int i=0;
+    for(int j=0;j<photoGroupModel.length;j++){
+     i =i+ photoGroupModel[j].photos
         .where((photo) => (photo.selectedValue && photo.isEditmemory == false))
         .length;
     print("dfasf$i");
+    }
     return i;
   }
 
@@ -920,6 +1103,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     }
     return '';
   }
+
   String getSelectedCategory() {
     for (var category in categoryModel.categories!) {
       if (category.isSelected) {
@@ -964,73 +1148,85 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     createModel.subCategoryId = subCategoryId;
     createModel.title = titleController.text;
     List<ImagesFile> imageFile = [];
-
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].selectedValue &&
-          widget.photosList[i].isEditmemory == false) {
+for(int j=0;j<photoGroupModel.length;j++){
+    for (int i = 0; i < photoGroupModel[j].photos.length; i++) {
+      if (photoGroupModel[j].photos[i].selectedValue &&
+          photoGroupModel[j].photos[i].isEditmemory == false) {
         ImagesFile imp = ImagesFile();
-        imp.typeId = widget.photosList[i].assetEntity.id;
+        imp.typeId = photoGroupModel[j].photos[i].assetEntity.id;
         imp.type = "image";
         imp.captureDate = _getFormattedDateTime(
-            widget.photosList[i].assetEntity.createDateTime);
+            photoGroupModel[j].photos[i].assetEntity.createDateTime);
         imp.description = '';
         imp.link = '';
 
-        imp.location = '';
+        FilePath.getImageLocation(photoGroupModel[j].photos[i].assetEntity)!
+            .then((value) {
+          imp.location = value;
+        });
         imageFile.add(imp);
       }
     }
-    if (fbModel.isNotEmpty) {
-      for (int i = 0; i < fbModel.length; i++) {
-        if (fbModel[i].isSelected && fbModel[i].isEdit == false) {
+}
+    if (fbGroupModel.isNotEmpty) {
+      for(int j=0;j<fbGroupModel.length;j++){
+      for (int i = 0; i <fbGroupModel[j].photos.length; i++) {
+        if (fbGroupModel[j].photos[i].isSelected && fbGroupModel[j].photos[i].isEdit == false) {
           ImagesFile imp = ImagesFile();
-          imp.typeId = fbModel[i].id;
-          imp.type = fbModel[i].type;
-          imp.captureDate = _getFormattedDateTime(fbModel[i].createdTime!);
+          imp.typeId = fbGroupModel[j].photos[i].id;
+          imp.type = fbGroupModel[j].photos[i].type;
+          imp.captureDate = _getFormattedDateTime(fbGroupModel[j].photos[i].createdTime!);
           imp.description = '';
-          imp.link = fbModel[i].webLink;
+          imp.link = fbGroupModel[j].photos[i].webLink;
 
           imp.location = '';
           imageFile.add(imp);
         }
+      }
       }
     }
-    if (instaModel.isNotEmpty) {
-      for (int i = 0; i < instaModel.length; i++) {
-        if (instaModel[i].isSelected && instaModel[i].isEdit == false) {
+    if (instaGroupModel.isNotEmpty) {
+            for(int j=0;j<instaGroupModel.length;j++){
+
+      for (int i = 0; i < instaGroupModel[j].photos.length; i++) {
+        if (instaGroupModel[j].photos[i].isSelected && instaGroupModel[j].photos[i].isEdit == false) {
           ImagesFile imp = ImagesFile();
-          imp.typeId = instaModel[i].id;
-          imp.type = instaModel[i].type;
-          imp.captureDate = _getFormattedDateTime(instaModel[i].createdTime!);
+          imp.typeId = instaGroupModel[j].photos[i].id;
+          imp.type = instaGroupModel[j].photos[i].type;
+          imp.captureDate = _getFormattedDateTime(instaGroupModel[j].photos[i].createdTime!);
           imp.description = '';
-          imp.link = instaModel[i].webLink;
+          imp.link = instaGroupModel[j].photos[i].webLink;
 
           imp.location = '';
           imageFile.add(imp);
         }
       }
+            }
     }
-    if (driveModel.isNotEmpty) {
-      for (int i = 0; i < driveModel.length; i++) {
-        if (driveModel[i].isSelected && driveModel[i].isEdit == false) {
+    if (driveGroupModel.isNotEmpty) {
+                  for(int j=0;j<driveGroupModel.length;j++){
+
+      for (int i = 0; i <driveGroupModel[j].photos.length; i++) {
+        if (driveGroupModel[j].photos[i].isSelected && driveGroupModel[j].photos[i].isEdit == false) {
           ImagesFile imp = ImagesFile();
-          imp.typeId = driveModel[i].id;
-          imp.type = driveModel[i].type;
-          imp.captureDate = _getFormattedDateTime(driveModel[i].createdTime!);
+          imp.typeId = driveGroupModel[j].photos[i].id;
+          imp.type = driveGroupModel[j].photos[i].type;
+          imp.captureDate = _getFormattedDateTime(driveGroupModel[j].photos[i].createdTime!);
           imp.description = '';
-          imp.link = driveModel[i].webLink;
+          imp.link = driveGroupModel[j].photos[i].webLink;
 
           imp.location = '';
           imageFile.add(imp);
         }
       }
+                  }
     }
     createModel.images = imageFile;
     showProgressDialog(context);
     progressNotifier.value = progressbarValue;
     //_progress = (_currentIndex++ / countSelectedPhotos()).clamp(0.0, 1.0);
-    if(countSelectedPhotos()==0){
-      clossProgressDialog('');
+    if (countSelectedPhotos() == 0) {
+      clossProgressDialog('',[]);
       if (createModel.memoryId != null) {
         ApiCall.createMemory(
             api: ApiUrl.updateMemory, model: createModel, callack: this);
@@ -1040,25 +1236,25 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
             model: createModel,
             callack: this); // Dismiss the dialog
       }
-    }else{
+    } else {
       processPhotos();
-
     }
 
     print(createModel.images!.length);
   }
 
   Future<void> processPhotos() async {
-    for (int i = 0; i < widget.photosList.length; i++) {
-      if (widget.photosList[i].selectedValue &&
-          widget.photosList[i].isEditmemory == false) {
-        print(widget.photosList[i].assetEntity.id);
+    for(int j=0;j<photoGroupModel.length;j++){
+    for (int i = 0; i < photoGroupModel[j].photos.length; i++) {
+      if (photoGroupModel[j].photos[i].selectedValue &&
+          photoGroupModel[j].photos[i].isEditmemory == false) {
+        print(photoGroupModel[j].photos[i].assetEntity.id);
 
         for (int j = 0; j < createModel.images!.length; j++) {
           if (createModel.images![j].typeId ==
-              widget.photosList[i].assetEntity.id) {
+              photoGroupModel[j].photos[i].assetEntity.id) {
             // Await the file retrieval and API call
-            await FilePath.getFile(widget.photosList[i].assetEntity)
+            await FilePath.getFile(photoGroupModel[j].photos[i].assetEntity)
                 .then((value) async {
               print(value!.path);
               await ApiCall.uploadImageIntoMemory(
@@ -1073,6 +1269,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
           }
         }
       }
+    }
     }
   }
 
@@ -1157,8 +1354,7 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     print('Rate Limit: $rateLimit');
     print('Rate Limit Remaining: $rateLimitRemaining');
     print('Rate Limit Reset: $rateLimitReset');
-    photoLinks.clear();
-
+  List<PhotoDetailModel> tempPhotoLinks=[];
     if (response.statusCode == 200) {
       // Successfully received the media
       var data = jsonDecode(response.body);
@@ -1168,21 +1364,22 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
         // requestStoragePermission();
         await Future.forEach(data["data"], (dynamic element) async {
           if (element["media_type"] == "IMAGE") {
-            photoLinks.add(PhotoDetailModel(
-              createdTime: convertTimeStampIntoDateTime(element["timestamp"]),
-              isSelected: false,
-              isEdit: false,
-              type: "insta",
-              id: element["id"],
-              webLink: element["media_url"],
-            ));
+            String capturDate= convertTimeStampIntoDateTime(element["timestamp"]);
+            tempPhotoLinks.add(PhotoDetailModel(
+                createdTime: convertTimeStampIntoDateTime(element["timestamp"]),
+                isSelected: false,
+                isEdit: false,
+                type: "insta",
+                id: element["id"],
+                webLink: element["media_url"],
+                captureDate: capturDate));
           }
           uploadCount += 1;
           progressbarValue = uploadCount / data["data"].length;
           progressNotifier.value = progressbarValue;
           await Future.delayed(const Duration(seconds: 1));
           setState(() {});
-          clossProgressDialog('instagram_synced');
+          clossProgressDialog('instagram_synced',tempPhotoLinks);
         });
 
         await Future.delayed(const Duration(seconds: 2), () {});
@@ -1248,42 +1445,63 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     );
   }
 
-  clossProgressDialog(String type) {
+  clossProgressDialog(String type,      List<PhotoDetailModel> tempPhotoLinks
+) {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
       progressbarValue = 0.0;
       uploadCount = 0;
       if (type == "google_drive_synced") {
-        driveModel = photoLinks;
-        PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+        photoLinks=tempPhotoLinks;
+        if (driveModel.isEmpty) {
+          driveModel = photoLinks;
+        } else {
+          driveModel.addAll(photoLinks);
+        }
+        PrefUtils.instance.saveDrivePhotoLinks(driveModel);
+        if(driveGroupModel.isEmpty){
+        driveGroupModel = groupPhotosByDate(photoLinks);
+
+        }else{
+          driveGroupModel.addAll(groupPhotosByDate(photoLinks));
+        }
+
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
-        fbModel = photoLinks;
+        fbModel = tempPhotoLinks;
 
-        PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
+        fbGroupModel = groupPhotosForFBAndINSTAByDate(fbModel);
+
+        PrefUtils.instance.saveFacebookPhotoLinks(tempPhotoLinks);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == "instagram_synced") {
-        instaModel = photoLinks;
 
-        PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+        instaModel = tempPhotoLinks;
+        instaGroupModel = groupPhotosForFBAndINSTAByDate(instaModel);
+
+        PrefUtils.instance.saveInstaPhotoLinks(tempPhotoLinks);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
+     setState(() {
+          
+        });
     }
   }
 
 //===============Drive===================
-  fetchPhotosFromDrive(
+    fetchPhotosFromDrive(
     GoogleSignIn googleSignIn,
     BuildContext context,
+    String? nextPageToken
   ) async {
     try {
-      photoLinks.clear();
+      List<PhotoDetailModel> tempPhotoLinks=[];
       List<File> allFiles = [];
       FileList fileList;
-      String? nextPageToken;
+      
       var httpClient = await googleSignIn.authenticatedClient();
       if (httpClient == null) {
         print('Failed to get authenticated client');
@@ -1294,93 +1512,74 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       showProgressDialog(context);
 
       // do {
-      do {
-        fileList = await driveApi.files.list(
-          // q: "mimeType contains 'image/'",
-          q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and visibility='anyoneWithLink'",
-          pageToken: nextPageToken,
-          $fields:
-              "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink)",
-        );
-        if (fileList.files != null) {
-          if (fileList.files!.length > 50) {
-            allFiles.addAll(fileList.files!.take(50));
-          }
-          {
-            allFiles.addAll(fileList.files!);
-          }
-        }
+
+      fileList = await driveApi.files.list(
+        // q: "mimeType contains 'image/'",
+q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink' and not 'me' in owners",
+      pageToken: nextPageToken,
+        $fields:
+            "nextPageToken, files(id, name, webViewLink,thumbnailLink,createdTime, modifiedTime,properties,webContentLink,permissions)",
+      );
+      if (fileList.files != null||fileList.files!.isNotEmpty) {
+        // if (fileList.files!.length > 50) {
+        //   allFiles.addAll(fileList.files!.take(50));
+        // }
+        // {
+        allFiles.addAll(fileList.files!);
+        //}
         nextPageToken = fileList.nextPageToken;
-      } while (nextPageToken != null);
-      if (allFiles.isNotEmpty) {
-        if (allFiles.length > 50) {
-          for (int i = 0; i < allFiles.take(50).length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.take(50).length;
-              progressNotifier.value = progressbarValue;
-
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-            }
-          }
-          clossProgressDialog('google_drive_synced');
+        print("dsfasfa${allFiles.length} $nextPageToken");
+         if (nextPageToken != null) {
+          PrefUtils.instance.driveToken(nextPageToken);
         } else {
-          for (int i = 0; i < allFiles.length; i++) {
-            if (allFiles[i].webViewLink != null) {
-              photoLinks.add(PhotoDetailModel(
-                  id: allFiles[i].id,
-                  createdTime: allFiles[i].createdTime,
-                  modifiedTime: allFiles[i].modifiedTime,
-                  isSelected: false,
-                  isEdit: false,
-                  type: "drive",
-                  webLink: allFiles[i].thumbnailLink,
-                  thumbnailPath: convertToDirectLink(
-                      allFiles[i].webViewLink!,
-                      allFiles[i].id!,
-                      httpClient.credentials.accessToken.data,
-                      driveApi)));
-              uploadCount += 1;
-              progressbarValue = uploadCount / allFiles.length;
-              progressNotifier.value = progressbarValue;
-
-              await Future.delayed(const Duration(seconds: 1));
-              setState(() {});
-              clossProgressDialog('google_drive_synced');
-            }
-          }
+          PrefUtils.instance.driveToken('');
         }
+        for (int i = 0; i < allFiles.length; i++) {
+          if (allFiles[i].webViewLink != null) {
+            
 
-        await Future.delayed(const Duration(seconds: 1), () {});
+String captureDate=   DateFormat('MMM yyyy').format(allFiles[i].createdTime!);
+
+            tempPhotoLinks.add(PhotoDetailModel(
+                id: allFiles[i].id,
+                createdTime: allFiles[i].createdTime,
+                modifiedTime: allFiles[i].modifiedTime,
+                isSelected: false,
+                isEdit: false,
+                type: "drive",
+             webLink: allFiles[i].webContentLink,
+                thumbnailPath: allFiles[i].thumbnailLink,captureDate: captureDate));
+           
+          
+                  uploadCount += 1;
+            progressbarValue = uploadCount / allFiles.length;
+            progressNotifier.value = progressbarValue;
+
+            await Future.delayed(const Duration(microseconds: 100));
+             
+           clossProgressDialog('google_drive_synced',tempPhotoLinks);
+ 
+                                  }
+        }
+         
+
+            await Future.delayed(const Duration(microseconds: 100));
       } else {
+          PrefUtils.instance.driveToken('');
+
         CommonWidgets.errorDialog(context, 'No image available in drive');
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('',[]);
+        PrefUtils.instance.driveToken('');
 
         await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true
-          // });
+          
         });
-        // goToMemories(false);
       }
+
+       
     } catch (e) {
       print('Error fetching files: $e');
       return null;
@@ -1483,13 +1682,14 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
       throw Exception('Failed to load photos');
     }
   }
-
+  List<PhotoDetailModel> tempPhotoLinks = [];
   ///Fetch facebook url by photo id
   Future fetchFacebookPhotosById(
     String accessToken,
     FaceBookPhoto element,
     List<FaceBookPhoto> faceBook,
   ) async {
+    photoLinks.clear();
     final response = await http.get(
       Uri.parse(
         'https://graph.facebook.com/${element.id}?fields=images&access_token=$accessToken',
@@ -1497,20 +1697,23 @@ class _CreateMemoryScreenState extends State<CreateMemoryScreen>
     );
 
     if (response.statusCode == 200) {
+
       final data = json.decode(response.body);
-      photoLinks.add(PhotoDetailModel(
+      String captureDate=CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
+      tempPhotoLinks.add(PhotoDetailModel(
           type: "fb",
           createdTime: DateTime.tryParse(element.createdTime ?? ""),
           webLink: data['images'][0]["source"],
+          captureDate:captureDate,
           id: element.id));
       print(photoLinks);
       uploadCount += 1;
       progressbarValue = uploadCount / faceBook.length;
       progressNotifier.value = progressbarValue;
 
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 2));
       setState(() {});
-      clossProgressDialog('facebook_synced');
+      clossProgressDialog('facebook_synced',tempPhotoLinks);
     } else {
       throw Exception('Failed to load photos');
     }

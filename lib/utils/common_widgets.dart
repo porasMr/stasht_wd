@@ -13,6 +13,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
+import 'package:googleapis/photoslibrary/v1.dart';
 import 'package:intl/intl.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -145,6 +146,11 @@ class CommonWidgets {
           DriveApi.driveFileScope,
           DriveApi.driveMetadataScope,
           DriveApi.drivePhotosReadonlyScope,
+  //        PhotosLibraryApi.photoslibraryScope,                     // Full access
+  // PhotosLibraryApi.photoslibraryReadonlyScope,             // Read-only access
+  // PhotosLibraryApi.photoslibraryReadonlyAppcreateddataScope, // App-created data
+  //'https://www.googleapis.com/auth/photoslibrary.readonly.originals', // Access originals
+          
         ],
       );
       final GoogleSignInAccount? account = await googleSignIn.signIn();
@@ -1768,6 +1774,11 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
 
     // Convert the map to a list of GroupedPhotoModel
     List<GroupedPhotoModel> photGroup = groupedMap.entries.map((entry) {
+      entry.value.sort((a, b) {
+          DateTime dateA = a.createdTime!;
+          DateTime dateB = b.createdTime!;
+          return dateB.compareTo(dateA); // Sort descending by time
+        });
       return GroupedPhotoModel(
         date: entry.key,
         photos: entry.value,
@@ -1807,6 +1818,11 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
     // Convert the map to a list of GroupedPhotoModel
 
     List<GroupedPhotoModel> photGroup = groupedMap.entries.map((entry) {
+      entry.value.sort((a, b) {
+          DateTime dateA = a.createdTime!;
+          DateTime dateB = b.createdTime!;
+          return dateB.compareTo(dateA); // Sort descending by time
+        });
       return GroupedPhotoModel(
         date: entry.key,
         photos: entry.value,
@@ -1848,6 +1864,11 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
       }
     }
     List<PhotoGroupModel> photGroup = groupedMap.entries.map((entry) {
+      entry.value.sort((a, b) {
+          DateTime dateA = a.assetEntity.createDateTime;
+          DateTime dateB = b.assetEntity.createDateTime;
+          return dateB.compareTo(dateA); // Sort descending by time
+        });
       final date = entry.key;
       final photos = entry.value;
       final photoFutures =
@@ -1880,6 +1901,22 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
       List<PhotoGroupModel> photoGroupModel) {
     Map<String, List<AllPhotoModel>> combinedImages = {};
 
+     for (int k = 0; k < photoGroupModel.length; k++) {
+      for (int i = 0; i < photoGroupModel[k].photos.length; i++) {
+        AllPhotoModel photo = AllPhotoModel();
+        photo.id = photoGroupModel[k].photos[i].assetEntity.id;
+        photo.thumbData = photoGroupModel[k].future[i];
+        photo.assetEntity = photoGroupModel[k].photos[i].assetEntity;
+        photo.type = "image";
+        photo.isEdit = photoGroupModel[k].photos[i].isEditmemory;
+        photo.isSelected = photoGroupModel[k].photos[i].selectedValue;
+photo.createdDate=photoGroupModel[k].photos[i].assetEntity.createDateTime;
+        combinedImages
+            .putIfAbsent(photoGroupModel[k].date, () => [])
+            .add(photo);
+      }
+    }
+
     for (int k = 0; k < driveGroupModel.length; k++) {
       for (var model in driveGroupModel[k].photos) {
         AllPhotoModel photo = AllPhotoModel();
@@ -1889,6 +1926,7 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
         photo.isEdit = model.isEdit;
         photo.drivethumbNail = model.thumbnailPath;
         photo.isSelected = model.isSelected;
+        photo.createdDate=model.createdTime;
 
         combinedImages
             .putIfAbsent(driveGroupModel[k].date, () => [])
@@ -1904,7 +1942,7 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
         photo.type = model.type;
         photo.isEdit = model.isEdit;
         photo.isSelected = model.isSelected;
-
+photo.createdDate=model.createdTime;
         combinedImages
             .putIfAbsent(instaGroupModel[k].date, () => [])
             .add(photo);
@@ -1920,31 +1958,28 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
         photo.type = model.type;
         photo.isEdit = model.isEdit;
         photo.isSelected = model.isSelected;
-
+photo.createdDate=model.createdTime;
         combinedImages.putIfAbsent(fbGroupModel[k].date, () => []).add(photo);
       }
     }
-    for (int k = 0; k < photoGroupModel.length; k++) {
-      for (int i = 0; i < photoGroupModel[k].photos.length; i++) {
-        AllPhotoModel photo = AllPhotoModel();
-        photo.id = photoGroupModel[k].photos[i].assetEntity.id;
-        photo.thumbData = photoGroupModel[k].future[i];
-        photo.assetEntity = photoGroupModel[k].photos[i].assetEntity;
-        photo.type = "image";
-        photo.isEdit = photoGroupModel[k].photos[i].isEditmemory;
-        photo.isSelected = photoGroupModel[k].photos[i].selectedValue;
-
-        combinedImages
-            .putIfAbsent(photoGroupModel[k].date, () => [])
-            .add(photo);
-      }
-    }
+   
 
     // Convert combined data into a list of CombinedPhotoModel
-    List<CombinedPhotoModel> photoGroupModel1 = combinedImages.entries
-        .map((entry) =>
-            CombinedPhotoModel(createDate: entry.key, photos: entry.value))
-        .toList();
+    // Convert combined data into a list of CombinedPhotoModel
+  List<CombinedPhotoModel> photoGroupModel1 = combinedImages.entries
+      .map((entry) {
+        // Sort `AllPhotoModel` by createdDate within each group
+        entry.value.sort((a, b) {
+          DateTime dateA = a.createdDate!;
+          DateTime dateB =b.createdDate!;
+          return dateB.compareTo(dateA); // Sort descending by time
+        });
+        return CombinedPhotoModel(
+          createDate: entry.key,
+          photos: entry.value,
+        );
+      })
+      .toList();
     photoGroupModel1.sort((a, b) {
       DateTime dateA = _parseMonthYear(a.createDate);
       DateTime dateB = _parseMonthYear(b.createDate);

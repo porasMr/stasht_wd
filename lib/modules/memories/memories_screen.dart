@@ -528,7 +528,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                             const SizedBox(
                               height: 20,
                             ),
-                            (memoriesModel.data![index].memorisCount == 0 &&
+                            (getMemoryIndex() == 0 &&
                                     index == 0 &&
                                     memoriesModel.published!.isEmpty &&
                                     memoriesModel.shared!.isEmpty)
@@ -700,6 +700,15 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
               )
             ],
           );
+  }
+
+ int getMemoryIndex(){
+    int i=0;
+    for(int k=0;k<memoriesModel.data!.length;k++){
+i=i+memoriesModel.data![k].memorisCount!;
+    }
+    print(i);
+return i;
   }
 
   myMemoriesUI() {

@@ -16,6 +16,7 @@ class AllPhotoModel {
   String? type;
     AssetEntity? assetEntity;
     Future<Uint8List?>? thumbData;
+    DateTime? createdDate;
 
  
 
@@ -28,7 +29,7 @@ class AllPhotoModel {
     this.id,
     this.type,
     this.assetEntity,
-     this.thumbData,this.drivethumbNail
+     this.thumbData,this.drivethumbNail,this.createdDate
 
   
   });
@@ -45,7 +46,8 @@ class AllPhotoModel {
       'type': type,
       "assetEntity":assetEntity,
       "thumbData":thumbData,
-      "drivethumbNail":drivethumbNail
+      "drivethumbNail":drivethumbNail,
+      "createdDate":createdDate
       
     };
   }
@@ -60,7 +62,8 @@ class AllPhotoModel {
       type: json['type'],
       assetEntity:json['assetEntity'],
       thumbData:json['thumbData'],
-      drivethumbNail:json['drivethumbNail']
+      drivethumbNail:json['drivethumbNail'],
+      createdDate:json['createdDate']
     );
   }
 }

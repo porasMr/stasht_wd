@@ -12,6 +12,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
+import 'package:googleapis/photoslibrary/v1.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/modules/create_memory/model/group_modle.dart';
@@ -1819,13 +1820,23 @@ class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
       if (httpClient == null) {
         print('Failed to get authenticated client');
         return null;
+
       }
+       
       var driveApi = DriveApi(httpClient);
       print(httpClient.credentials.accessToken.data);
       showProgressDialog(context);
 
-      // do {
+  //     final api = PhotosLibraryApi(httpClient);
 
+  // // Example: List albums
+  // var albums = await api.albums.list(pageSize: 10);
+  // print("Albums:${albums.albums!.length}");
+  // for (var album in albums.albums ?? []) {
+  //   print(album.title);
+  // }
+
+      // do {
       fileList = await driveApi.files.list(
         // q: "mimeType contains 'image/'",
         q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",

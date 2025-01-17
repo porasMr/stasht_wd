@@ -157,6 +157,7 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                                   const SizedBox(
                                     width: 8,
                                   ),
+                                  notificationModel.data![index].sendby==null?
                                   Expanded(
                                     child: RichText(
                                       text: TextSpan(
@@ -168,6 +169,41 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                                             fontSize: 13,
                                             height: 19.2/13),
                                         children: <TextSpan>[
+                                        ],
+                                      ),
+                                    ),
+                                  ):
+                                  Expanded(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        text: notificationModel.data![index].sendby!.name,
+                                        style: const TextStyle(
+                                                   fontFamily:robotoBold ,                                         fontWeight: FontWeight.bold,
+
+                                            color: AppColors.black,
+                                          
+                                            fontSize: 14,
+                                            height: 19.2/13),
+                                        children: <TextSpan>[
+                                         const TextSpan(
+                                        text: " has accept your Invitation for memory\n",
+                                        style:  TextStyle(
+                                            color: AppColors.black,
+                                            fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                   fontFamily:robotoRegular ,   
+
+                                            ),
+                                          ),
+                                           TextSpan(
+                                        text:notificationModel.data![index].memoryTitle==""?"": notificationModel.data![index].memoryTitle,
+                                        style: const TextStyle(
+                                                   fontFamily:robotoBold ,                                         fontWeight: FontWeight.bold,
+
+                                            color: AppColors.black,
+                                            fontSize: 14,
+                                            height: 19.2/13),
+                                          ),
                                         ],
                                       ),
                                     ),

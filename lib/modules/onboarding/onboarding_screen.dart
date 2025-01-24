@@ -392,7 +392,6 @@ height: 76),
         print('Failed to get authenticated client');
         return null;
       }
-      
       var driveApi = DriveApi(httpClient);
       print(httpClient.credentials.accessToken.data);
       setState(() {
@@ -841,6 +840,7 @@ height: 76),
                       isSkip: false,
                     )));
       } else {
+        PrefUtils.instance.saveSelectedType(selectedType);
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(

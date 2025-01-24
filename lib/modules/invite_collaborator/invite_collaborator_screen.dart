@@ -8,6 +8,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:http/io_client.dart';
+import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/photos/photos_screen.dart';
 import 'package:stasht/network/api_url.dart';
@@ -17,6 +18,7 @@ import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:http/http.dart' as http;
+import 'package:stasht/utils/pref_utils.dart';
 
 class InviteCollaborator extends StatefulWidget {
   InviteCollaborator(
@@ -42,9 +44,15 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
   bool permissionDenied = false;
   String accountSid = '';
   String authToken = '';
-
+UserModel model=UserModel();
   @override
   void initState() {
+    PrefUtils.instance.getUserFromPrefs().then((value) {
+      model = value!;
+    
+      
+      setState(() {});
+    });
     fetchContacts();
     accountSid = dotenv.env['TWILIO_ACCOUNT_SID'] ?? 'No SID';
     authToken = dotenv.env['TWILIO_AUTH_TOKEN'] ?? 'No Token';
@@ -80,7 +88,7 @@ class InviteCollaboratorState extends State<InviteCollaborator> {
                     "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
                 String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
                 String link = await CommonWidgets.createDynamicLink(
-                    widget.memoryId, widget.title, imageIdentifier, "", "");
+                    widget.memoryId, widget.title, imageIdentifier, model.user!.name!, "");
                     EasyLoading.show();
                 if (link.isNotEmpty) {
                   for (var element in selectedContacts) {

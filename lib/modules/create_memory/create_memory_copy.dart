@@ -84,13 +84,13 @@ class CreateMemoryCopyScreen extends StatefulWidget {
 
 class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
     implements ApiCallback {
-  final List<Map<String, dynamic>> tabListItem = [
-    {"label": "All", "icon": null},
-    {"label": "Camera Roll", "icon": null},
-    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
-    {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
-    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
-// Example icon
+   List<Map<String, dynamic>> tabListItem = [
+//     {"label": "All", "icon": null},
+//     {"label": "Camera Roll", "icon": null},
+//     {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
+//     {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
+//     {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
+// // Example icon
   ];
   String selectedTab = "";
 
@@ -204,6 +204,7 @@ class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
   @override
   void initState() {
     super.initState();
+tabListItem=CommonWidgets.syncTab();
 
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
@@ -969,8 +970,8 @@ class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
   }
 
   selectedtabView(BuildContext context) {
-    if (selectedIndex == 0) {
-       int tempSelected=0;
+    if (tabListItem[selectedIndex]['label']  == "All") {
+     int tempSelected=0;
       if(widget.selectedCount!=null){
          tempSelected=widget.selectedCount!;
       widget.selectedCount=0;
@@ -981,8 +982,8 @@ class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
         selectedCount: tempSelected,
         gridIndex:widget.gridItemCount,
       );
-    } else if (selectedIndex == 1) {
-              int tempSelected=0;
+    } else if (tabListItem[selectedIndex]['label']  == "Camera Roll") {
+          int tempSelected=0;
       if(widget.selectedCount!=null){
          tempSelected=widget.selectedCount!;
       widget.selectedCount=0;
@@ -994,29 +995,34 @@ class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
          selectedCount: tempSelected,
         gridIndex:widget.gridItemCount,
       );
-    } else if (selectedIndex == 2) {
-      if (driveGroupModel.isEmpty) {
+    } else if (tabListItem[selectedIndex]['label']  == "Drive") {
+       if (driveGroupModel.isEmpty) {
         return CommonWidgets.driveView(context, getDriveView);
       } else {
         return CommonWidgets.drivePhtotView(
             driveGroupModel, viewRefershOtherTab,
             controller: driveController);
       }
-    } else if (selectedIndex == 3) {
-      if (fbGroupModel.isEmpty) {
+    } else if (tabListItem[selectedIndex]['label']  == "Facebook") {
+       if (fbGroupModel.isEmpty) {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefershOtherTab);
       }
-    } else if (selectedIndex == 4) {
-      if (instaGroupModel.isEmpty) {
+    } else if (tabListItem[selectedIndex]['label']  == "Photos") {
+     if (instaGroupModel.isEmpty) {
         return CommonWidgets.photoView(context, getInstaView);
       } else {
         return CommonWidgets.instaPhtotView(
             instaGroupModel, viewRefershOtherTab);
       }
+
+ 
     }
   }
+
+
+  
 
    void _onScrollEnd() {
     print("scroll end");
@@ -1825,6 +1831,7 @@ class _CreateMemoryCopyScreenState extends State<CreateMemoryCopyScreen>
        
       var driveApi = DriveApi(httpClient);
       print(httpClient.credentials.accessToken.data);
+   //  CommonWidgets.fetchPaginatedGooglePhotos(httpClient.credentials.accessToken.data);
       showProgressDialog(context);
 
   //     final api = PhotosLibraryApi(httpClient);

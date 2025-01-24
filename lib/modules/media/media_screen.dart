@@ -68,13 +68,8 @@ class MediaScreen extends StatefulWidget {
 }
 
 class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
-  final List<Map<String, dynamic>> tabListItem = [
-    {"label": "All", "icon": null},
-    {"label": "Camera Roll", "icon": null},
-    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
-    {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
-    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
-// Example icon
+   List<Map<String, dynamic>> tabListItem = [
+    
   ];
   String selectedTab = "";
 
@@ -167,6 +162,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   @override
   void initState() {
     super.initState();
+    tabListItem=CommonWidgets.syncTab();
     photoGroupModel = CommonWidgets.groupGalleryPhotosByDate(
         widget.photosList, widget.future);
 
@@ -197,7 +193,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       instaGroupModel =
           CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
 
-      changeTab();
+     changeTab();
     });
     openDialogFirstTime();
     deselectAll();
@@ -221,13 +217,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       //  Future.delayed(const Duration(milliseconds: 500), () async {
       print(widget.type);
 
-      if (widget.type == 'instagram_synced') {
-        selectedIndex = 4;
+      if (PrefUtils.instance.getSelectedtype() == 'instagram_synced') {
+        selectedIndex = 2;
         setState(() {});
-      } else if (widget.type == 'facebook_synced') {
-        selectedIndex = 3;
+      } else if (PrefUtils.instance.getSelectedtype() == 'facebook_synced') {
+        selectedIndex = 2;
         setState(() {});
-      } else if (widget.type == 'google_drive_synced') {
+      } else if (PrefUtils.instance.getSelectedtype() == 'google_drive_synced') {
         selectedIndex = 2;
         setState(() {});
       }
@@ -369,15 +365,15 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   }
 
   selectedtabView(BuildContext context) {
-    if (selectedIndex == 0) {
+    if (tabListItem[selectedIndex]['label']  == "All") {
       debugPrint("Index is 0");
       return CommonWidgets.allAlbumView(allPhotoGroupModel, viewRefersh,
           selectedCountNotifier: selectedCountNotifier
           );
-    } else if (selectedIndex == 1) {
+    } else if (tabListItem[selectedIndex]['label']  == "Camera Roll") {
       return CommonWidgets.albumView(photoGroupModel, viewRefersh,
           selectedCountNotifier: selectedCountNotifier);
-    } else if (selectedIndex == 2) {
+    } else if (tabListItem[selectedIndex]['label']  == "Drive") {
       if (driveGroupModel.isEmpty) {
         return CommonWidgets.driveView(context, getDriveView);
       } else {
@@ -385,14 +381,14 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
             selectedCountNotifier: selectedCountNotifier,
             controller: driveController);
       }
-    } else if (selectedIndex == 3) {
+    } else if (tabListItem[selectedIndex]['label']  == "Facebook") {
       if (fbGroupModel.isEmpty) {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefersh,
             selectedCountNotifier: selectedCountNotifier);
       }
-    } else if (selectedIndex == 4) {
+    } else if (tabListItem[selectedIndex]['label']  == "Photos") {
       if (instaGroupModel.isEmpty) {
         return CommonWidgets.photoView(context, getInstaView);
       } else {

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:stasht/utils/app_colors.dart';
@@ -263,4 +264,32 @@ convertToColor({String? color}) {
 
 
 }
+
+ final List<Map<String, dynamic>> driveListItem = [
+    {"label": "All", "icon": null},
+    {"label": "Camera Roll", "icon": null},
+    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
+    {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
+    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
+// Example icon
+  ];
+  final List<Map<String, dynamic>> facebookListItem = [
+    {"label": "All", "icon": null},
+    {"label": "Camera Roll", "icon": null},
+        {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
+
+    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
+    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
+// Example icon
+  ];
+  final List<Map<String, dynamic>> photoListItem = [
+    {"label": "All", "icon": null},
+    {"label": "Camera Roll", "icon": null},
+    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
+
+    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive},
+            {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
+ // Example icon
+// Example icon
+  ];
 

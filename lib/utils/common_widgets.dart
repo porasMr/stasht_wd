@@ -39,6 +39,8 @@ import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import '../image_preview_widget.dart';
 import 'package:permission_handler/permission_handler.dart' as permission;
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:http/http.dart' as http;
+
 
 class CommonWidgets {
   static Future<dynamic> googleSignup(ApiCallback callBack) async {
@@ -146,10 +148,9 @@ class CommonWidgets {
           DriveApi.driveFileScope,
           DriveApi.driveMetadataScope,
           DriveApi.drivePhotosReadonlyScope,
-  //        PhotosLibraryApi.photoslibraryScope,                     // Full access
-  // PhotosLibraryApi.photoslibraryReadonlyScope,             // Read-only access
-  // PhotosLibraryApi.photoslibraryReadonlyAppcreateddataScope, // App-created data
-  //'https://www.googleapis.com/auth/photoslibrary.readonly.originals', // Access originals
+//   "https://www.googleapis.com/auth/photoslibrary",
+// "https://www.googleapis.com/auth/photoslibrary.readonly",
+
           
         ],
       );
@@ -1582,7 +1583,7 @@ class CommonWidgets {
     }
 
     debugPrint("Generated link: $shareLink");
-    return shareLink;
+    return "$userName has invited you to collaborate in a memory called $title on Stasht.  Tap the join link here:$shareLink";
   }
 
   static void unSelectedDialog(BuildContext context) {
@@ -2036,13 +2037,17 @@ photo.createdDate=model.createdTime;
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
 
     OneSignal.Debug.setAlertLevel(OSLogLevel.none);
-    OneSignal.consentRequired(false);
+    //OneSignal.consentRequired(true);
+    
 
     OneSignal.initialize(AppStrings.oneSingalToken);
-
     OneSignal.LiveActivities.setupDefault();
+    OneSignal.Notifications.requestPermission(false).then((granted) {
+  print("Notification permission granted: $granted");
+});
 
     OneSignal.Notifications.clearAll();
+    
     print("token${OneSignal.User.pushSubscription.id}");
     PrefUtils.instance.oneSignalToken(OneSignal.User.pushSubscription.id!);
 
@@ -2123,5 +2128,61 @@ static double calculateCameraListItemHeight(PhotoGroupModel photoModel, double g
   // Height for other widgets like title or padding
   return gridHeight;
   
+}
+
+static Future<void> fetchPaginatedGooglePhotos(String accessToken) async {
+  String? nextPageToken;
+  do {
+    final url = Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems')
+        .replace(queryParameters: nextPageToken != null ? {'pageToken': nextPageToken} : null);
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print('Media Items: ${data['mediaItems']}');
+      getPhotoBaseUrl(accessToken,data['mediaItems'][0]["id"]);
+      nextPageToken = data['nextPageToken'];
+    } else {
+      print('Failed to fetch media items: ${response.body}');
+      break;
+    }
+  } while (nextPageToken != null);
+}
+
+static Future<String?> getPhotoBaseUrl(String accessToken, String mediaItemId) async {
+  final url = Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems/$mediaItemId');
+
+  final response = await http.get(
+    url,
+    headers: {
+      'Authorization': 'Bearer $accessToken',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    print("sdfsaf${data['baseUrl']}");
+    return data['baseUrl'];
+  } else {
+    print('Error fetching photo: ${response.body}');
+    return null;
+  }
+}
+
+static List<Map<String, dynamic>> syncTab(){
+   if (PrefUtils.instance.getSelectedtype() == 'instagram_synced') {
+        return photoListItem;
+      } else if (PrefUtils.instance.getSelectedtype() == 'facebook_synced') {
+              return facebookListItem;
+
+      } else  {
+                     return driveListItem;
+
+      }
 }
 }

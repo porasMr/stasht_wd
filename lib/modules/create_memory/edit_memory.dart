@@ -79,13 +79,13 @@ class EditMemoryScreen extends StatefulWidget {
 
 class _EditMemoryScreenScreenState extends State<EditMemoryScreen>
     implements ApiCallback {
-   final List<Map<String, dynamic>> tabListItem = [
-    {"label": "All", "icon": null},
-    {"label": "Camera Roll", "icon": null},
-    {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
-    {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
-    {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
-// Example icon
+    List<Map<String, dynamic>> tabListItem = [
+//     {"label": "All", "icon": null},
+//     {"label": "Camera Roll", "icon": null},
+//     {"label": "Drive", "icon": FontAwesomeIcons.googleDrive}, // Example icon
+//     {"label": "Facebook", "icon": FontAwesomeIcons.facebookF},
+//     {"label": "Photos", "icon": FontAwesomeIcons.fan}, // Example icon
+// // Example icon
   ];
   String selectedTab = "";
 
@@ -200,6 +200,7 @@ String photoId="";
   @override
   void initState() {
     super.initState();
+tabListItem=CommonWidgets.syncTab();
 
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
@@ -995,40 +996,45 @@ String photoId="";
     return value;
   }
 
-
-
   selectedtabView(BuildContext context) {
-    if (selectedIndex == 0) {
-      return CommonWidgets.allAlbumView(
+    if (tabListItem[selectedIndex]['label']  == "All") {
+     return CommonWidgets.allAlbumView(
 allPhotoGroupModel,        viewRefersh,
 
       );
-    } else if (selectedIndex == 1) {
+    } else if (tabListItem[selectedIndex]['label']  == "Camera Roll") {
       return CommonWidgets.albumView(
 photoGroupModel,        viewRefershOtherTab,
 
       );
-    } else if (selectedIndex == 2) {
-      if (driveGroupModel.isEmpty) {
+    } else if (tabListItem[selectedIndex]['label']  == "Drive") {
+       if (driveGroupModel.isEmpty) {
         return CommonWidgets.driveView(context, getDriveView);
       } else {
         return CommonWidgets.drivePhtotView(driveGroupModel, viewRefershOtherTab,
             controller: driveController);
       }
-    } else if (selectedIndex == 3) {
+    } else if (tabListItem[selectedIndex]['label']  == "Facebook") {
       if (fbGroupModel.isEmpty) {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefershOtherTab);
       }
-    } else if (selectedIndex == 4) {
-      if (instaGroupModel.isEmpty) {
+    } else if (tabListItem[selectedIndex]['label']  == "Photos") {
+     if (instaGroupModel.isEmpty) {
         return CommonWidgets.photoView(context, getInstaView);
       } else {
         return CommonWidgets.instaPhtotView(instaGroupModel, viewRefershOtherTab);
       }
+
+ 
     }
   }
+
+
+
+
+  
 
   void _onScrollEnd() {
     if (driveController.position.pixels >=

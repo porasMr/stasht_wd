@@ -157,4 +157,13 @@ class PrefUtils {
   String? getOneSingalToken() {
     return prefsProvider.prefs.getString(SPKeys.oneSignaltoken);
   }
+
+  Future<void> saveSelectedType(String type) =>
+      prefsProvider.prefs.setString(SPKeys.selectedType, type);
+
+  String? getSelectedtype() {
+    return prefsProvider.prefs.getString(SPKeys.selectedType);
+  }
+
+  
 }

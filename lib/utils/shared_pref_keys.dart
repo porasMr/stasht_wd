@@ -3,6 +3,8 @@ class SPKeys {
   static const String userData = 'user_data';
   static const String token = 'token';
     static const String oneSignaltoken = 'oneSignaltoken';
+        static const String selectedType = 'selectedType';
+
 
   static const String userApprovalStatus = 'user_apprvl_status';
     static const String driveData = 'drive_data';

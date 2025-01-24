@@ -657,6 +657,9 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
           isInstaeSync = false;
           selectedType = "instagram_synced";
         }
+        if(isInstaeSync==false&&isFbSync==false&&isDriveSync==false){
+          PrefUtils.instance.saveSelectedType("");
+        }
         if (value == false) {
           EasyLoading.show();
 

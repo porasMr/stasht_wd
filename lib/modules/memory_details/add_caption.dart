@@ -36,86 +36,91 @@ class _AddCaptionState extends State<AddCaption> implements ApiCallback{
     captionController.text =
         widget.memoriesModel.description!;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: IconButton(
-            onPressed: () {
-Navigator.pop(context);
-        },
-            icon: const Icon(
-              Icons.close,
-              color: AppColors.darkColor,
-            )),
-        elevation: 0,
-        actions: [
-          InkWell(
-            onTap: () {
-            if(captionController.text.isNotEmpty)  {
-               EasyLoading.show();
-               ApiCall.saveFileDescription(api: ApiUrl.saveFileDescription, fileId: widget.memoriesModel.id.toString(), id: widget.id, description: captionController.text, callack: this);
+    return MediaQuery(
+                             data:CommonWidgets.textScale(context),
+
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          leading: IconButton(
+              onPressed: () {
+      Navigator.pop(context);
+          },
+              icon: const Icon(
+                Icons.close,
+                color: AppColors.darkColor,
+                size: 30,
+              )),
+          elevation: 0,
+          actions: [
+            InkWell(
+              onTap: () {
+              if(captionController.text.isNotEmpty)  {
+                 EasyLoading.show();
+                 ApiCall.saveFileDescription(api: ApiUrl.saveFileDescription, fileId: widget.memoriesModel.id.toString(), id: widget.id, description: captionController.text, callack: this);
+                }
+              else{
+                CommonWidgets.errorDialog(context, "Please enter the caption");
+                
               }
-            else{
-              CommonWidgets.errorDialog(context, "Please enter the caption");
-              
-            }
-            },
-            child:  Row(
-              children: [
-                Text(
-                  'Done',
-                  style: TextStyle(
-                      fontFamily: robotoBold,
-                      fontSize: 16,
-                      color: AppColors.darkColor),
-                ),
-                SizedBox(
-                  width: 5,
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppColors.darkColor,
-                  size: 15,
-                ),
-                SizedBox(
-                  width: 10,
-                )
-              ],
+              },
+              child:  Row(
+                children: [
+                  Text(
+                    'Done',
+                    style: TextStyle(
+                        fontFamily: robotoBold,
+                        fontSize: 15,
+                        color: AppColors.darkColor),
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppColors.darkColor,
+                    size: 15,
+                  ),
+                  SizedBox(
+                    width: 10,
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: 0.5,
+              color: AppColors.primaryColor,
             ),
-          )
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 0.5,
-            color: AppColors.primaryColor,
-          ),
-          TextFormField(
-            controller: captionController,
-            maxLines: 4,
-            textInputAction: TextInputAction.done,
-            maxLength: 350,
-            decoration: const InputDecoration(
-                counterText: '',
-                hintText: 'Add Caption to this post..',
-                hintStyle: TextStyle(fontSize: 14, color: AppColors.textColor),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 15.0, vertical: 20.0)),
-            style: const TextStyle(fontSize: 14.0, color: Colors.black),
-          ),
-          Expanded(
-            child: CachedNetworkImage(
-                progressIndicatorBuilder: (context, url, progress) => Center(
-                      child: CircularProgressIndicator(
-                        value: progress.progress,
+            TextFormField(
+              controller: captionController,
+              maxLines: 4,
+              textInputAction: TextInputAction.done,
+              maxLength: 350,
+              decoration: const InputDecoration(
+                  counterText: '',
+                  hintText: 'Add Caption to this post..',
+                  hintStyle: TextStyle(fontSize: 14, color: AppColors.textColor),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15.0, vertical: 20.0)),
+              style: const TextStyle(fontSize: 14.0, color: Colors.black),
+            ),
+            Expanded(
+              child: CachedNetworkImage(
+                  progressIndicatorBuilder: (context, url, progress) => Center(
+                        child: CircularProgressIndicator(
+                          value: progress.progress,
+                        ),
                       ),
-                    ),
-                fit: BoxFit.cover,
-                imageUrl: widget.memoriesModel.imageLink!),
-          )
-        ],
+                  fit: BoxFit.cover,
+                  imageUrl: widget.memoriesModel.imageLink!),
+            )
+          ],
+        ),
       ),
     );
   }

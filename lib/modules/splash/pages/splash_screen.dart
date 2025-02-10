@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen> {
       CommonWidgets.requestStoragePermission(((allAssets) {
         for (int i = 0; i < allAssets.length; i++) {
           photosList
-              .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false, isEditmemory: false));
+              .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false, isEditmemory: false,isFirst: false));
           if (allAssets.length - 1 == i) {
             Navigator.pushReplacement(
                 context,

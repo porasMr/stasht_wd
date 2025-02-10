@@ -9,6 +9,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/memory_detail_bottom_sheet.dart';
+import 'package:stasht/modules/create_memory/change_memory_screen.dart';
 import 'package:stasht/modules/create_memory/create_memory_copy.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/media_screen.dart';
@@ -160,182 +161,187 @@ class _PhotosViewState extends State<PhotosView>
         systemNavigationBarColor: Colors.white,
       ),
     );
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
-      appBar: commonAppbar(
-        context,
-        selectedIndex == 0 ? 'Memories' : "Media",
-      ),
-      bottomNavigationBar: Consumer<BottomBarVisibilityProvider>(
-        builder: (context, bottomBarVisibilityProvider, child) {
-          return bottomBarVisibilityProvider.isBottomBarVisible
-              ? BottomAppBar(
-                  height: 107,
-                  surfaceTintColor: Colors.white,
-                  color: Colors.white,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 30),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            selectedIndex = 0;
-                            setState(() {});
-                            if (_scaffoldKey.currentState!.mounted) {
-                              _scaffoldKey.currentState!.refrehScreen();
-                            }
-                          },
+    return MediaQuery(
+                             data:CommonWidgets.textScale(context),
+
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: Colors.white,
+        appBar: commonAppbar(
+          context,
+          selectedIndex == 0 ? 'Memories' : "Media",
+        ),
+        // bottomNavigationBar: Consumer<BottomBarVisibilityProvider>(
+        //   builder: (context, bottomBarVisibilityProvider, child) {
+        //     return bottomBarVisibilityProvider.isBottomBarVisible
+        //         ? BottomAppBar(
+        //             height: 107,
+        //             surfaceTintColor: Colors.white,
+        //             color: Colors.white,
+        //             child: Container(
+        //               padding: const EdgeInsets.symmetric(horizontal: 30),
+        //               child: Row(
+        //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        //                 children: [
+        //                   GestureDetector(
+        //                     onTap: () {
+        //                       selectedIndex = 0;
+        //                       setState(() {});
+        //                       if (_scaffoldKey.currentState!.mounted) {
+        //                         _scaffoldKey.currentState!.refrehScreen();
+        //                       }
+        //                     },
+        //                     child: Column(
+        //                       children: [
+        //                         Container(
+        //                           height: 50,
+        //                           width: 50,
+        //                           alignment: Alignment.center,
+        //                           decoration: BoxDecoration(
+        //                             shape: BoxShape.circle,
+        //                             color: selectedIndex == 0
+        //                                 ? AppColors.textfieldFillColor
+        //                                 : Colors.white,
+        //                           ),
+        //                           child: Image.asset(home, height: 27),
+        //                         ),
+        //                         Text(
+        //                           "MEMORIES",
+        //                           style: appTextStyle(
+        //                             fz: 10,
+        //                             fw: FontWeight.w600,
+        //                             fm: interMedium,
+        //                             height: 20 / 10,
+        //                           ),
+        //                         ),
+        //                       ],
+        //                     ),
+        //                   ),
+        //                   GestureDetector(
+        //                     onTap: () {
+        //                       selectedIndex = 1;
+        //                       setState(() {});
+        //                     },
+        //                     child: Column(
+        //                       children: [
+        //                         Container(
+        //                           height: 50,
+        //                           width: 50,
+        //                           alignment: Alignment.center,
+        //                           decoration: BoxDecoration(
+        //                             shape: BoxShape.circle,
+        //                             color: selectedIndex == 1
+        //                                 ? AppColors.textfieldFillColor
+        //                                 : Colors.white,
+        //                           ),
+        //                           child: Image.asset(
+        //                             "assets/images/image.png",
+        //                             height: 32,
+        //                           ),
+        //                         ),
+        //                         Text(
+        //                           "MEDIA",
+        //                           style: appTextStyle(
+        //                             fz: 10,
+        //                             fw: FontWeight.w600,
+        //                             fm: interMedium,
+        //                             height: 20 / 10,
+        //                           ),
+        //                         ),
+        //                       ],
+        //                     ),
+        //                   ),
+        //                 ],
+        //               ),
+        //             ),
+        //           )
+        //         : SizedBox.shrink();
+        //   },
+        // ),
+        floatingActionButton: Consumer<BottomBarVisibilityProvider>(
+          builder: (context, bottomBarVisibilityProvider, child) {
+            return bottomBarVisibilityProvider.isBottomBarVisible
+                ? Stack(
+                    children: [
+                      Positioned(
+                        bottom: 20,
+                        right: 0,
+                        left: 0,
+                        child: Visibility(
+                          visible: MediaQuery.of(context).viewInsets.bottom == 0,
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                height: 50,
-                                width: 50,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: selectedIndex == 0
-                                      ? AppColors.textfieldFillColor
-                                      : Colors.white,
-                                ),
-                                child: Image.asset(home, height: 27),
-                              ),
-                              Text(
-                                "MEMORIES",
-                                style: appTextStyle(
-                                  fz: 10,
-                                  fw: FontWeight.w600,
-                                  fm: interMedium,
-                                  height: 20 / 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            selectedIndex = 1;
-                            setState(() {});
-                          },
-                          child: Column(
-                            children: [
-                              Container(
-                                height: 50,
-                                width: 50,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: selectedIndex == 1
-                                      ? AppColors.textfieldFillColor
-                                      : Colors.white,
-                                ),
-                                child: Image.asset(
-                                  "assets/images/image.png",
-                                  height: 32,
-                                ),
-                              ),
-                              Text(
-                                "MEDIA",
-                                style: appTextStyle(
-                                  fz: 10,
-                                  fw: FontWeight.w600,
-                                  fm: interMedium,
-                                  height: 20 / 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : SizedBox.shrink();
-        },
-      ),
-      floatingActionButton: Consumer<BottomBarVisibilityProvider>(
-        builder: (context, bottomBarVisibilityProvider, child) {
-          return bottomBarVisibilityProvider.isBottomBarVisible
-              ? Stack(
-                  children: [
-                    Positioned(
-                      bottom: 20,
-                      right: 0,
-                      left: 0,
-                      child: Visibility(
-                        visible: MediaQuery.of(context).viewInsets.bottom == 0,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (BuildContext context) =>
-                                        CreateMemoryCopyScreen(
-                                      photosList: widget.photosList,
-                                      future: future,
-                                      isBack: true,
-                                      fromMediaScreen: false,
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (BuildContext context) =>
+                                          ChangeCreateMemoryScreen(
+                                        photosList: widget.photosList,
+                                        future: future,
+                                        isEdit: false, isAddPhoto: false,
+                                      ),
                                     ),
-                                  ),
-                                ).then((value) {
-                                  if (value != null) {
-                                    _scaffoldKey.currentState!.refrehScreen();
-                                    categorySelectedIndex = value;
-                                    setState(() {});
-                                  }
-                                });
-                              },
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Image.asset(
-                                    "assets/images/fabIcon.png",
-                                    height: 90,
-                                  ),
-                                  Image.asset(
-                                    "assets/images/addFabIcon.png",
-                                    height: 29,
-                                  ),
-                                ],
+                                  ).then((value) {
+                                    if (value != null) {
+                                      _scaffoldKey.currentState!.refrehScreen();
+                                      categorySelectedIndex = value;
+                                      setState(() {});
+                                    }
+                                  });
+                                },
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Image.asset(
+                                      "assets/images/fabIcon.png",
+                                      height: 90,
+                                    ),
+                                    Image.asset(
+                                      "assets/images/addFabIcon.png",
+                                      height: 29,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Text(
-                              "ADD",
-                              style: appTextStyle(
-                                fz: 14,
-                                fm: interBold,
-                                height: 29 / 14,
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ],
+                              // Text(
+                              //   "ADD",
+                              //   style: appTextStyle(
+                              //     fz: 14,
+                              //     fm: interBold,
+                              //     height: 29 / 14,
+                              //     color: AppColors.black,
+                              //   ),
+                              // ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                )
-              : SizedBox();
-        },
+                    ],
+                  )
+                : SizedBox();
+          },
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        body:
+        //  selectedIndex == 0
+        //     ? 
+            MemoriesScreen(
+                key: _scaffoldKey,
+                photosList: widget.photosList,
+                isSkip: () {},
+                categorySelectedIndex: categorySelectedIndex,
+              )
+            // : selectedIndex == 1
+            //     ? MediaScreen(
+            //         future: future,
+            //         photosList: widget.photosList,
+            //         isFromSignUp: false,
+            //         type: "")
+            //     : Container(),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      body: selectedIndex == 0
-          ? MemoriesScreen(
-              key: _scaffoldKey,
-              photosList: widget.photosList,
-              isSkip: () {},
-              categorySelectedIndex: categorySelectedIndex,
-            )
-          : selectedIndex == 1
-              ? MediaScreen(
-                  future: future,
-                  photosList: widget.photosList,
-                  isFromSignUp: false,
-                  type: "")
-              : Container(),
     );
   }
 
@@ -361,7 +367,7 @@ class _PhotosViewState extends State<PhotosView>
                     height: 28 / 22,
                     color: AppColors.black,
                     fontFamily: robotoRegular,
-                    fontSize: 22),
+                    fontSize: 20),
               ),
             ),
           ),

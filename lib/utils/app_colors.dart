@@ -26,6 +26,8 @@ class AppColors {
   static const Color redBgColor = Color(0XFFE57171);
     static const Color unreadColor = Color(0XFFD9DAFF);
 
+    static const Color memoryBackColor = Color(0XFFF4F2F2);
+
 
   
   static const Color redTrashColor = Color(0XFFFF3B30);

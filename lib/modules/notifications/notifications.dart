@@ -39,199 +39,201 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
   }
   @override
   Widget build(BuildContext context) {
-   return Scaffold(
-            appBar:AppBar(
-              centerTitle: false,
-              automaticallyImplyLeading: false,
-              title: 
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child:const Icon(Icons.arrow_back),
-                  ),
-                 const SizedBox(width: 10,),
-                 const Text("Notifications",
-                    style: TextStyle(
-                      fontSize: 22,
-                      height: 28/22,
-                      fontFamily: robotoRegular,
-                    
-                    ),),
-                ],
-              )
-             
-    
-           
-            ),
-            body:   notificationModel.data!=null
-                ?
-            ListView.builder(
-              itemCount: notificationModel.data!.length,
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              itemBuilder: (context, index) {
-                return Column(
+   return MediaQuery(data:CommonWidgets.textScale(context),
+     child: Scaffold(
+              appBar:AppBar(
+                centerTitle: false,
+                automaticallyImplyLeading: false,
+                title: 
+                Row(
                   children: [
-                    InkWell(
-                        onTap: () {
-                          memoryId=notificationModel.data![index].type!;
-                          notificationModel.data![index].read=1;
-                          setState(() {
-                            
-                          });
-                         EasyLoading.show();
-                         ApiCall.getNotifications(api: ApiUrl.readNotification+"?notification_id=${notificationModel.data![index].id}", callack: this);
-                        },
-                        child: Container(
-
-                          decoration: BoxDecoration(
-                              color:notificationModel.data![index].read==0?AppColors.textfieldFillColor:
-                              Colors.white
-                              ,
-                             border: Border(
-                               top: BorderSide(
-                                 color: Color(0XFFD9DAFF).withOpacity(.75)
-                               ),
-                               bottom: BorderSide(
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child:const Icon(Icons.arrow_back,size: 30,),
+                    ),
+                   const SizedBox(width: 10,),
+                   const Text("Notifications",
+                      style: TextStyle(
+                        fontSize: 20,
+                        height: 28/22,
+                        fontFamily: robotoRegular,
+                      
+                      ),),
+                  ],
+                )
+               
+      
+             
+              ),
+              body:   notificationModel.data!=null
+                  ?
+              ListView.builder(
+                itemCount: notificationModel.data!.length,
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemBuilder: (context, index) {
+                  return Column(
+                    children: [
+                      InkWell(
+                          onTap: () {
+                            memoryId=notificationModel.data![index].type!;
+                            notificationModel.data![index].read=1;
+                            setState(() {
+                              
+                            });
+                           EasyLoading.show();
+                           ApiCall.getNotifications(api: ApiUrl.readNotification+"?notification_id=${notificationModel.data![index].id}", callack: this);
+                          },
+                          child: Container(
+     
+                            decoration: BoxDecoration(
+                                color:notificationModel.data![index].read==0?AppColors.textfieldFillColor:
+                                Colors.white
+                                ,
+                               border: Border(
+                                 top: BorderSide(
                                    color: Color(0XFFD9DAFF).withOpacity(.75)
-                               ),
-                             )
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 16),
-                          child: Column(
-                            children: [
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(CommonWidgets.formatTimeAgo(DateTime.parse(notificationModel.data!
-                                   [index].createdAt!) ),
-                                style: TextStyle(
-                                  color:Color(0XFF858484),
-                                  fontSize: 13,
-                                  height: 19.2/13
-                                ),),
-                              ),
-                              Row(
-                                children: [
-                                  Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
+                                 ),
+                                 bottom: BorderSide(
+                                     color: Color(0XFFD9DAFF).withOpacity(.75)
+                                 ),
+                               )
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
+                            child: Column(
+                              children: [
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(CommonWidgets.formatTimeAgo(DateTime.parse(notificationModel.data!
+                                     [index].createdAt!) ),
+                                  style: TextStyle(
+                                    color:Color(0XFF858484),
+                                    fontSize: 13,
+                                    height: 19.2/13
+                                  ),),
+                                ),
+                                Row(
+                                  children: [
+                                    Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50.0),
+                        color:notificationModel.data![index].sendby==null?AppColors.unreadColor:  convertColor(color: notificationModel.data![index].sendby!.profileColor) ,
+                        border: Border.all(color: Colors.grey, width: 0.3)),
+                    height: 46,
+                    width: 46,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(50.0),
-                      color:notificationModel.data![index].sendby==null?AppColors.unreadColor:  convertColor(color: notificationModel.data![index].sendby!.profileColor) ,
-                      border: Border.all(color: Colors.grey, width: 0.3)),
-                  height: 46,
-                  width: 46,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50.0),
-                    child:notificationModel.data![index].sendby==null?
-                     Text(
-                            notificationModel.data![index].description![0].toUpperCase(),
-                            style: const TextStyle(
-                                fontSize: 24,
-                                color: Colors.white,
-                                fontFamily: robotoRegular),
-                          ):
-                    
-                    notificationModel.data![index].sendby!.profileImage!.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: notificationModel.data![index].sendby!.profileImage!,
-                            fit: BoxFit.cover,
-                            height: 46,
-                            width: 46,
-                            progressIndicatorBuilder:
-                                (context, url, downloadProgress) =>
-                                    CircularProgressIndicator(
-                                        value: downloadProgress.progress))
-                        : Text(
-                            notificationModel.data![index].sendby!.name![0].toUpperCase(),
-                            style: const TextStyle(
-                                fontSize: 24,
-                                color: Colors.white,
-                                fontFamily: robotoRegular),
-                          ),
+                      child:notificationModel.data![index].sendby==null?
+                       Text(
+                              notificationModel.data![index].description![0].toUpperCase(),
+                              style: const TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                  fontFamily: robotoRegular),
+                            ):
+                      
+                      notificationModel.data![index].sendby!.profileImage!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: notificationModel.data![index].sendby!.profileImage!,
+                              fit: BoxFit.cover,
+                              height: 46,
+                              width: 46,
+                              progressIndicatorBuilder:
+                                  (context, url, downloadProgress) =>
+                                      CircularProgressIndicator(
+                                          value: downloadProgress.progress))
+                          : Text(
+                              notificationModel.data![index].sendby!.name![0].toUpperCase(),
+                              style: const TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.white,
+                                  fontFamily: robotoRegular),
+                            ),
+                    ),
                   ),
-                ),
-                                  const SizedBox(
-                                    width: 8,
-                                  ),
-                                  notificationModel.data![index].sendby==null?
-                                  Expanded(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        text: notificationModel.data!
-                                   [index].description,
-                                        style: const TextStyle(
-                                            fontFamily: interBold,
-                                            color: AppColors.black,
-                                            fontSize: 13,
-                                            height: 19.2/13),
-                                        children: <TextSpan>[
-                                        ],
-                                      ),
+                                    const SizedBox(
+                                      width: 8,
                                     ),
-                                  ):
-                                  Expanded(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        text: notificationModel.data![index].sendby!.name,
-                                        style: const TextStyle(
-                                                   fontFamily:robotoBold ,                                         fontWeight: FontWeight.bold,
-
-                                            color: AppColors.black,
-                                          
-                                            fontSize: 14,
-                                            height: 19.2/13),
-                                        children: <TextSpan>[
-                                         const TextSpan(
-                                        text: " has accept your Invitation for memory\n",
-                                        style:  TextStyle(
-                                            color: AppColors.black,
-                                            fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                                   fontFamily:robotoRegular ,   
-
+                                    notificationModel.data![index].sendby==null?
+                                    Expanded(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          text: notificationModel.data!
+                                     [index].description,
+                                          style: const TextStyle(
+                                              fontFamily: interBold,
+                                              color: AppColors.black,
+                                              fontSize: 13,
+                                              height: 19.2/13),
+                                          children: <TextSpan>[
+                                          ],
+                                        ),
+                                      ),
+                                    ):
+                                    Expanded(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          text: notificationModel.data![index].sendby!.name,
+                                          style: const TextStyle(
+                                                     fontFamily:robotoBold ,                                         fontWeight: FontWeight.bold,
+     
+                                              color: AppColors.black,
+                                            
+                                              fontSize: 14,
+                                              height: 19.2/13),
+                                          children: <TextSpan>[
+                                           const TextSpan(
+                                          text: " has accept your Invitation for memory\n",
+                                          style:  TextStyle(
+                                              color: AppColors.black,
+                                              fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                     fontFamily:robotoRegular ,   
+     
+                                              ),
                                             ),
-                                          ),
-                                           TextSpan(
-                                        text:notificationModel.data![index].memoryTitle==""?"": notificationModel.data![index].memoryTitle,
-                                        style: const TextStyle(
-                                                   fontFamily:robotoBold ,                                         fontWeight: FontWeight.bold,
-
-                                            color: AppColors.black,
-                                            fontSize: 14,
-                                            height: 19.2/13),
-                                          ),
-                                        ],
+                                             TextSpan(
+                                          text:notificationModel.data![index].memoryTitle==""?"": notificationModel.data![index].memoryTitle,
+                                          style: const TextStyle(
+                                                     fontFamily:robotoBold ,                                         fontWeight: FontWeight.bold,
+     
+                                              color: AppColors.black,
+                                              fontSize: 14,
+                                              height: 19.2/13),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ],
+                                    )
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )),
+                   /*   Container(
+                        width: MediaQuery.of(context).size.width,
+                        height: 0.5,
+                        color: AppColors.primaryColor,
+                      )*/
+                    ],
+                  );
+                },
+              ):
+                 Container(
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'You have no notifications at this time.',
+                            style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black,
+                                fontFamily: robotoMedium),
                           ),
                         )),
-                 /*   Container(
-                      width: MediaQuery.of(context).size.width,
-                      height: 0.5,
-                      color: AppColors.primaryColor,
-                    )*/
-                  ],
-                );
-              },
-            ):
-               Container(
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'You have no notifications at this time.',
-                          style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.black,
-                              fontFamily: robotoMedium),
-                        ),
-                      ));
+   );
   }
   
   @override

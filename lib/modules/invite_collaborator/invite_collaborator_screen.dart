@@ -71,72 +71,76 @@ UserModel model=UserModel();
       ),
     );
     // TODO: implement build
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return MediaQuery(
+                                 data:CommonWidgets.textScale(context),
+
+      child: Scaffold(
         backgroundColor: Colors.white,
-        title: Text(
-          AppStrings.inviteCollab,
-          style: appTextStyle(fm: robotoRegular, fz: 22, height: 28 / 22),
-        ),
-        leading: null,
-        actions: [
-          GestureDetector(
-            onTap: () async {
-              if (selectedContacts.isNotEmpty) {
-                String baseUrl =
-                    "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
-                String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
-                String link = await CommonWidgets.createDynamicLink(
-                    widget.memoryId, widget.title, imageIdentifier, model.user!.name!, "");
-                    EasyLoading.show();
-                if (link.isNotEmpty) {
-                  for (var element in selectedContacts) {
-                    sendLinkBySms(
-                        phoneNumber: element.phones.first.normalizedNumber,
-                        link: Uri.parse(link),
-                        title: TextEditingController(text: widget.title));
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: Text(
+            AppStrings.inviteCollab,
+            style: appTextStyle(fm: robotoRegular, fz: 20, height: 28 / 22),
+          ),
+          leading: null,
+          actions: [
+            GestureDetector(
+              onTap: () async {
+                if (selectedContacts.isNotEmpty) {
+                  String baseUrl =
+                      "https://stasht-data.s3.us-east-2.amazonaws.com/images/";
+                  String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
+                  String link = await CommonWidgets.createDynamicLink(
+                      widget.memoryId, widget.title, imageIdentifier, model.user!.name!, "");
+                      EasyLoading.show();
+                  if (link.isNotEmpty) {
+                    for (var element in selectedContacts) {
+                      sendLinkBySms(
+                          phoneNumber: element.phones.first.normalizedNumber,
+                          link: Uri.parse(link),
+                          title: TextEditingController(text: widget.title));
+                    }
+                     EasyLoading.dismiss();
+      
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => PhotosView(
+                                photosList: widget.photosList,
+                                isSkip: false,
+                              )));
+                              openSentLink(context,link);
+      
                   }
-                   EasyLoading.dismiss();
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => PhotosView(
-                              photosList: widget.photosList,
-                              isSkip: false,
-                            )));
-                            openSentLink(context,link);
-
+                } else {
+                   Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (BuildContext context) => PhotosView(
+                                photosList: widget.photosList,
+                                isSkip: false,
+                              )));
                 }
-              } else {
-                 Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => PhotosView(
-                              photosList: widget.photosList,
-                              isSkip: false,
-                            )));
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Text(
-                selectedContacts.isNotEmpty ? AppStrings.done : AppStrings.skip,
-                style: appTextStyle(
-                    color: selectedContacts.isNotEmpty?AppColors.primaryColor:AppColors.hintColor, fm: robotoRegular, fz: 18),
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Text(
+                  AppStrings.skip,
+                  style: appTextStyle(
+                      color: AppColors.primaryColor, fm: robotoRegular, fz: 15),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _sreachFiled(context),
-          permissionDenied == true
-              ? const Center(child: Text('Permission denied'))
-              : _contactListView(context)
-        ],
+          ],
+        ),
+        body: Column(
+          children: [
+            _sreachFiled(context),
+            permissionDenied == true
+                ? const Center(child: Text('Permission denied'))
+                : _contactListView(context)
+          ],
+        ),
       ),
     );
   }
@@ -268,7 +272,7 @@ openSentLink(BuildContext context,String link){
                             style: appTextStyle(
                               fm: robotoRegular,
                               height: 18 / 17,
-                              fz: 17,
+                              fz: 15,
                             ),
                           ),
                           Text(
@@ -281,7 +285,7 @@ openSentLink(BuildContext context,String link){
                             style: appTextStyle(
                                 fm: robotoRegular,
                                 height: 18 / 14,
-                                fz: 14,
+                                fz: 12,
                                 color: AppColors.lightGrey),
                           ),
                         ],

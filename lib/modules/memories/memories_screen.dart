@@ -27,11 +27,14 @@ import 'package:stasht/utils/shimmer_widget.dart';
 import '../create_memory/create_memory.dart';
 
 class MemoriesScreen extends StatefulWidget {
-  MemoriesScreen({super.key, required this.isSkip, required this.photosList,required this.categorySelectedIndex});
+  MemoriesScreen(
+      {super.key,
+      required this.isSkip,
+      required this.photosList,
+      required this.categorySelectedIndex});
   VoidCallback isSkip;
   List<PhotoModel> photosList = [];
-    int categorySelectedIndex=0;
-
+  int categorySelectedIndex = 0;
 
   @override
   MemoriesScreenState createState() => MemoriesScreenState();
@@ -84,7 +87,6 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
         }
       }
     });
-       
   }
 
   @override
@@ -94,191 +96,194 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
         systemNavigationBarColor: Colors.white,
       ),
     );
-    return Column(
-      children: [
-        const SizedBox(
-          height: 16,
-        ),
-        categoryModel.categories == null
-            ? Container(
-                height: 35,
-                width: MediaQuery.of(context).size.width,
-                padding: const EdgeInsets.only(left: 15),
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 35,
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(30)),
-                            child: shimmerWidget(35, 30)),
+    return MediaQuery(
+      data: CommonWidgets.textScale(context),
+      child: Column(
+        children: [
+          const SizedBox(
+            height: 16,
+          ),
+          categoryModel.categories == null
+              ? Container(
+                  height: 35,
+                  width: MediaQuery.of(context).size.width,
+                  padding: const EdgeInsets.only(left: 15),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          height: 35,
+                          margin: const EdgeInsets.only(right: 10),
+                          child: ClipRRect(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(30)),
+                              child: shimmerWidget(35, 30)),
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 35,
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(30)),
-                            child: shimmerWidget(35, 100)),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          height: 35,
+                          margin: const EdgeInsets.only(right: 10),
+                          child: ClipRRect(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(30)),
+                              child: shimmerWidget(35, 100)),
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 35,
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(30)),
-                            child: shimmerWidget(35, 100)),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          height: 35,
+                          margin: const EdgeInsets.only(right: 10),
+                          child: ClipRRect(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(30)),
+                              child: shimmerWidget(35, 100)),
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 35,
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(30)),
-                            child: shimmerWidget(35, 100)),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          height: 35,
+                          margin: const EdgeInsets.only(right: 10),
+                          child: ClipRRect(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(30)),
+                              child: shimmerWidget(35, 100)),
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        height: 35,
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(30)),
-                            child: shimmerWidget(35, 100)),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          height: 35,
+                          margin: const EdgeInsets.only(right: 10),
+                          child: ClipRRect(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(30)),
+                              child: shimmerWidget(35, 100)),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              )
-            : Expanded(
-                child: Column(
-                  children: [
-                    Container(
-                      height: 35,
-                      padding: const EdgeInsets.only(left: 15),
-                      width: MediaQuery.of(context).size.width,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                addLableBottomSheet(context, '', '');
-                              },
-                              child: Container(
+                    ],
+                  ),
+                )
+              : Expanded(
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 35,
+                        padding: const EdgeInsets.only(left: 15),
+                        width: MediaQuery.of(context).size.width,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  addLableBottomSheet(context, '', '');
+                                },
+                                child: Container(
+                                    height: 35,
+                                    margin: const EdgeInsets.only(right: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 4),
+                                    decoration: BoxDecoration(
+                                        border:
+                                            Border.all(color: AppColors.black),
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: AppColors.whiteColor),
+                                    child: const Icon(
+                                      Icons.add,
+                                    )),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  allCategory();
+                                },
+                                child: Container(
                                   height: 35,
                                   margin: const EdgeInsets.only(right: 10),
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 4),
+                                      horizontal: 16, vertical: 2),
                                   decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: AppColors.black),
                                       borderRadius: BorderRadius.circular(12),
-                                      color: AppColors.whiteColor),
-                                  child: const Icon(
-                                    Icons.add,
-                                  )),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                allCategory();
-                              },
-                              child: Container(
-                                height: 35,
-                                margin: const EdgeInsets.only(right: 10),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 2),
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: !anyValueSelected()
-                                        ? AppColors.black
-                                        : AppColors.selectedTabColor),
-                                child: Center(
-                                  child: Text(
-                                    "All",
-                                    style: appTextStyle(
-                                        fm: interMedium,
-                                        height: 27 / 14,
-                                        fz: 14,
-                                        color: !anyValueSelected()
-                                            ? AppColors.whiteColor
-                                            : AppColors.black),
+                                      color: !anyValueSelected()
+                                          ? AppColors.black
+                                          : AppColors.selectedTabColor),
+                                  child: Center(
+                                    child: Text(
+                                      "All",
+                                      style: appTextStyle(
+                                          fm: interMedium,
+                                          height: 27 / 14,
+                                          fz: 14,
+                                          color: !anyValueSelected()
+                                              ? AppColors.whiteColor
+                                              : AppColors.black),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            Container(
-                              width: categoryModel.categories!.length * 120,
-                              child: ListView.builder(
-                                physics: NeverScrollableScrollPhysics(),
-                                itemCount: categoryModel.categories!.length,
-                                itemBuilder: (context, index) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      selectedCategory(index);
-                                      subIdIndex = null;
-                                    },
-                                    onLongPressStart: (details) {
-                                      if (categoryModel
-                                                  .categories![index].name !=
-                                              "Personal" &&
-                                          categoryModel
-                                                  .categories![index].name !=
-                                              "Shared" &&
-                                          categoryModel
-                                                  .categories![index].name !=
-                                              "Published") {
-                                        showPopupMenu(
-                                            details,
-                                            categoryModel.categories![index].id
-                                                .toString(),
+                              Container(
+                                width: categoryModel.categories!.length * 120,
+                                child: ListView.builder(
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemCount: categoryModel.categories!.length,
+                                  itemBuilder: (context, index) {
+                                    return GestureDetector(
+                                      onTap: () {
+                                        selectedCategory(index);
+                                        subIdIndex = null;
+                                      },
+                                      onLongPressStart: (details) {
+                                        if (categoryModel
+                                                    .categories![index].name !=
+                                                "Personal" &&
                                             categoryModel
-                                                .categories![index].name!);
-                                      }
-                                    },
-                                    child: tabTitle(
-                                        title: categoryModel
-                                            .categories![index].name,
-                                        index: index),
-                                  );
-                                },
-                                shrinkWrap: true,
-                                scrollDirection: Axis.horizontal,
+                                                    .categories![index].name !=
+                                                "Shared" &&
+                                            categoryModel
+                                                    .categories![index].name !=
+                                                "Published") {
+                                          showPopupMenu(
+                                              details,
+                                              categoryModel
+                                                  .categories![index].id
+                                                  .toString(),
+                                              categoryModel
+                                                  .categories![index].name!);
+                                        }
+                                      },
+                                      child: tabTitle(
+                                          title: categoryModel
+                                              .categories![index].name,
+                                          index: index),
+                                    );
+                                  },
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 1),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: 
-                        _mainScrollController,
-                        child: Column(
-                          children: [selectedtabView()],
+                      const SizedBox(height: 1),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _mainScrollController,
+                          child: Column(
+                            children: [selectedtabView()],
+                          ),
                         ),
-                      ),
-                    )
-                  ],
+                      )
+                    ],
+                  ),
                 ),
-              ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -460,9 +465,10 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
           )
         : Column(
             children: [
+              SizedBox(
+                height: 16,
+              ),
               ListView.builder(
-
-                  padding: const EdgeInsets.only(top: 15),
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: memoriesModel.data!.length,
                   shrinkWrap: true,
@@ -493,7 +499,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                       style: appTextStyle(
                                         color: AppColors.monthColor,
                                         fm: robotoRegular,
-                                        fz: 22,
+                                        fz: 20,
                                         height: 28 / 22,
                                       ),
                                     ),
@@ -502,7 +508,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                       style: appTextStyle(
                                         color: AppColors.monthColor,
                                         fm: robotoRegular,
-                                        fz: 22,
+                                        fz: 20,
                                         height: 28 / 22,
                                       ),
                                     ),
@@ -566,9 +572,11 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    const SizedBox(height: 8),
+
                                     // Add category title view
                                     _addCategoryTitleView(),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 16),
                                   ],
                                 ),
                               ),
@@ -592,7 +600,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                               style: appTextStyle(
                                 color: AppColors.monthColor,
                                 fm: robotoRegular,
-                                fz: 22,
+                                fz: 20,
                                 height: 28 / 22,
                               ),
                             ),
@@ -603,7 +611,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                               style: appTextStyle(
                                 color: AppColors.monthColor,
                                 fm: robotoRegular,
-                                fz: 22,
+                                fz: 20,
                                 height: 28 / 22,
                               ),
                             ),
@@ -637,6 +645,9 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                   ],
                 ),
               ),
+              SizedBox(
+                height: 10,
+              ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15.0),
                 child: Column(
@@ -652,7 +663,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                               style: appTextStyle(
                                 color: AppColors.monthColor,
                                 fm: robotoRegular,
-                                fz: 22,
+                                fz: 20,
                                 height: 28 / 22,
                               ),
                             ),
@@ -663,7 +674,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                               style: appTextStyle(
                                 color: AppColors.monthColor,
                                 fm: robotoRegular,
-                                fz: 22,
+                                fz: 20,
                                 height: 28 / 22,
                               ),
                             ),
@@ -702,13 +713,13 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
           );
   }
 
- int getMemoryIndex(){
-    int i=0;
-    for(int k=0;k<memoriesModel.data!.length;k++){
-i=i+memoriesModel.data![k].memorisCount!;
+  int getMemoryIndex() {
+    int i = 0;
+    for (int k = 0; k < memoriesModel.data!.length; k++) {
+      i = i + memoriesModel.data![k].memorisCount!;
     }
     print(i);
-return i;
+    return i;
   }
 
   myMemoriesUI() {
@@ -717,114 +728,127 @@ return i;
       child: Column(
         children: [
           (getSelectedCategory() == 'Shared' ||
-                        getSelectedCategory() == 'Published')?SizedBox(height: 16,):
-          Container(
-            height: 49,
-            margin: const EdgeInsets.only(top: 8),
-            width: MediaQuery.of(context).size.width,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: Row(
-              children: [
-                (getSelectedCategory() == 'Shared' ||
-                        getSelectedCategory() == 'Published')
-                    ? Container()
-                    : GestureDetector(
-                        onTap: () {
-                          _currentPage = 1;
-                          subIdIndex = null;
+                  getSelectedCategory() == 'Published')
+              ? SizedBox(
+                  height: 16,
+                )
+              : Container(
+                  height: 49,
+                  margin: const EdgeInsets.only(top: 8),
+                  width: MediaQuery.of(context).size.width,
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Row(
+                    children: [
+                      (getSelectedCategory() == 'Shared' ||
+                              getSelectedCategory() == 'Published')
+                          ? Container()
+                          : GestureDetector(
+                              onTap: () {
+                                _currentPage = 1;
+                                subIdIndex = null;
 
-                          allSubCategory();
-                          refershSubCategory('');
-                        },
-                        onLongPressStart: (details) {},
-                        child: Align(
-                          alignment: Alignment.center, // Center each subTitle
-                          child: Container(
-                            alignment: Alignment.center,
-                            width: 40,
-                            height: 27,
-                            // Reduced height
-                            margin: const EdgeInsets.only(right: 8),
-                            // Reduced margin
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            // Reduced padding
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: anySubValueSelected()
-                                    ? AppColors.black
-                                    : Colors.transparent,
-                              ),
-                              borderRadius: BorderRadius.circular(13),
-                              // Slightly reduced border radius
-                              color: anySubValueSelected()
-                                  ? Colors.white
-                                  : AppColors.subTitleColor,
-                            ),
-                            child: Text(
-                              "All",
-                              style: appTextStyle(
-                                fm: interMedium,
-                                height: 24 / 14, // Adjusted line height
-                                fz: 12, // Reduced font size
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ), // Call the subTitle method
-                        ),
-                      ),
-                categoryMemoryModel.subCategories == null
-                    ? Container()
-                    : Expanded(
-                        child: Container(
-                          child: ListView.builder(
-                            itemCount:
-                                categoryMemoryModel.subCategories!.length,
+                                allSubCategory();
+                                refershSubCategory('');
+                              },
+                              onLongPressStart: (details) {},
+                              child: Align(
+                                alignment:
+                                    Alignment.center, // Center each subTitle
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  width: 40,
+                                  height: 27,
+                                  // Reduced height
 
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  for (int i = 0;
-                                      i <
-                                          categoryMemoryModel
-                                              .subCategories!.length;
-                                      i++) {
-                                    if (i == index) {
-                                      categoryMemoryModel.subCategories![index]
-                                          .isSelected = true;
-                                    } else {
-                                      categoryMemoryModel
-                                          .subCategories![i].isSelected = false;
-                                    }
-                                  }
-                                  subIdIndex = index;
-                                  setState(() {});
-                                  _currentPage = 1;
-                                  subCategoriesId = categoryMemoryModel
-                                      .subCategories![index].id
-                                      .toString();
-                                  refershSubCategory(subCategoriesId);
-                                },
-                                onLongPressStart: (details) {},
-                                child: Align(
-                                  alignment:
-                                      Alignment.center, // Center each subTitle
-                                  child: subTitle(
-                                      title: categoryMemoryModel
-                                          .subCategories![index].name,
-                                      index: index), // Call the subTitle method
+                                  margin: const EdgeInsets.only(right: 8),
+                                  // Reduced margin
+                                  padding: EdgeInsets.only(left: 10, right: 10),
+                                  // Reduced padding
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: anySubValueSelected()
+                                          ? AppColors.black
+                                          : Colors.transparent,
+                                    ),
+                                    borderRadius: BorderRadius.circular(13),
+                                    // Slightly reduced border radius
+                                    color: anySubValueSelected()
+                                        ? Colors.white
+                                        : AppColors.subTitleColor,
+                                  ),
+                                  child: Text(
+                                    "All",
+                                    style: appTextStyle(
+                                      fm: interMedium,
+                                      height: 24 / 14, // Adjusted line height
+                                      fz: 12, // Reduced font size
+                                      color: AppColors.black,
+                                    ),
+                                  ),
+                                ), // Call the subTitle method
+                              ),
+                            ),
+                      categoryMemoryModel.subCategories == null
+                          ? Container()
+                          : Expanded(
+                              child: Container(
+                                child: ListView.separated(
+                                  separatorBuilder: (context, index) {
+                                    return SizedBox(
+                                      width: 16,
+                                    );
+                                  },
+                                  itemCount:
+                                      categoryMemoryModel.subCategories!.length,
+
+                                  itemBuilder: (context, index) {
+                                    return GestureDetector(
+                                      onTap: () {
+                                        for (int i = 0;
+                                            i <
+                                                categoryMemoryModel
+                                                    .subCategories!.length;
+                                            i++) {
+                                          if (i == index) {
+                                            categoryMemoryModel
+                                                .subCategories![index]
+                                                .isSelected = true;
+                                          } else {
+                                            categoryMemoryModel
+                                                .subCategories![i]
+                                                .isSelected = false;
+                                          }
+                                        }
+                                        subIdIndex = index;
+                                        setState(() {});
+                                        _currentPage = 1;
+                                        subCategoriesId = categoryMemoryModel
+                                            .subCategories![index].id
+                                            .toString();
+                                        refershSubCategory(subCategoriesId);
+                                      },
+                                      onLongPressStart: (details) {},
+                                      child: Align(
+                                        alignment: Alignment
+                                            .center, // Center each subTitle
+                                        child: subTitle(
+                                            title: categoryMemoryModel
+                                                .subCategories![index].name,
+                                            index:
+                                                index), // Call the subTitle method
+                                      ),
+                                    );
+                                  },
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                  physics:
+                                      const BouncingScrollPhysics(), // Optional: adds bounce effect on scroll
                                 ),
-                              );
-                            },
-                            shrinkWrap: true,
-                            scrollDirection: Axis.horizontal,
-                            physics:
-                                const BouncingScrollPhysics(), // Optional: adds bounce effect on scroll
-                          ),
-                        ),
-                      ),
-              ],
-            ),
-          ),
+                              ),
+                            ),
+                    ],
+                  ),
+                ),
           Expanded(
             child: categoryMemoryModel.data!.data!.isEmpty
                 ? Container()
@@ -861,7 +885,6 @@ return i;
                                             ))).then((value) {
                                   refrehScreen();
                                   allCategory();
-                               
                                 });
                               },
                               child: Container(
@@ -899,12 +922,12 @@ return i;
                                                             .skeltonBorderColor
                                                         : Colors.transparent),
                                                 borderRadius:
-                                                    BorderRadius.circular(12),
+                                                    BorderRadius.circular(24),
                                                 color: Colors.white,
                                               ),
                                               child: ClipRRect(
                                                 borderRadius:
-                                                    BorderRadius.circular(12),
+                                                    BorderRadius.circular(24),
                                                 child: memory.lastUpdateImg ==
                                                         ''
                                                     ? Image.asset(
@@ -1037,7 +1060,6 @@ return i;
                                                               FontStyle.italic,
                                                           fontFamily:
                                                               robotoRegular,
-                                                          height: 17.2 / 13,
                                                           fontSize: 10),
                                                     ),
                                                   ],
@@ -1111,7 +1133,7 @@ return i;
             const SizedBox(width: 12),
             // Category title text
             Text(
-              "Add Category Title",
+              "Add Category",
               style: TextStyle(
                 color: const Color(0XFF9FA0C4).withOpacity(.75),
                 fontSize: 23,
@@ -1125,20 +1147,22 @@ return i;
       ),
     );
   }
-scrollToSelectedPosition(int index){
-   WidgetsBinding.instance.addPostFrameCallback((_) {
-     double deviceHeight = MediaQuery.of(context).size.height;
-         final double offset = index * deviceHeight *.237; // Assuming each item has a height of 50.0
-    _mainScrollController.animateTo(
-      offset,
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeInOut,
-    );
-  });
-  setState(() {
-    
-  });
-}
+
+  scrollToSelectedPosition(int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      double deviceHeight = MediaQuery.of(context).size.height;
+      final double offset = index *
+          deviceHeight *
+          .237; // Assuming each item has a height of 50.0
+      _mainScrollController.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+      );
+    });
+    setState(() {});
+  }
+
   @override
   void onFailure(String message) {
     EasyLoading.dismiss();
@@ -1158,7 +1182,6 @@ scrollToSelectedPosition(int index){
         widget.isSkip();
       }
       scrollToSelectedPosition(widget.categorySelectedIndex);
-     
     } else if (apiType == ApiUrl.createCategory) {
       CommonWidgets.successDialog(context, json.decode(data)['message']);
 
@@ -1354,7 +1377,6 @@ scrollToSelectedPosition(int index){
                               maxLines: 2,
                               cursorColor: AppColors.primaryColor,
                               textInputAction: TextInputAction.done,
-
                               showCursor: true,
                               style: appTextStyle(
                                   fm: robotoRegular,
@@ -1386,164 +1408,6 @@ scrollToSelectedPosition(int index){
         });
       },
     );
-
-    // Get.bottomSheet(
-    //     DraggableScrollableSheet(
-    //       initialChildSize: 0.4,
-    //       // Starting size (fraction of the screen height)
-    //       minChildSize: 0.2,
-    //       // Minimum size
-    //       maxChildSize: 0.9,
-    //       builder: (BuildContext context, ScrollController scrollController) {
-    //         return Container(
-    //           decoration: BoxDecoration(
-    //             borderRadius: const BorderRadius.only(
-    //                 topRight: Radius.circular(25),
-    //                 topLeft: Radius.circular(25)),
-    //             boxShadow: [
-    //               BoxShadow(
-    //                 color: AppColors.black.withOpacity(0.2),
-    //                 spreadRadius: 2,
-    //                 blurRadius: 10,
-    //                 offset: const Offset(0, 3),
-    //               ),
-    //             ],
-    //           ),
-    //           child: Container(
-    //             decoration: const BoxDecoration(
-    //                 borderRadius: BorderRadius.only(
-    //                     topRight: Radius.circular(25),
-    //                     topLeft: Radius.circular(25)),
-    //                 color: AppColors.whiteColor),
-    //             child: SingleChildScrollView(
-    //               controller: scrollController,
-    //               child: Column(
-    //                 crossAxisAlignment: CrossAxisAlignment.start,
-    //                 children: [
-    //                   const SizedBox(height: 8),
-    //                   Align(
-    //                     alignment: Alignment.center,
-    //                     child: Container(
-    //                       height: 5,
-    //                       width: 36,
-    //                       decoration: BoxDecoration(
-    //                           borderRadius: BorderRadius.circular(100),
-    //                           color: AppColors.dragColor),
-    //                     ),
-    //                   ),
-    //                   const SizedBox(height: 13),
-    //                   Container(
-    //                     height: 48,
-    //                     child: Row(
-    //                       children: [
-    //                         GestureDetector(
-    //                           onTap: () {
-    //                             titleController.clear();
-    //                             Get.back();
-    //                           },
-    //                           child: const Padding(
-    //                             padding: EdgeInsets.only(left: 20.0),
-    //                             child: Align(
-    //                               alignment: Alignment.centerLeft,
-    //                               child: Icon(Icons.close),
-    //                             ),
-    //                           ),
-    //                         ),
-    //                         const SizedBox(width: 5),
-    //                         Text(
-    //                           name == ''
-    //                               ? AppStrings.addCategory
-    //                               : AppStrings.editCategory,
-    //                           style: appTextStyle(
-    //                               fm: robotoBold,
-    //                               height: 25 / 20,
-    //                               fz: 20,
-    //                               color: AppColors.black),
-    //                         ),
-    //                         const Spacer(),
-    //                         GestureDetector(
-    //                           onTap: () async {
-    //                             Get.back();
-    //                             EasyLoading.show();
-    //                             if (name == '') {
-    //                               ApiCall.createCategory(
-    //                                   api: ApiUrl.createCategory,
-    //                                   name: titleController.text,
-    //                                   callack: this);
-    //                             } else {
-    //                               ApiCall.ediCategory(
-    //                                   api: ApiUrl.updateCategory,
-    //                                   id: id,
-    //                                   name: titleController.text,
-    //                                   callack: this);
-    //                             }
-    //                           },
-    //                           child: Padding(
-    //                             padding: const EdgeInsets.only(right: 20.0),
-    //                             child: Text(AppStrings.done,
-    //                                 style: appTextStyle(
-    //                                     fm: interRegular,
-    //                                     fz: 17,
-    //                                     color: AppColors.primaryColor)),
-    //                           ),
-    //                         )
-    //                       ],
-    //                     ),
-    //                   ),
-    //                   const SizedBox(height: 13),
-    //                   Divider(
-    //                       color: AppColors.textfieldFillColor.withOpacity(.75)),
-    //                   const SizedBox(height: 16),
-    //                   Padding(
-    //                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-    //                     child: Text(
-    //                       AppStrings.categoryTitle,
-    //                       style: appTextStyle(
-    //                           fm: interRegular,
-    //                           fz: 14,
-    //                           height: 19.2 / 14,
-    //                           color: AppColors.primaryColor),
-    //                     ),
-    //                   ),
-    //                   const SizedBox(
-    //                     height: 10,
-    //                   ),
-    //                   Padding(
-    //                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-    //                     child: TextFormField(
-    //                       focusNode: titleFocusNode,
-    //                       controller: titleController,
-    //                       maxLines: 2,
-    //                       textInputAction: TextInputAction.done,
-    //                       style: appTextStyle(
-    //                           fm: robotoRegular,
-    //                           fz: 21,
-    //                           height: 27 / 21,
-    //                           color: AppColors.black),
-    //                       decoration: InputDecoration(
-    //                           border: InputBorder.none,
-    //                           hintText: "Add Category title here",
-    //                           hintStyle: appTextStyle(
-    //                               fm: robotoRegular,
-    //                               fz: 21,
-    //                               height: 27 / 21,
-    //                               color: AppColors.hintColor)),
-    //                     ),
-    //                   ),
-    //                   const SizedBox(height: 5),
-    //                   const SizedBox(
-    //                     height: 10,
-    //                   ),
-    //                 ],
-    //               ),
-    //             ),
-    //           ),
-    //         );
-    //       },
-    //     ),
-    //     barrierColor: AppColors.transparentColor,
-    //     isScrollControlled: true,
-    //     elevation: 6);
   }
 
   Widget subTitle({String? title, int? index}) {
@@ -1551,9 +1415,8 @@ scrollToSelectedPosition(int index){
       alignment: Alignment.center,
       height: 27,
       // Reduced height
-      margin: const EdgeInsets.only(right: 8),
       // Reduced margin
-      padding: EdgeInsets.symmetric(horizontal: index == 0 ? 8 : 12),
+      padding: EdgeInsets.only(left: 10, right: 10),
       // Reduced padding
       decoration: BoxDecoration(
         border: Border.all(
@@ -1679,7 +1542,6 @@ scrollToSelectedPosition(int index){
                                   ))).then((value) {
                         refrehScreen();
                         allCategory();
-                        
                       });
                     },
                     child: SizedBox(
@@ -1717,14 +1579,11 @@ scrollToSelectedPosition(int index){
                                               : memoriesList[index]
                                                           .lastUpdateImg !=
                                                       ''
-                                                  ? 
-                                                  
-                                                  DecorationImage(
+                                                  ? DecorationImage(
                                                       image:
                                                           CachedNetworkImageProvider(
                                                         memoriesList[index]
                                                             .lastUpdateImg!,
-                                                            
                                                       ),
                                                       fit: BoxFit.cover,
                                                     )
@@ -1904,24 +1763,24 @@ scrollToSelectedPosition(int index){
                                                                           'Published')
                                                                   ? Container()
                                                                   : Column(
-                                                                    mainAxisSize: MainAxisSize.min,
-                                                                    children: [
-                                                                      SizedBox(height: 3,),
-                                                                      Text(
+                                                                      mainAxisSize:
+                                                                          MainAxisSize
+                                                                              .min,
+                                                                      children: [
+                                                                        SizedBox(
+                                                                          height:
+                                                                              3,
+                                                                        ),
+                                                                        Text(
                                                                           "${CommonWidgets.dateRetrun(memoriesList[index].minUploadedImgDate!)}-${CommonWidgets.maxDateRetrun(memoriesList[index].maxUploadedImgDate!)}",
                                                                           style: const TextStyle(
-                                                                            fontStyle: FontStyle.italic,
-                                                                              color: AppColors
-                                                                                  .black,
-                                                                              fontFamily:
-                                                                                  robotoRegular,
-                                                                              height: 17.2 /
-                                                                                  13,
-                                                                              fontSize:
-                                                                                  10),
+                                                                              fontStyle: FontStyle.italic,
+                                                                              color: AppColors.black,
+                                                                              fontFamily: robotoRegular,
+                                                                              fontSize: 10),
                                                                         ),
-                                                                    ],
-                                                                  ),
+                                                                      ],
+                                                                    ),
                                                           ],
                                                         ),
                                                       ),
@@ -1944,11 +1803,12 @@ scrollToSelectedPosition(int index){
                                     width: deviceWidth * .43,
                                     alignment: Alignment.center,
                                     child: Container(
-                                        height: 27,
+                                        padding: const EdgeInsets.only(
+                                            left: 10, right: 10, top: 4),
+                                        height: 26,
                                         // margin: const EdgeInsets.only(
                                         //     left: 16, right: 16, top: 8),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16),
+
                                         decoration: BoxDecoration(
                                             borderRadius:
                                                 BorderRadius.circular(18),
@@ -1959,7 +1819,6 @@ scrollToSelectedPosition(int index){
                                               .name!,
                                           style: appTextStyle(
                                               fm: robotoMedium,
-                                              height: 27 / 14,
                                               fz: 14,
                                               color: AppColors.black),
                                         )),
@@ -1988,7 +1847,9 @@ scrollToSelectedPosition(int index){
                                         borderRadius:
                                             BorderRadius.circular(26)),
                                     child: Text(
-                                      memoriesList[index].postsCount!>1?'${memoriesList[index].postsCount!} Posts':'${memoriesList[index].postsCount!} Post',
+                                      memoriesList[index].postsCount! > 1
+                                          ? '${memoriesList[index].postsCount!} Posts'
+                                          : '${memoriesList[index].postsCount!} Post',
                                       style: appTextStyle(
                                           fz: 12,
                                           color: AppColors.black,
@@ -2001,34 +1862,53 @@ scrollToSelectedPosition(int index){
                                   ),
                                   GestureDetector(
                                     onTap: () {
-                                       Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (BuildContext context) =>
-                                            MemoryDetailPage(
-                                              memoryTtile: memoriesList[index].title!,
-                                              memoryId: memoriesList[index].id.toString(),
-                                              userName: memoriesList[index].user!.name!,
-                                              sharedCount: "0",
-                                              email: memoriesList[index].user!.id.toString(),
-                                              imageLink: memoriesList[index].lastUpdateImg!,
-                                              imageCaptions:
-                                                  memoriesList[index].user!.profileImage,
-                                              pubLished:
-                                                  memoriesList[index].published.toString(),
-                                              future: future,
-                                              photosList: widget.photosList,
-                                              subId: memoriesList[index].subCategoryId,
-                                              catId:
-                                                  memoriesList[index].categoryId.toString(),
-                                              selectionType:
-                                                  getSelectedCategory(),
-                                                  jump: "yes",
-                                            ))).then((value) {
-                                  refrehScreen();
-                                  allCategory();
-                               
-                                });
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (BuildContext context) =>
+                                                  MemoryDetailPage(
+                                                    memoryTtile:
+                                                        memoriesList[index]
+                                                            .title!,
+                                                    memoryId:
+                                                        memoriesList[index]
+                                                            .id
+                                                            .toString(),
+                                                    userName:
+                                                        memoriesList[index]
+                                                            .user!
+                                                            .name!,
+                                                    sharedCount: "0",
+                                                    email: memoriesList[index]
+                                                        .user!
+                                                        .id
+                                                        .toString(),
+                                                    imageLink:
+                                                        memoriesList[index]
+                                                            .lastUpdateImg!,
+                                                    imageCaptions:
+                                                        memoriesList[index]
+                                                            .user!
+                                                            .profileImage,
+                                                    pubLished:
+                                                        memoriesList[index]
+                                                            .published
+                                                            .toString(),
+                                                    future: future,
+                                                    photosList:
+                                                        widget.photosList,
+                                                    subId: memoriesList[index]
+                                                        .subCategoryId,
+                                                    catId: memoriesList[index]
+                                                        .categoryId
+                                                        .toString(),
+                                                    selectionType:
+                                                        getSelectedCategory(),
+                                                    jump: "yes",
+                                                  ))).then((value) {
+                                        refrehScreen();
+                                        allCategory();
+                                      });
                                       // Navigator.push(
                                       //   context,
                                       //   MaterialPageRoute(
@@ -2217,10 +2097,9 @@ scrollToSelectedPosition(int index){
                       controller: memoryTitleController,
                       focusNode: focusNode1,
                       textInputAction: TextInputAction.done,
-cursorWidth: 2,cursorHeight: 27,
-                              
-                    cursorColor: AppColors.primaryColor,
-                              
+                      cursorWidth: 2,
+                      cursorHeight: 27,
+                      cursorColor: AppColors.primaryColor,
                       onFieldSubmitted: (v) {
                         Navigator.pop(context);
                         EasyLoading.show();
@@ -2240,7 +2119,7 @@ cursorWidth: 2,cursorHeight: 27,
                       style: appTextStyle(
                         fm: interRegular,
                         fz: 21,
-                            height: 1.3, // Line height for proper text alignment
+                        height: 1.3, // Line height for proper text alignment
 
                         color: Colors.black,
                       ),
@@ -2248,7 +2127,6 @@ cursorWidth: 2,cursorHeight: 27,
                         setState(() {});
                       },
                       decoration: InputDecoration(
-                        
                         border: InputBorder.none, // No underline border
                         enabledBorder:
                             InputBorder.none, // No underline when enabled
@@ -2257,13 +2135,14 @@ cursorWidth: 2,cursorHeight: 27,
                         hintStyle: appTextStyle(
                           fm: interRegular,
                           fz: 21,
-    height: 1.3, // Line height for proper text alignment
+                          height: 1.3, // Line height for proper text alignment
                           color: AppColors.hintColor,
                         ),
-                        contentPadding: EdgeInsets.zero, // Ensure no additional padding
-    isDense: true,
+                        contentPadding:
+                            EdgeInsets.zero, // Ensure no additional padding
+                        isDense: true,
                       ),
-                    ).paddingOnly(left:10),
+                    ).paddingOnly(left: 10),
                     const SizedBox(height: 10),
                   ],
                 ),

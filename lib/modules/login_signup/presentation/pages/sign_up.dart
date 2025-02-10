@@ -60,7 +60,7 @@ class _SignupState extends State<Signup> implements ApiCallback {
     CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
-            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
+            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false,isFirst: false));
         // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
       }
     }));
@@ -102,365 +102,368 @@ class _SignupState extends State<Signup> implements ApiCallback {
         systemNavigationBarColor: Colors.white,
       ),
     );
-    return Scaffold(
-        backgroundColor: Colors.white,
-        body: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            SizedBox(
-              width: MediaQuery.of(context).size.width * .61,
-              child: Image.asset(
-                backgroundGradient,
-                width: MediaQuery.of(context).size.width * .6,
-                fit: BoxFit.cover,
+    return MediaQuery(                       data:CommonWidgets.textScale(context),
+
+      child: Scaffold(
+          backgroundColor: Colors.white,
+          body: Stack(
+            alignment: Alignment.topRight,
+            children: [
+              SizedBox(
+                width: MediaQuery.of(context).size.width * .61,
+                child: Image.asset(
+                  backgroundGradient,
+                  width: MediaQuery.of(context).size.width * .6,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            SizedBox(
-              height: MediaQuery.of(context).size.height,
-              child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 25,
-                    right: 25,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: <Widget>[
-                        const SizedBox(
-                          height: 180,
-                        ),
-                        Center(
-                          child: SvgPicture.asset(stashtLogo),
-                        ),
-                        const SizedBox(height: 40),
-                        Center(
-                          child: Text(
-                            AppStrings.signUp,
-                            style: const TextStyle(
-                                fontSize: 27,
-                                color: AppColors.primaryColor,
-                                fontFamily: robotoBold,
-                                fontWeight: FontWeight.w700,
-                                height: 30 / 27),
+              SizedBox(
+                height: MediaQuery.of(context).size.height,
+                child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: 25,
+                      right: 25,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: <Widget>[
+                          const SizedBox(
+                            height: 180,
                           ),
-                        ),
-                        const SizedBox(height: 15),
-                        Center(
-                          child: Text(
-                            AppStrings.createNewAccount,
-                            style: const TextStyle(
-                                fontSize: 20,
+                          Center(
+                            child: SvgPicture.asset(stashtLogo),
+                          ),
+                          const SizedBox(height: 40),
+                          Center(
+                            child: Text(
+                              AppStrings.signUp,
+                              style: const TextStyle(
+                                  fontSize: 27,
+                                  color: AppColors.primaryColor,
+                                  fontFamily: robotoBold,
+                                  fontWeight: FontWeight.w700,
+                                  height: 30 / 27),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Center(
+                            child: Text(
+                              AppStrings.createNewAccount,
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.black,
+                                  fontFamily: robotoMedium,
+                                  fontWeight: FontWeight.w500,
+                                  height: 26.2 / 20),
+                            ),
+                          ),
+                          const SizedBox(height: 35),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CommonWidgets.googleButton(this),
+                              if (Platform.isIOS) const SizedBox(width: 60),
+                              if (Platform.isIOS) CommonWidgets.appleButton(this)
+                            ],
+                          ),
+                          Container(
+                            height: 29,
+                            margin: const EdgeInsets.only(
+                                top: 10, left: 16, right: 16),
+                            child: Row(children: <Widget>[
+                              const Expanded(
+                                  child: Divider(
+                                height: 1,
                                 color: Colors.black,
-                                fontFamily: robotoMedium,
-                                fontWeight: FontWeight.w500,
-                                height: 26.2 / 20),
-                          ),
-                        ),
-                        const SizedBox(height: 35),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CommonWidgets.googleButton(this),
-                            if (Platform.isIOS) const SizedBox(width: 60),
-                            if (Platform.isIOS) CommonWidgets.appleButton(this)
-                          ],
-                        ),
-                        Container(
-                          height: 29,
-                          margin: const EdgeInsets.only(
-                              top: 10, left: 16, right: 16),
-                          child: Row(children: <Widget>[
-                            const Expanded(
-                                child: Divider(
-                              height: 1,
-                              color: Colors.black,
-                            )),
-                            const SizedBox(
-                              width: 35,
-                            ),
-                            Text(
-                              "or",
-                              style: appTextStyle(
-                                fz: 20,
-                                color: AppColors.black,
-                                fm: interRegular,
+                              )),
+                              const SizedBox(
+                                width: 35,
                               ),
-                            ),
-                            const SizedBox(
-                              width: 35,
-                            ),
-                            const Expanded(
-                                child: Divider(
-                              height: 1,
-                              color: Colors.black,
-                            )),
-                          ]),
-                        ),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                              border: Border.all(
-                                  width: isNameFocused ||
-                                          userNameController.text.isNotEmpty
-                                      ? 1
-                                      : 0,
-                                  color: isNameFocused ||
-                                          userNameController.text.isNotEmpty
-                                      ? AppColors.primaryColor
-                                      : Colors.transparent),
-                              borderRadius: BorderRadius.circular(16),
-                              color: isNameFocused ||
-                                      userNameController.text.isNotEmpty
-                                  ? Colors.white
-                                  : AppColors.textfieldFillColor
-                                      .withOpacity(0.75)),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  focusNode: nameFocusNode,
-                                  controller: userNameController,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: InputDecoration(
-                                    prefixIcon: isNameFocused ||
+                              Text(
+                                "or",
+                                style: appTextStyle(
+                                  fz: 20,
+                                  color: AppColors.black,
+                                  fm: interRegular,
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 35,
+                              ),
+                              const Expanded(
+                                  child: Divider(
+                                height: 1,
+                                color: Colors.black,
+                              )),
+                            ]),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                                border: Border.all(
+                                    width: isNameFocused ||
                                             userNameController.text.isNotEmpty
-                                        ? null
-                                        : const SizedBox(
-                                            height: 16,
-                                            width: 16,
-                                            child: Icon(
-                                              Icons.person_outline,
-                                              color: AppColors.primaryColor,
+                                        ? 1
+                                        : 0,
+                                    color: isNameFocused ||
+                                            userNameController.text.isNotEmpty
+                                        ? AppColors.primaryColor
+                                        : Colors.transparent),
+                                borderRadius: BorderRadius.circular(16),
+                                color: isNameFocused ||
+                                        userNameController.text.isNotEmpty
+                                    ? Colors.white
+                                    : AppColors.textfieldFillColor
+                                        .withOpacity(0.75)),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    focusNode: nameFocusNode,
+                                    controller: userNameController,
+                                    textInputAction: TextInputAction.next,
+                                    decoration: InputDecoration(
+                                      prefixIcon: isNameFocused ||
+                                              userNameController.text.isNotEmpty
+                                          ? null
+                                          : const SizedBox(
+                                              height: 16,
+                                              width: 16,
+                                              child: Icon(
+                                                Icons.person_outline,
+                                                color: AppColors.primaryColor,
+                                              ),
                                             ),
-                                          ),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.fromLTRB(
-                                        20, 5, 20, 10),
-                                    labelText: AppStrings.fullName,
-                                    labelStyle: appTextStyle(
-                                      fz: isNameFocused ? 13 : 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          20, 5, 20, 10),
+                                      labelText: AppStrings.fullName,
+                                      labelStyle: appTextStyle(
+                                        fz: isNameFocused ? 13 : 14,
+                                        color: AppColors.primaryColor,
+                                        fm: interRegular,
+                                      ),
+                                      hintStyle: appTextStyle(
+                                        fz: 14,
+                                        color: AppColors.primaryColor,
+                                        fm: interRegular,
+                                      ),
+                                      errorStyle: const TextStyle(
+                                          color: AppColors.errorColor),
                                     ),
-                                    hintStyle: appTextStyle(
-                                      fz: 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
-                                    ),
-                                    errorStyle: const TextStyle(
-                                        color: AppColors.errorColor),
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 14),
                                   ),
-                                  style: const TextStyle(
-                                      color: Colors.black, fontSize: 17),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(
-                          height: 15,
-                        ),
-                        Container(
-                          height: 50,
-                          // padding:   EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                  width: isEmailFocused ||
-                                          emailController.text.isNotEmpty
-                                      ? 1
-                                      : 0,
-                                  color: isEmailFocused ||
-                                          emailController.text.isNotEmpty
-                                      ? AppColors.primaryColor
-                                      : Colors.transparent),
-                              color: isEmailFocused ||
-                                      emailController.text.isNotEmpty
-                                  ? Colors.white
-                                  : AppColors.textfieldFillColor
-                                      .withOpacity(0.75)),
-                          // padding: const EdgeInsets.only(bottom: 10),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  focusNode: emailFocusNode,
-                                  controller: emailController,
-                                  textInputAction: TextInputAction.next,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: InputDecoration(
-                                    prefixIcon: isEmailFocused ||
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          Container(
+                            height: 50,
+                            // padding:   EdgeInsets.fromLTRB(10, 0, 10, 0),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    width: isEmailFocused ||
                                             emailController.text.isNotEmpty
-                                        ? null
-                                        : const SizedBox(
-                                            height: 16,
-                                            width: 16,
-                                            child: Icon(
-                                              Icons.mail_outline,
-                                              color: AppColors.primaryColor,
+                                        ? 1
+                                        : 0,
+                                    color: isEmailFocused ||
+                                            emailController.text.isNotEmpty
+                                        ? AppColors.primaryColor
+                                        : Colors.transparent),
+                                color: isEmailFocused ||
+                                        emailController.text.isNotEmpty
+                                    ? Colors.white
+                                    : AppColors.textfieldFillColor
+                                        .withOpacity(0.75)),
+                            // padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    focusNode: emailFocusNode,
+                                    controller: emailController,
+                                    textInputAction: TextInputAction.next,
+                                    keyboardType: TextInputType.emailAddress,
+                                    decoration: InputDecoration(
+                                      prefixIcon: isEmailFocused ||
+                                              emailController.text.isNotEmpty
+                                          ? null
+                                          : const SizedBox(
+                                              height: 16,
+                                              width: 16,
+                                              child: Icon(
+                                                Icons.mail_outline,
+                                                color: AppColors.primaryColor,
+                                              ),
                                             ),
-                                          ),
-                                    labelText: AppStrings.email,
-                                    hintStyle: appTextStyle(
-                                      fz: 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
+                                      labelText: AppStrings.email,
+                                      hintStyle: appTextStyle(
+                                        fz: 14,
+                                        color: AppColors.primaryColor,
+                                        fm: interRegular,
+                                      ),
+                                      labelStyle: appTextStyle(
+                                        fz: isEmailFocused ? 13 : 14,
+                                        color: AppColors.primaryColor,
+                                        fm: interRegular,
+                                      ),
+                                      errorStyle: const TextStyle(
+                                          color: AppColors.errorColor),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          20, 5, 20, 10),
                                     ),
-                                    labelStyle: appTextStyle(
-                                      fz: isEmailFocused ? 13 : 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
-                                    ),
-                                    errorStyle: const TextStyle(
-                                        color: AppColors.errorColor),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.fromLTRB(
-                                        20, 5, 20, 10),
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 14),
                                   ),
-                                  style: const TextStyle(
-                                      color: Colors.black, fontSize: 17),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(
-                          height: 15,
-                        ),
-                        Container(
-                          alignment: Alignment.center,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              width: isPasswordFocused ||
-                                      passwordController.text.isNotEmpty
-                                  ? 1
-                                  : 0,
+                          const SizedBox(
+                            height: 15,
+                          ),
+                          Container(
+                            alignment: Alignment.center,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                width: isPasswordFocused ||
+                                        passwordController.text.isNotEmpty
+                                    ? 1
+                                    : 0,
+                                color: isPasswordFocused ||
+                                        passwordController.text.isNotEmpty
+                                    ? AppColors.primaryColor
+                                    : Colors
+                                        .transparent, // Border only when focused or text present
+                              ),
+                              borderRadius: BorderRadius.circular(16),
                               color: isPasswordFocused ||
                                       passwordController.text.isNotEmpty
-                                  ? AppColors.primaryColor
-                                  : Colors
-                                      .transparent, // Border only when focused or text present
+                                  ? Colors.white
+                                  : AppColors.textfieldFillColor.withOpacity(
+                                      0.75), // Set a consistent background color
                             ),
-                            borderRadius: BorderRadius.circular(16),
-                            color: isPasswordFocused ||
-                                    passwordController.text.isNotEmpty
-                                ? Colors.white
-                                : AppColors.textfieldFillColor.withOpacity(
-                                    0.75), // Set a consistent background color
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  focusNode: passwordFocusNode,
-                                  obscureText: isObscure,
-                                  controller: passwordController,
-                                  decoration: InputDecoration(
-                                    prefixIcon: isPasswordFocused ||
-                                            passwordController.text.isNotEmpty
-                                        ? null
-                                        : const SizedBox(
-                                            height: 16,
-                                            width: 16,
-                                            child: Icon(
-                                              Icons.lock_outline,
-                                              color: AppColors.primaryColor,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    focusNode: passwordFocusNode,
+                                    obscureText: isObscure,
+                                    controller: passwordController,
+                                    decoration: InputDecoration(
+                                      prefixIcon: isPasswordFocused ||
+                                              passwordController.text.isNotEmpty
+                                          ? null
+                                          : const SizedBox(
+                                              height: 16,
+                                              width: 16,
+                                              child: Icon(
+                                                Icons.lock_outline,
+                                                color: AppColors.primaryColor,
+                                              ),
                                             ),
-                                          ),
-                                    labelText: AppStrings.password,
-                                    hintStyle: appTextStyle(
-                                      fz: 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
-                                    ),
-                                    labelStyle: appTextStyle(
-                                      fz: isPasswordFocused ? 13 : 17,
-                                      color: AppColors.primaryColor,
-                                      fm: interRegular,
-                                    ),
-                                    suffixIcon: GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onTap: () {
-                                        setState(() {
-                                          isObscure = !isObscure;
-                                        });
-                                      },
-                                      child: Icon(
-                                        isObscure
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
+                                      labelText: AppStrings.password,
+                                      hintStyle: appTextStyle(
+                                        fz: 14,
                                         color: AppColors.primaryColor,
+                                        fm: interRegular,
                                       ),
-                                    ),
-                                    errorStyle: const TextStyle(
-                                        color: AppColors.errorColor),
-                                    border: InputBorder
-                                        .none, // No border inside TextFormField
-                                    contentPadding: const EdgeInsets.fromLTRB(
-                                        20, 5, 20, 10),
-                                  ),
-                                  style: const TextStyle(
-                                      color: Colors.black, fontSize: 17),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                            onTap: () {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              if (checkSignUpValidation()) {
-                                signUp(context);
-                              }
-                            },
-                            child: appButton(
-                              btnText: AppStrings.signUpBtnText,
-                            )),
-                        const SizedBox(
-                          height: 36,
-                        ),
-                        InkWell(
-                          onTap: () async {
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (BuildContext context) =>
-                                        const SignIn()));
-                          },
-                          child: Center(
-                            child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: RichText(
-                                    text: TextSpan(
-                                        text: AppStrings.alreadyHaveAccount,
-                                        style: appTextStyle(
-                                          fm: robotoRegular,
-                                          fz: 17,
+                                      labelStyle: appTextStyle(
+                                        fz: isPasswordFocused ? 13 : 14,
+                                        color: AppColors.primaryColor,
+                                        fm: interRegular,
+                                      ),
+                                      suffixIcon: GestureDetector(
+                                        behavior: HitTestBehavior.translucent,
+                                        onTap: () {
+                                          setState(() {
+                                            isObscure = !isObscure;
+                                          });
+                                        },
+                                        child: Icon(
+                                          isObscure
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                          color: AppColors.primaryColor,
                                         ),
-                                        children: [
-                                      TextSpan(
-                                        text: AppStrings.signInBtnText,
-                                        style: appTextStyle(
-                                            fm: robotoBold,
-                                            fz: 17,
-                                            color: AppColors.primaryColor),
-                                      )
-                                    ]))),
+                                      ),
+                                      errorStyle: const TextStyle(
+                                          color: AppColors.errorColor),
+                                      border: InputBorder
+                                          .none, // No border inside TextFormField
+                                      contentPadding: const EdgeInsets.fromLTRB(
+                                          20, 5, 20, 10),
+                                    ),
+                                    style: const TextStyle(
+                                        color: Colors.black, fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(
-                          height: 20,
-                        ),
-                      ],
-                    ),
-                  )),
-            ),
-          ],
-        ));
+                          const SizedBox(height: 20),
+                          GestureDetector(
+                              onTap: () {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                if (checkSignUpValidation()) {
+                                  signUp(context);
+                                }
+                              },
+                              child: appButton(
+                                btnText: AppStrings.signUpBtnText,
+                              )),
+                          const SizedBox(
+                            height: 36,
+                          ),
+                          InkWell(
+                            onTap: () async {
+                              Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (BuildContext context) =>
+                                          const SignIn()));
+                            },
+                            child: Center(
+                              child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: RichText(
+                                      text: TextSpan(
+                                          text: AppStrings.alreadyHaveAccount,
+                                          style: appTextStyle(
+                                            fm: robotoRegular,
+                                            fz: 17,
+                                          ),
+                                          children: [
+                                        TextSpan(
+                                          text: AppStrings.signInBtnText,
+                                          style: appTextStyle(
+                                              fm: robotoBold,
+                                              fz: 17,
+                                              color: AppColors.primaryColor),
+                                        )
+                                      ]))),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                        ],
+                      ),
+                    )),
+              ),
+            ],
+          )),
+    );
   }
 
   bool checkSignUpValidation() {

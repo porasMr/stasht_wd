@@ -12,6 +12,8 @@ class AllPhotoModel {
   
   bool isSelected;
   bool isEdit;
+    bool isFirst;
+
  
   String? type;
     AssetEntity? assetEntity;
@@ -26,6 +28,7 @@ class AllPhotoModel {
    
     this.isSelected = false,
     this.isEdit = false,
+    this.isFirst=true,
     this.id,
     this.type,
     this.assetEntity,

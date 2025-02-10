@@ -72,7 +72,7 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
         photosList.add(PhotoModel(
             assetEntity: allAssets[i],
             selectedValue: false,
-            isEditmemory: false));
+            isEditmemory: false,isFirst: false));
         if (allAssets.length - 1 == i) {
           getImageFutureData();
         }
@@ -98,8 +98,12 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
         systemNavigationBarColor: Colors.white,
       ),
     );
-    return Scaffold(
-      body: _onboardView(context),
+    return MediaQuery(
+                             data:CommonWidgets.textScale(context),
+
+      child: Scaffold(
+        body: _onboardView(context),
+      ),
     );
   }
 
@@ -339,10 +343,13 @@ height: 76),
          if (type == "drive" && driveValue) {
           CommonWidgets.getFileFromGoogleDrive(context).then((value) {
             fetchPhotosFromDrive(value!, context);
+                        selectedType="google_drive_synced";
+
           });
         } else if (type == "fb" && fbValue) {
           CommonWidgets.loginWithFacebook()!.then((value) {
             fetchFacebookPhotos(value!);
+            selectedType="facebook_synced";
           });
         }
         setState(() {});
@@ -392,6 +399,7 @@ height: 76),
         print('Failed to get authenticated client');
         return null;
       }
+     
       var driveApi = DriveApi(httpClient);
       print(httpClient.credentials.accessToken.data);
       setState(() {

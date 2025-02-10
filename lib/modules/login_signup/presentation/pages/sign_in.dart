@@ -62,7 +62,7 @@ class _SignInState extends State<SignIn> implements ApiCallback {
     CommonWidgets.requestStoragePermission(((allAssets) {
       for (int i = 0; i < allAssets.length; i++) {
         photosList
-            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false));
+            .add(PhotoModel(assetEntity: allAssets[i], selectedValue: false,isEditmemory: false,isFirst: false));
         // _compressAsset(allAssets[i]).then((value) =>imagePath.add(value!.path) );
       }
     }));
@@ -99,328 +99,332 @@ class _SignInState extends State<SignIn> implements ApiCallback {
         systemNavigationBarColor: Colors.white,
       ),
     );
-    return Scaffold(
-        body: Stack(
-      alignment: Alignment.topRight,
-      children: [
-        SizedBox(
-          width: MediaQuery.of(context).size.width * .61,
-          child: Image.asset(
-            backgroundGradient,
-            width: MediaQuery.of(context).size.width * .6,
-            fit: BoxFit.cover,
+    return MediaQuery(
+                             data:CommonWidgets.textScale(context),
+
+      child: Scaffold(
+          body: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          SizedBox(
+            width: MediaQuery.of(context).size.width * .61,
+            child: Image.asset(
+              backgroundGradient,
+              width: MediaQuery.of(context).size.width * .6,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        SizedBox(
-          height: MediaQuery.of(context).size.height,
-          child: Padding(
-              padding: const EdgeInsets.only(
-                left: 25,
-                right: 25,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(
-                        height: 180,
-                      ),
-                      Center(
-                        child: SvgPicture.asset(stashtLogo),
-                      ),
-                      const SizedBox(height: 40),
-                      Center(
-                        child: Text(
-                          AppStrings.signInBtnText,
-                          style: const TextStyle(
-                              fontSize: 27,
-                              color: AppColors.primaryColor,
-                              fontFamily: robotoBold,
-                              height: 30 / 27),
+          SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: Padding(
+                padding: const EdgeInsets.only(
+                  left: 25,
+                  right: 25,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(
+                          height: 180,
                         ),
-                      ),
-                      const SizedBox(height: 15),
-                      Center(
-                        child: Text(
-                          AppStrings.loginToAccount,
-                          style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.black,
-                              fontFamily: robotoMedium,
-                              height: 26.2 / 20),
+                        Center(
+                          child: SvgPicture.asset(stashtLogo),
                         ),
-                      ),
-                      const SizedBox(height: 35),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CommonWidgets.googleButton(this),
-                          if (Platform.isIOS) const SizedBox(width: 60),
-                          if (Platform.isIOS) CommonWidgets.appleButton(this)
-                        ],
-                      ),
-                      Container(
-                        height: 29,
-                        margin:
-                            const EdgeInsets.only(top: 10, left: 12, right: 12),
-                        child: Row(children: <Widget>[
-                          const Expanded(
-                              child: Divider(
-                            height: 1,
-                            color: Colors.black,
-                          )),
-                          const SizedBox(
-                            width: 35,
+                        const SizedBox(height: 40),
+                        Center(
+                          child: Text(
+                            AppStrings.signInBtnText,
+                            style: const TextStyle(
+                                fontSize: 27,
+                                color: AppColors.primaryColor,
+                                fontFamily: robotoBold,
+                                height: 30 / 27),
                           ),
-                          Text(
-                            "or",
-                            style: appTextStyle(
-                              fz: 20,
-                              color: AppColors.black,
-                              fm: interRegular,
-                            ),
+                        ),
+                        const SizedBox(height: 15),
+                        Center(
+                          child: Text(
+                            AppStrings.loginToAccount,
+                            style: const TextStyle(
+                                fontSize: 20,
+                                color: Colors.black,
+                                fontFamily: robotoMedium,
+                                height: 26.2 / 20),
                           ),
-                          const SizedBox(
-                            width: 35,
-                          ),
-                          const Expanded(
-                              child: Divider(
-                            height: 1,
-                            color: Colors.black,
-                          )),
-                        ]),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      Container(
-                        height: 50,
-                        // padding:   EdgeInsets.fromLTRB(10, 0, 10, 0),
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                width: isEmailFocused ||
-                                        emailController.text.isNotEmpty
-                                    ? 1
-                                    : 0,
-                                color: isEmailFocused ||
-                                        emailController.text.isNotEmpty
-                                    ? AppColors.primaryColor
-                                    : Colors.transparent),
-                            color: isEmailFocused ||
-                                    emailController.text.isNotEmpty
-                                ? Colors.white
-                                : AppColors.textfieldFillColor
-                                    .withOpacity(0.75)),
-                        // padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
+                        ),
+                        const SizedBox(height: 35),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: TextFormField(
-                                focusNode: emailFocusNode,
-                                controller: emailController,
-                                textInputAction: TextInputAction.next,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  prefixIcon: isEmailFocused ||
-                                          emailController.text.isNotEmpty
-                                      ? null
-                                      : const SizedBox(
-                                          height: 16,
-                                          width: 16,
-                                          child: Icon(
-                                            Icons.mail_outline,
-                                            color: AppColors.primaryColor,
-                                          ),
-                                        ),
-                                  labelText: AppStrings.email,
-                                  hintStyle: appTextStyle(
-                                    fz: 17,
-                                    color: AppColors.primaryColor,
-                                    fm: interRegular,
-                                  ),
-                                  labelStyle: appTextStyle(
-                                    fz: isEmailFocused ? 13 : 17,
-                                    color: AppColors.primaryColor,
-                                    fm: interRegular,
-                                  ),
-                                  errorStyle: const TextStyle(
-                                      color: AppColors.errorColor),
-                                  border: InputBorder.none,
-                                  contentPadding:
-                                      const EdgeInsets.fromLTRB(20, 5, 20, 10),
-                                ),
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 17),
-                              ),
-                            ),
+                            CommonWidgets.googleButton(this),
+                            if (Platform.isIOS) const SizedBox(width: 60),
+                            if (Platform.isIOS) CommonWidgets.appleButton(this)
                           ],
                         ),
-                      ),
-                      const SizedBox(
-                        height: 15,
-                      ),
-                      Container(
-                        alignment: Alignment.center,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            width: isPasswordFocused ||
-                                    passwordController.text.isNotEmpty
-                                ? 1
-                                : 0,
+                        Container(
+                          height: 29,
+                          margin:
+                              const EdgeInsets.only(top: 10, left: 12, right: 12),
+                          child: Row(children: <Widget>[
+                            const Expanded(
+                                child: Divider(
+                              height: 1,
+                              color: Colors.black,
+                            )),
+                            const SizedBox(
+                              width: 35,
+                            ),
+                            Text(
+                              "or",
+                              style: appTextStyle(
+                                fz: 20,
+                                color: AppColors.black,
+                                fm: interRegular,
+                              ),
+                            ),
+                            const SizedBox(
+                              width: 35,
+                            ),
+                            const Expanded(
+                                child: Divider(
+                              height: 1,
+                              color: Colors.black,
+                            )),
+                          ]),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        Container(
+                          height: 50,
+                          // padding:   EdgeInsets.fromLTRB(10, 0, 10, 0),
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                  width: isEmailFocused ||
+                                          emailController.text.isNotEmpty
+                                      ? 1
+                                      : 0,
+                                  color: isEmailFocused ||
+                                          emailController.text.isNotEmpty
+                                      ? AppColors.primaryColor
+                                      : Colors.transparent),
+                              color: isEmailFocused ||
+                                      emailController.text.isNotEmpty
+                                  ? Colors.white
+                                  : AppColors.textfieldFillColor
+                                      .withOpacity(0.75)),
+                          // padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  focusNode: emailFocusNode,
+                                  controller: emailController,
+                                  textInputAction: TextInputAction.next,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: InputDecoration(
+                                    prefixIcon: isEmailFocused ||
+                                            emailController.text.isNotEmpty
+                                        ? null
+                                        : const SizedBox(
+                                            height: 16,
+                                            width: 16,
+                                            child: Icon(
+                                              Icons.mail_outline,
+                                              color: AppColors.primaryColor,
+                                            ),
+                                          ),
+                                    labelText: AppStrings.email,
+                                    hintStyle: appTextStyle(
+                                      fz: 14,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    labelStyle: appTextStyle(
+                                      fz: isEmailFocused ? 13 : 14,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    errorStyle: const TextStyle(
+                                        color: AppColors.errorColor),
+                                    border: InputBorder.none,
+                                    contentPadding:
+                                        const EdgeInsets.fromLTRB(20, 5, 20, 10),
+                                  ),
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 15,
+                        ),
+                        Container(
+                          alignment: Alignment.center,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              width: isPasswordFocused ||
+                                      passwordController.text.isNotEmpty
+                                  ? 1
+                                  : 0,
+                              color: isPasswordFocused ||
+                                      passwordController.text.isNotEmpty
+                                  ? AppColors.primaryColor
+                                  : Colors.transparent,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
                             color: isPasswordFocused ||
                                     passwordController.text.isNotEmpty
-                                ? AppColors.primaryColor
-                                : Colors.transparent,
+                                ? Colors.white
+                                : AppColors.textfieldFillColor.withOpacity(0.75),
                           ),
-                          borderRadius: BorderRadius.circular(16),
-                          color: isPasswordFocused ||
-                                  passwordController.text.isNotEmpty
-                              ? Colors.white
-                              : AppColors.textfieldFillColor.withOpacity(0.75),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                focusNode: passwordFocusNode,
-                                obscureText: isObscure, // Toggles visibility
-                                controller: passwordController,
-                                decoration: InputDecoration(
-                                  prefixIcon: isPasswordFocused ||
-                                          passwordController.text.isNotEmpty
-                                      ? null
-                                      : const SizedBox(
-                                          height: 16,
-                                          width: 16,
-                                          child: Icon(
-                                            Icons.lock_outline,
-                                            color: AppColors.primaryColor,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  focusNode: passwordFocusNode,
+                                  obscureText: isObscure, // Toggles visibility
+                                  controller: passwordController,
+                                  decoration: InputDecoration(
+                                    prefixIcon: isPasswordFocused ||
+                                            passwordController.text.isNotEmpty
+                                        ? null
+                                        : const SizedBox(
+                                            height: 16,
+                                            width: 16,
+                                            child: Icon(
+                                              Icons.lock_outline,
+                                              color: AppColors.primaryColor,
+                                            ),
                                           ),
-                                        ),
-                                  labelText: AppStrings.password,
-                                  hintStyle: appTextStyle(
-                                    fz: 17,
-                                    color: AppColors.primaryColor,
-                                    fm: interRegular,
-                                  ),
-                                  labelStyle: appTextStyle(
-                                    fz: isPasswordFocused ? 13 : 17,
-                                    color: AppColors.primaryColor,
-                                    fm: interRegular,
-                                  ),
-                                  suffixIcon: GestureDetector(
-                                    behavior: HitTestBehavior.translucent,
-                                    onTap: () {
-                                      setState(() {
-                                        isObscure =
-                                            !isObscure; // Toggles the obscure text state
-                                      });
-                                    },
-                                    child: Icon(
-                                      isObscure
-                                          ? Icons
-                                              .visibility_off // Eye closed icon
-                                          : Icons.visibility, // Eye open icon
+                                    labelText: AppStrings.password,
+                                    hintStyle: appTextStyle(
+                                      fz: 14,
                                       color: AppColors.primaryColor,
+                                      fm: interRegular,
                                     ),
-                                  ),
-                                  errorStyle: const TextStyle(
-                                      color: AppColors.errorColor),
-                                  border: InputBorder.none,
-                                  contentPadding:
-                                      const EdgeInsets.fromLTRB(20, 5, 20, 10),
-                                ),
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 17),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: () {
-                          if (emailController.text.trim().isNotEmpty) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) => ForgotPassword(
-                                  email: emailController.text.trim(),
-                                ),
-                              ),
-                            );
-
-                          } else {
-                            CommonWidgets.errorDialog(
-                                context, 'Please enter email');
-                          }
-                        },
-                        child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              AppStrings.forgotPassword,
-                              style: appTextStyle(
-                                  fm: robotoRegular,
-                                  color: AppColors.primaryColor,
-                                  fz: 14),
-                            )),
-                      ),
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: () {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          if (checkSignInValidation()) {
-                            signIn(context);
-                          }
-                        },
-                        child: appButton(btnText: AppStrings.signInBtnText),
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      InkWell(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (BuildContext context) =>
-                                      const Signup()));
-                        },
-                        child: Center(
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: RichText(
-                                  text: TextSpan(
-                                      text: AppStrings.notAMember,
-                                      style: appTextStyle(
-                                        fm: robotoRegular,
-                                        fz: 17,
+                                    labelStyle: appTextStyle(
+                                      fz: isPasswordFocused ? 13 : 14,
+                                      color: AppColors.primaryColor,
+                                      fm: interRegular,
+                                    ),
+                                    suffixIcon: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        setState(() {
+                                          isObscure =
+                                              !isObscure; // Toggles the obscure text state
+                                        });
+                                      },
+                                      child: Icon(
+                                        isObscure
+                                            ? Icons
+                                                .visibility_off // Eye closed icon
+                                            : Icons.visibility, // Eye open icon
+                                        color: AppColors.primaryColor,
                                       ),
-                                      children: [
-                                    TextSpan(
-                                      text: AppStrings.signUpBtnText,
-                                      style: appTextStyle(
-                                          fm: robotoBold,
+                                    ),
+                                    errorStyle: const TextStyle(
+                                        color: AppColors.errorColor),
+                                    border: InputBorder.none,
+                                    contentPadding:
+                                        const EdgeInsets.fromLTRB(20, 5, 20, 10),
+                                  ),
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: () {
+                            if (emailController.text.trim().isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (BuildContext context) => ForgotPassword(
+                                    email: emailController.text.trim(),
+                                  ),
+                                ),
+                              );
+      
+                            } else {
+                              CommonWidgets.errorDialog(
+                                  context, 'Please enter email');
+                            }
+                          },
+                          child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                AppStrings.forgotPassword,
+                                style: appTextStyle(
+                                    fm: robotoRegular,
+                                    color: AppColors.primaryColor,
+                                    fz: 14),
+                              )),
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            if (checkSignInValidation()) {
+                              signIn(context);
+                            }
+                          },
+                          child: appButton(btnText: AppStrings.signInBtnText),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        InkWell(
+                          onTap: () {
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (BuildContext context) =>
+                                        const Signup()));
+                          },
+                          child: Center(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: RichText(
+                                    text: TextSpan(
+                                        text: AppStrings.notAMember,
+                                        style: appTextStyle(
+                                          fm: robotoRegular,
                                           fz: 17,
-                                          color: AppColors.primaryColor),
-                                    )
-                                  ])),
+                                        ),
+                                        children: [
+                                      TextSpan(
+                                        text: AppStrings.signUpBtnText,
+                                        style: appTextStyle(
+                                            fm: robotoBold,
+                                            fz: 17,
+                                            color: AppColors.primaryColor),
+                                      )
+                                    ])),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(
-                        height: 15,
-                      ),
-                    ]),
-              )),
-        ),
-      ],
-    ));
+                        const SizedBox(
+                          height: 15,
+                        ),
+                      ]),
+                )),
+          ),
+        ],
+      )),
+    );
 
   }
 

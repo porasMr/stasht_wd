@@ -9,6 +9,8 @@ class PhotoDetailModel {
   DateTime? modifiedTime;
   bool isSelected;
   bool isEdit;
+    bool isFirst=false;
+
   Uint8List? thumbdata;
   Uint8List? originalThumbdata;
   File? file;
@@ -31,7 +33,8 @@ class PhotoDetailModel {
     this.location,
     this.originalThumbdata,
     this.thumbnailPath,
-    this.captureDate
+    this.captureDate,
+    this.isFirst=false
   });
 
   // Convert a PhotoDetail object into a JSON map
@@ -49,7 +52,8 @@ class PhotoDetailModel {
       'file': file?.path, // Store the file path, not the file itself
       'type': type,
       'thumbnailPath': thumbnailPath,
-      'captureDate':captureDate
+      'captureDate':captureDate,
+      'isFirst':isFirst
     };
   }
 
@@ -68,7 +72,8 @@ class PhotoDetailModel {
       file: json['file'] != null ? File(json['file']) : null, // Convert file path back to File object
       type: json['type'],
       thumbnailPath: json['thumbnailPath'],
-      captureDate:json['captureDate']
+      captureDate:json['captureDate'],
+      isFirst:json['isFirst']
     );
   }
 }

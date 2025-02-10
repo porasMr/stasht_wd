@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info/device_info.dart';
+import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +41,6 @@ import '../image_preview_widget.dart';
 import 'package:permission_handler/permission_handler.dart' as permission;
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:http/http.dart' as http;
-
 
 class CommonWidgets {
   static Future<dynamic> googleSignup(ApiCallback callBack) async {
@@ -150,17 +150,24 @@ class CommonWidgets {
           DriveApi.drivePhotosReadonlyScope,
 //   "https://www.googleapis.com/auth/photoslibrary",
 // "https://www.googleapis.com/auth/photoslibrary.readonly",
-
-          
         ],
       );
-      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      if (await googleSignIn.isSignedIn() == false) {
+        print(false);
+        final GoogleSignInAccount? account = await googleSignIn.signIn();
 
-      // Get authentication details, including access token
+        // Get authentication details, including access token
 
-      if (account != null) {
+        if (account != null) {
+          return googleSignIn;
+        } else {}
+      } else {
+        print(true);
+        final GoogleSignInAccount? account =
+            await googleSignIn.signInSilently();
+
         return googleSignIn;
-      } else {}
+      }
     } catch (e) {}
     return null;
   }
@@ -302,22 +309,33 @@ class CommonWidgets {
           height: 20,
         ),
         GestureDetector(
-          onTap: () {
-            // debugPrint("Instagram is opened this");
-            // openInstagramPage(context)!.then((value) {
-            //   callBack(value);
-            // });
-            /* uploadCount=0;
-            progressbarValue.value = 0.0;
-            update();
-            ///InstaLogin Function
-            Get.to(() => InstagramLoginPage())?.then((value) {
-              print("code====>$value");
-              if (value != null) {
-                instaRequestForAccessToken(value);
-                // controller.instaRequestForAccessToken(value);
+          onTap: () async {
+            final googleSignIn = GoogleSignIn(scopes: [
+              'https://www.googleapis.com/auth/photoslibrary.readonly'
+            ]); // Specify the Photos scope
+            String accessToken = "";
+            await googleSignIn.signIn().then((value) async {
+              var httpClient = await googleSignIn.authenticatedClient();
+              if (httpClient == null) {
+                print('Failed to get authenticated client');
+                return null;
               }
-            });*/
+              accessToken = httpClient.credentials.accessToken.data;
+              // Create a Picker Session
+
+              final response = await http.post(
+                Uri.parse('https://photoslibrary.googleapis.com/v1/sessions'),
+                headers: {
+                  'Authorization': 'Bearer $accessToken',
+                  'Content-Type': 'application/json'
+                },
+              );
+              print(jsonDecode(response.body));
+
+//   final pickerUri = jsonDecode(response.body)['pickerUri'];
+
+// callBack(pickerUri);
+            });
           },
           child: button(
             color: AppColors.googlePhotoColors,
@@ -622,11 +640,15 @@ class CommonWidgets {
   static drivePhtotView(
     List<GroupedPhotoModel> photosList,
     VoidCallback onPressed, {
+    VoidCallback? onClickCheckBox,
     ValueNotifier<int>? selectedCountNotifier,
+    bool? isImageFullView,
     ScrollController? controller,
+    VoidCallback? clearView,
   }) {
     return ListView.builder(
       controller: controller,
+      padding: EdgeInsets.zero,
       itemCount: photosList.length,
       itemBuilder: (context, index) {
         return Wrap(
@@ -649,6 +671,8 @@ class CommonWidgets {
               padding: const EdgeInsets.only(top: 16.0),
               child: GridView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
+
                 physics: const NeverScrollableScrollPhysics(),
                 key: const PageStorageKey(
                     'photosGrid'), // Key for persistent scroll state
@@ -664,14 +688,44 @@ class CommonWidgets {
                 itemBuilder: (context, index1) {
                   return GestureDetector(
                     onTap: () {
-                      showDialog(
-                        context: context,
-                        barrierColor: Colors.transparent,
-                        builder: (context) {
-                          return WebImagePreview(
-                              path: photosList[index].photos[index1].webLink!);
-                        },
-                      );
+                      getFileFromGoogleDrive(context).then((value) async {
+                        if (isImageFullView != null && isImageFullView) {
+                        } else {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.transparent,
+                            builder: (context) {
+                              return WebImagePreview(
+                                path: photosList[index].photos[index1].webLink!,
+                                type: photosList[index].photos[index1].type,
+                                id: photosList[index].photos[index1].id,
+                                client: value,
+                              );
+                            },
+                          );
+                        }
+                      });
+
+                      if (isImageFullView != null && isImageFullView) {
+                        clearView!();
+
+                        for (int i = 0;
+                            i < photosList[index].photos.length;
+                            i++) {
+                          photosList[index].photos[i].isFirst = false;
+                        }
+                        photosList[index].photos[index1].isFirst = true;
+
+                        for (int i = 0;
+                            i < photosList[index].photos.length;
+                            i++) {
+                          photosList[index].photos[i].isSelected = false;
+                          photosList[index].photos[i].isEdit = false;
+                        }
+                        photosList[index].photos[index1].isSelected = true;
+                        photosList[index].photos[index1].isEdit = false;
+                        onPressed();
+                      }
                     },
                     child: Stack(
                       children: [
@@ -699,15 +753,32 @@ class CommonWidgets {
                                     )),
                           ),
                         ),
-                        Container(
-                          height: 120,
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: photosList[index].photos[index1].isSelected
-                                  ? AppColors.primaryColor.withOpacity(.65)
-                                  : null),
-                        ),
+                        (isImageFullView != null && isImageFullView)
+                            ? Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photosList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true
+                                      ? AppColors.whiteColor.withOpacity(0.8)
+                                      : null,
+                                ),
+                              )
+                            : Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photosList[index]
+                                          .photos[index1]
+                                          .isSelected
+                                      ? AppColors.primaryColor.withOpacity(0.65)
+                                      : null,
+                                ),
+                              ),
                         Positioned(
                           top: 5,
                           right: 5,
@@ -719,28 +790,54 @@ class CommonWidgets {
                               color: Colors.transparent,
                               child: GestureDetector(
                                 onTap: () {
-                                  if (photosList[index].photos[index1].isEdit) {
-                                    unSelectedDialog(context);
+                                                                          EasyLoading.show();
+
+                                  getFileFromGoogleDrive(context)
+                                      .then((value) async {
+                                    var httpClient =
+                                        await value!.authenticatedClient();
+                                    if (httpClient == null) {
+                                      print(
+                                          'Failed to get authenticated client');
+                                      return null;
+                                    }
+
+                                    changeFilePermission(
+                                        httpClient.credentials.accessToken.data,
+                                        photosList[index].photos[index1].id);
+                                  });
+                                  if (photosList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true &&
+                                      isImageFullView!) {
                                   } else {
-                                    photosList[index]
+                                    if (photosList[index]
+                                        .photos[index1]
+                                        .isEdit) {
+                                      unSelectedDialog(context);
+                                    } else {
+                                      photosList[index]
+                                              .photos[index1]
+                                              .isSelected =
+                                          !photosList[index]
+                                              .photos[index1]
+                                              .isSelected;
+                                      if (selectedCountNotifier != null) {
+                                        if (photosList[index]
                                             .photos[index1]
-                                            .isSelected =
-                                        !photosList[index]
-                                            .photos[index1]
-                                            .isSelected;
-                                    if (selectedCountNotifier != null) {
-                                      if (photosList[index]
-                                          .photos[index1]
-                                          .isSelected) {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value + 1;
-                                      } else {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value - 1;
+                                            .isSelected) {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value + 1;
+                                        } else {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value - 1;
+                                        }
                                       }
                                     }
                                   }
                                   onPressed();
+                                  onClickCheckBox!();
                                 },
                                 child: Container(
                                   height: 21.87,
@@ -751,20 +848,26 @@ class CommonWidgets {
                                           color: Colors.white.withOpacity(.5),
                                           width: 1.5),
                                       borderRadius: BorderRadius.circular(8),
-                                      color: photosList[index]
+                                      color: (isImageFullView != null &&
+                                              isImageFullView)
+                                          ? Colors.black.withOpacity(.3)
+                                          : photosList[index]
+                                                  .photos[index1]
+                                                  .isSelected
+                                              ? Colors.white
+                                              : Colors.black.withOpacity(.3)),
+                                  child: (isImageFullView != null &&
+                                          isImageFullView)
+                                      ? const IgnorePointer()
+                                      : photosList[index]
                                               .photos[index1]
                                               .isSelected
-                                          ? Colors.white
-                                          : Colors.black.withOpacity(.3)),
-                                  child: photosList[index]
-                                          .photos[index1]
-                                          .isSelected
-                                      ? Image.asset(
-                                          correct,
-                                          height: 12,
-                                          width: 12,
-                                        )
-                                      : const IgnorePointer(),
+                                          ? Image.asset(
+                                              correct,
+                                              height: 12,
+                                              width: 12,
+                                            )
+                                          : const IgnorePointer(),
                                 ),
                               ),
                             ),
@@ -785,9 +888,13 @@ class CommonWidgets {
   static instaPhtotView(
     List<GroupedPhotoModel> photosList,
     VoidCallback onPressed, {
+    VoidCallback? onClickCheckBox,
     ValueNotifier<int>? selectedCountNotifier,
+    bool? isImageFullView,
+    VoidCallback? clearView,
   }) {
     return ListView.builder(
+      padding: EdgeInsets.zero,
       itemCount: photosList.length,
       itemBuilder: (context, index) {
         return Wrap(
@@ -810,6 +917,8 @@ class CommonWidgets {
               padding: const EdgeInsets.only(top: 16.0),
               child: GridView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
+
                 physics: const NeverScrollableScrollPhysics(),
                 key: const PageStorageKey(
                     'instaPhotosGrid'), // Key for persistent scroll state
@@ -825,14 +934,37 @@ class CommonWidgets {
                 itemBuilder: (context, index1) {
                   return GestureDetector(
                     onTap: () {
-                      showDialog(
-                        context: context,
-                        barrierColor: Colors.transparent,
-                        builder: (context) {
-                          return WebImagePreview(
-                              path: photosList[index].photos[index1].webLink!);
-                        },
-                      );
+                      if (isImageFullView != null && isImageFullView) {
+                        clearView!();
+
+                        for (int i = 0;
+                            i < photosList[index].photos.length;
+                            i++) {
+                          photosList[index].photos[i].isFirst = false;
+                        }
+                        photosList[index].photos[index1].isFirst = true;
+
+                        for (int i = 0;
+                            i < photosList[index].photos.length;
+                            i++) {
+                          photosList[index].photos[i].isSelected = false;
+                          photosList[index].photos[i].isEdit = false;
+                        }
+                        photosList[index].photos[index1].isSelected = true;
+                        photosList[index].photos[index1].isEdit = false;
+                        onPressed();
+                      } else {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.transparent,
+                          builder: (context) {
+                            return WebImagePreview(
+                              path: photosList[index].photos[index1].webLink!,
+                              type: photosList[index].photos[index1].type,
+                            );
+                          },
+                        );
+                      }
                     },
                     child: Stack(
                       children: [
@@ -859,15 +991,32 @@ class CommonWidgets {
                                     )),
                           ),
                         ),
-                        Container(
-                          height: 120,
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: photosList[index].photos[index1].isSelected
-                                  ? AppColors.primaryColor.withOpacity(.65)
-                                  : null),
-                        ),
+                        (isImageFullView != null && isImageFullView)
+                            ? Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photosList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true
+                                      ? AppColors.whiteColor.withOpacity(0.7)
+                                      : null,
+                                ),
+                              )
+                            : Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photosList[index]
+                                          .photos[index1]
+                                          .isSelected
+                                      ? AppColors.primaryColor.withOpacity(0.65)
+                                      : null,
+                                ),
+                              ),
                         Positioned(
                           top: 5,
                           right: 5,
@@ -879,28 +1028,38 @@ class CommonWidgets {
                               color: Colors.transparent,
                               child: GestureDetector(
                                 onTap: () {
-                                  if (photosList[index].photos[index1].isEdit) {
-                                    unSelectedDialog(context);
+                                  if (photosList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true &&
+                                      isImageFullView!) {
                                   } else {
-                                    photosList[index]
+                                    if (photosList[index]
+                                        .photos[index1]
+                                        .isEdit) {
+                                      unSelectedDialog(context);
+                                    } else {
+                                      photosList[index]
+                                              .photos[index1]
+                                              .isSelected =
+                                          !photosList[index]
+                                              .photos[index1]
+                                              .isSelected;
+                                      if (selectedCountNotifier != null) {
+                                        if (photosList[index]
                                             .photos[index1]
-                                            .isSelected =
-                                        !photosList[index]
-                                            .photos[index1]
-                                            .isSelected;
-                                    if (selectedCountNotifier != null) {
-                                      if (photosList[index]
-                                          .photos[index1]
-                                          .isSelected) {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value + 1;
-                                      } else {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value - 1;
+                                            .isSelected) {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value + 1;
+                                        } else {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value - 1;
+                                        }
                                       }
                                     }
                                   }
                                   onPressed();
+                                  onClickCheckBox!();
                                 },
                                 child: Container(
                                   height: 21.87,
@@ -911,20 +1070,26 @@ class CommonWidgets {
                                           color: Colors.white.withOpacity(.5),
                                           width: 1.5),
                                       borderRadius: BorderRadius.circular(8),
-                                      color: photosList[index]
+                                      color: (isImageFullView != null &&
+                                              isImageFullView)
+                                          ? Colors.black.withOpacity(.3)
+                                          : photosList[index]
+                                                  .photos[index1]
+                                                  .isSelected
+                                              ? Colors.white
+                                              : Colors.black.withOpacity(.3)),
+                                  child: (isImageFullView != null &&
+                                          isImageFullView)
+                                      ? const IgnorePointer()
+                                      : photosList[index]
                                               .photos[index1]
                                               .isSelected
-                                          ? Colors.white
-                                          : Colors.black.withOpacity(.3)),
-                                  child: photosList[index]
-                                          .photos[index1]
-                                          .isSelected
-                                      ? Image.asset(
-                                          correct,
-                                          height: 12,
-                                          width: 12,
-                                        )
-                                      : const IgnorePointer(),
+                                          ? Image.asset(
+                                              correct,
+                                              height: 12,
+                                              width: 12,
+                                            )
+                                          : const IgnorePointer(),
                                 ),
                               ),
                             ),
@@ -945,11 +1110,15 @@ class CommonWidgets {
   static fbPhtotView(
     List<GroupedPhotoModel> photosList,
     VoidCallback onPressed, {
+    VoidCallback? onClickCheckBox,
     ValueNotifier<int>? selectedCountNotifier,
+    bool? isImageFullView,
+    VoidCallback? clearView,
   }) {
     print(photosList.length);
     return ListView.builder(
       itemCount: photosList.length,
+      padding: EdgeInsets.zero,
       itemBuilder: (context, index) {
         return Wrap(
           children: [
@@ -971,6 +1140,8 @@ class CommonWidgets {
               padding: const EdgeInsets.only(top: 16.0),
               child: GridView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
+
                 physics: const NeverScrollableScrollPhysics(),
                 key: const PageStorageKey(
                     'fbPhotosGrid'), // Key for persistent scroll state
@@ -987,14 +1158,37 @@ class CommonWidgets {
                   print(photosList[index].photos[index1]);
                   return GestureDetector(
                     onTap: () {
-                      showDialog(
-                        context: context,
-                        barrierColor: Colors.transparent,
-                        builder: (context) {
-                          return WebImagePreview(
-                              path: photosList[index].photos[index1].webLink!);
-                        },
-                      );
+                      if (isImageFullView != null && isImageFullView) {
+                        clearView!();
+
+                        for (int i = 0;
+                            i < photosList[index].photos.length;
+                            i++) {
+                          photosList[index].photos[i].isFirst = false;
+                        }
+                        photosList[index].photos[index1].isFirst = true;
+
+                        for (int i = 0;
+                            i < photosList[index].photos.length;
+                            i++) {
+                          photosList[index].photos[i].isSelected = false;
+                          photosList[index].photos[i].isEdit = false;
+                        }
+                        photosList[index].photos[index1].isSelected = true;
+                        photosList[index].photos[index1].isEdit = false;
+                        onPressed();
+                      } else {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.transparent,
+                          builder: (context) {
+                            return WebImagePreview(
+                              path: photosList[index].photos[index1].webLink!,
+                              type: photosList[index].photos[index1].type,
+                            );
+                          },
+                        );
+                      }
                     },
                     child: Stack(
                       children: [
@@ -1021,15 +1215,32 @@ class CommonWidgets {
                                     )),
                           ),
                         ),
-                        Container(
-                          height: 120,
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: photosList[index].photos[index1].isSelected
-                                  ? AppColors.primaryColor.withOpacity(.65)
-                                  : null),
-                        ),
+                        (isImageFullView != null && isImageFullView)
+                            ? Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photosList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true
+                                      ? AppColors.whiteColor.withOpacity(0.7)
+                                      : null,
+                                ),
+                              )
+                            : Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photosList[index]
+                                          .photos[index1]
+                                          .isSelected
+                                      ? AppColors.primaryColor.withOpacity(0.65)
+                                      : null,
+                                ),
+                              ),
                         Positioned(
                           top: 5,
                           right: 5,
@@ -1041,28 +1252,38 @@ class CommonWidgets {
                               color: Colors.transparent,
                               child: GestureDetector(
                                 onTap: () {
-                                  if (photosList[index].photos[index1].isEdit) {
-                                    unSelectedDialog(context);
+                                  if (photosList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true &&
+                                      isImageFullView!) {
                                   } else {
-                                    photosList[index]
+                                    if (photosList[index]
+                                        .photos[index1]
+                                        .isEdit) {
+                                      unSelectedDialog(context);
+                                    } else {
+                                      photosList[index]
+                                              .photos[index1]
+                                              .isSelected =
+                                          !photosList[index]
+                                              .photos[index1]
+                                              .isSelected;
+                                      if (selectedCountNotifier != null) {
+                                        if (photosList[index]
                                             .photos[index1]
-                                            .isSelected =
-                                        !photosList[index]
-                                            .photos[index1]
-                                            .isSelected;
-                                    if (selectedCountNotifier != null) {
-                                      if (photosList[index]
-                                          .photos[index1]
-                                          .isSelected) {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value + 1;
-                                      } else {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value - 1;
+                                            .isSelected) {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value + 1;
+                                        } else {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value - 1;
+                                        }
                                       }
                                     }
                                   }
                                   onPressed();
+                                  onClickCheckBox!();
                                 },
                                 child: Container(
                                   height: 21.87,
@@ -1073,20 +1294,26 @@ class CommonWidgets {
                                           color: Colors.white.withOpacity(.5),
                                           width: 1.5),
                                       borderRadius: BorderRadius.circular(8),
-                                      color: photosList[index]
+                                      color: (isImageFullView != null &&
+                                              isImageFullView)
+                                          ? Colors.black.withOpacity(.3)
+                                          : photosList[index]
+                                                  .photos[index1]
+                                                  .isSelected
+                                              ? Colors.white
+                                              : Colors.black.withOpacity(.3)),
+                                  child: (isImageFullView != null &&
+                                          isImageFullView)
+                                      ? const IgnorePointer()
+                                      : photosList[index]
                                               .photos[index1]
                                               .isSelected
-                                          ? Colors.white
-                                          : Colors.black.withOpacity(.3)),
-                                  child: photosList[index]
-                                          .photos[index1]
-                                          .isSelected
-                                      ? Image.asset(
-                                          correct,
-                                          height: 12,
-                                          width: 12,
-                                        )
-                                      : const IgnorePointer(),
+                                          ? Image.asset(
+                                              correct,
+                                              height: 12,
+                                              width: 12,
+                                            )
+                                          : const IgnorePointer(),
                                 ),
                               ),
                             ),
@@ -1107,55 +1334,55 @@ class CommonWidgets {
   static Widget allAlbumView(
     List<CombinedPhotoModel> photoList,
     VoidCallback onPressed, {
+    VoidCallback? onClickCheckBox,
     ValueNotifier<int>? selectedCountNotifier,
     int? selectedCount,
-        int? gridIndex,
-
+    int? gridIndex,
+    bool? isImageFullView,
+    VoidCallback? clearView,
+    Function(AllPhotoModel selectedModel)? selectedPhoto,
     Function(double offset)? selectValue,
   }) {
-      late GridObserverController observerController;
+    late GridObserverController observerController;
 
     final ScrollController _scrollController = ScrollController();
-  final Map<int, ScrollController> gridControllers = {};
-   if (selectedCount != null && selectedCount != 0) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-     double totalOffset = 0;
+    final Map<int, ScrollController> gridControllers = {};
+    if (selectedCount != null && selectedCount != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        double totalOffset = 0;
 
-    for (int i = 0; i < selectedCount; i++) {
-      // Calculate dynamic height for each ListView item
-      double listItemHeight = calculateListItemHeight(
-        photoList[i],
-        108.0,  // Grid row height
-        10.0,  // Grid spacing
-        3,     // Number of columns in GridView
-      );
+        for (int i = 0; i < selectedCount; i++) {
+          // Calculate dynamic height for each ListView item
+          double listItemHeight = calculateListItemHeight(
+            photoList[i],
+            108.0, // Grid row height
+            10.0, // Grid spacing
+            3, // Number of columns in GridView
+          );
 
-      totalOffset += listItemHeight;
-    }// Height of each GridView item row
+          totalOffset += listItemHeight;
+        } // Height of each GridView item row
 
-      // ListView scroll offset
+        // ListView scroll offset
 
-      // GridView scroll offset within the target ListView item
-      double gridOffset = (gridIndex! ~/ 3) * 110;
+        // GridView scroll offset within the target ListView item
+        double gridOffset = (gridIndex! ~/ 3) * 110;
 
-       
-
-      // Animate ListView scroll
-      _scrollController.animateTo(
-        totalOffset + gridOffset,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
+        // Animate ListView scroll
+        _scrollController.animateTo(
+          totalOffset + gridOffset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
 
     return ListView.builder(
       controller: _scrollController,
       itemCount: photoList.length,
+      padding: EdgeInsets.zero,
       itemBuilder: (context, index) {
-                          gridControllers[index] = ScrollController();
-
-
+        gridControllers[index] = ScrollController();
 
         return Wrap(
           children: [
@@ -1175,9 +1402,10 @@ class CommonWidgets {
             ),
             Padding(
               padding: const EdgeInsets.only(top: 16.0),
-              child: 
-              GridView.builder(
-                controller: gridControllers[index] ,
+              child: GridView.builder(
+                padding: EdgeInsets.zero,
+
+                controller: gridControllers[index],
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 key: const PageStorageKey(
@@ -1195,25 +1423,83 @@ class CommonWidgets {
                   return GestureDetector(
                     onTap: () {
                       if (photoList[index].photos[index1].type == "image") {
-                        showDialog(
-                          context: context,
-                          barrierColor: Colors.transparent,
-                          builder: (context) {
-                            return ImagePreview(
-                                assetEntity: photoList[index]
-                                    .photos[index1]
-                                    .assetEntity!);
-                          },
-                        );
+                        if (isImageFullView != null && isImageFullView) {
+                          clearView!();
+
+                          selectedPhoto!(photoList[index].photos[index1]);
+                        } else {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.transparent,
+                            builder: (context) {
+                              return ImagePreview(
+                                  assetEntity: photoList[index]
+                                      .photos[index1]
+                                      .assetEntity!);
+                            },
+                          );
+                        }
                       } else {
-                        showDialog(
-                          context: context,
-                          barrierColor: Colors.transparent,
-                          builder: (context) {
-                            return WebImagePreview(
-                                path: photoList[index].photos[index1].webLink!);
-                          },
-                        );
+                        if (photoList[index].photos[index1].type == "drive") {
+                          getFileFromGoogleDrive(context).then((value) async {
+                            if (isImageFullView != null && isImageFullView) {
+                              clearView!();
+
+                              selectedPhoto!(photoList[index].photos[index1]);
+                            } else {
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.transparent,
+                                builder: (context) {
+                                  return WebImagePreview(
+                                    path: photoList[index]
+                                        .photos[index1]
+                                        .webLink!,
+                                    type: photoList[index].photos[index1].type,
+                                    id: photoList[index].photos[index1].id,
+                                    client: value,
+                                  );
+                                },
+                              );
+                            }
+                          });
+                        } else {
+                          if (isImageFullView != null && isImageFullView) {
+                            clearView!();
+
+                            selectedPhoto!(photoList[index].photos[index1]);
+                          } else {
+                            showDialog(
+                              context: context,
+                              barrierColor: Colors.transparent,
+                              builder: (context) {
+                                return WebImagePreview(
+                                    path: photoList[index]
+                                        .photos[index1]
+                                        .webLink!,
+                                    type: photoList[index].photos[index1].type);
+                              },
+                            );
+                          }
+                        }
+                      }
+                      if (isImageFullView != null && isImageFullView) {
+                        for (int i = 0;
+                            i < photoList[index].photos.length;
+                            i++) {
+                          photoList[index].photos[i].isFirst = false;
+                        }
+                        photoList[index].photos[index1].isFirst = true;
+
+                        for (int i = 0;
+                            i < photoList[index].photos.length;
+                            i++) {
+                          photoList[index].photos[i].isSelected = false;
+                          photoList[index].photos[i].isEdit = false;
+                        }
+                        photoList[index].photos[index1].isSelected = true;
+                        photoList[index].photos[index1].isEdit = false;
+                        onPressed();
                       }
                     },
                     child: Stack(
@@ -1254,16 +1540,32 @@ class CommonWidgets {
                                           )),
                                 ),
                               ),
-                        Container(
-                          height: 120,
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: photoList[index].photos[index1].isSelected
-                                ? AppColors.primaryColor.withOpacity(0.65)
-                                : null,
-                          ),
-                        ),
+                        (isImageFullView != null && isImageFullView)
+                            ? Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photoList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true
+                                      ? AppColors.whiteColor.withOpacity(0.7)
+                                      : null,
+                                ),
+                              )
+                            : Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photoList[index]
+                                          .photos[index1]
+                                          .isSelected
+                                      ? AppColors.primaryColor.withOpacity(0.65)
+                                      : null,
+                                ),
+                              ),
                         Positioned(
                           top: 5,
                           right: 5,
@@ -1275,49 +1577,83 @@ class CommonWidgets {
                               color: Colors.transparent,
                               child: GestureDetector(
                                 onTap: () {
+                                  if (photoList[index].photos[index1].type ==
+                                      "drive") {
+                                        EasyLoading.show();
+                                    getFileFromGoogleDrive(context)
+                                        .then((value) async {
+                                      var httpClient =
+                                          await value!.authenticatedClient();
+                                      if (httpClient == null) {
+                                        print(
+                                            'Failed to get authenticated client');
+                                        return null;
+                                      }
+
+                                      changeFilePermission(
+                                          httpClient
+                                              .credentials.accessToken.data,
+                                          photoList[index].photos[index1].id);
+                                    });
+                                  }
+
                                   debugPrint(
                                       "${photoList[index].photos[index1].isEdit}");
-
-                                  if (photoList[index].photos[index1].isEdit) {
-                                    unSelectedDialog(context);
+                                  if (photoList[index].photos[index1].isFirst ==
+                                          true &&
+                                      isImageFullView!) {
                                   } else {
-                                    photoList[index].photos[index1].isSelected =
-                                        !photoList[index]
+                                    if (photoList[index]
+                                        .photos[index1]
+                                        .isEdit) {
+                                      unSelectedDialog(context);
+                                    } else {
+                                      photoList[index]
+                                              .photos[index1]
+                                              .isSelected =
+                                          !photoList[index]
+                                              .photos[index1]
+                                              .isSelected;
+                                      if (selectedCountNotifier != null) {
+                                        if (photoList[index]
                                             .photos[index1]
-                                            .isSelected;
-                                    if (selectedCountNotifier != null) {
-                                      if (photoList[index]
-                                          .photos[index1]
-                                          .isSelected) {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value + 1;
-                                      } else {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value - 1;
+                                            .isSelected) {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value + 1;
+                                        } else {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value - 1;
+                                        }
                                       }
                                     }
                                   }
-                               onPressed();
-
+                                  onPressed();
+                                  onClickCheckBox!();
                                 },
                                 child: Container(
                                   height: 21.87,
                                   width: 30.07,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.5),
-                                      width: 1.5,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: photoList[index]
-                                            .photos[index1]
-                                            .isSelected
-                                        ? Colors.white
-                                        : Colors.black.withOpacity(0.3),
-                                  ),
-                                  child:
-                                      photoList[index].photos[index1].isSelected
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.5),
+                                        width: 1.5,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: (isImageFullView != null &&
+                                              isImageFullView)
+                                          ? Colors.black.withOpacity(0.3)
+                                          : photoList[index]
+                                                  .photos[index1]
+                                                  .isSelected
+                                              ? Colors.white
+                                              : Colors.black.withOpacity(0.3)),
+                                  child: (isImageFullView != null &&
+                                          isImageFullView)
+                                      ? const IgnorePointer()
+                                      : photoList[index]
+                                              .photos[index1]
+                                              .isSelected
                                           ? Image.asset(
                                               correct,
                                               height: 12,
@@ -1342,44 +1678,50 @@ class CommonWidgets {
   }
 
   static Widget albumView(
-      List<PhotoGroupModel> photoList, VoidCallback onPressed,
-      {ValueNotifier<int>? selectedCountNotifier,  int? selectedCount,
-        int? gridIndex,}) {
-     final ScrollController _scrollController = ScrollController();
-  final Map<int, ScrollController> gridControllers = {};
-   if (selectedCount != null && selectedCount != 0) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-     double totalOffset = 0;
+    List<PhotoGroupModel> photoList,
+    VoidCallback onPressed, {
+    VoidCallback? onClickCheckBox,
+    ValueNotifier<int>? selectedCountNotifier,
+    int? selectedCount,
+    int? gridIndex,
+    bool? isImageFullView,
+    VoidCallback? clearView,
+    Function(AllPhotoModel selectedModel)? selectedPhoto,
+  }) {
+    final ScrollController _scrollController = ScrollController();
+    final Map<int, ScrollController> gridControllers = {};
+    if (selectedCount != null && selectedCount != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        double totalOffset = 0;
 
-    for (int i = 0; i < selectedCount; i++) {
-      // Calculate dynamic height for each ListView item
-      double listItemHeight = calculateCameraListItemHeight(
-        photoList[i],
-        80.0,  // Grid row height
-        10.0,  // Grid spacing
-        3,     // Number of columns in GridView
-      );
+        for (int i = 0; i < selectedCount; i++) {
+          // Calculate dynamic height for each ListView item
+          double listItemHeight = calculateCameraListItemHeight(
+            photoList[i],
+            80.0, // Grid row height
+            10.0, // Grid spacing
+            3, // Number of columns in GridView
+          );
 
-      totalOffset += listItemHeight;
-    }// Height of each GridView item row
+          totalOffset += listItemHeight;
+        } // Height of each GridView item row
 
-      // ListView scroll offset
+        // ListView scroll offset
 
-      // GridView scroll offset within the target ListView item
-      double gridOffset = (gridIndex! ~/ 3) * 90;
+        // GridView scroll offset within the target ListView item
+        double gridOffset = (gridIndex! ~/ 3) * 90;
 
-       
-
-      // Animate ListView scroll
-      _scrollController.animateTo(
-        totalOffset + gridOffset,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
+        // Animate ListView scroll
+        _scrollController.animateTo(
+          totalOffset + gridOffset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
 
     return ListView.builder(
+      padding: EdgeInsets.zero,
       controller: _scrollController,
       itemCount: photoList.length,
       itemBuilder: (context, index) {
@@ -1403,6 +1745,8 @@ class CommonWidgets {
               padding: const EdgeInsets.only(top: 16.0),
               child: GridView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
+
                 physics: const NeverScrollableScrollPhysics(),
                 key: const PageStorageKey(
                     'photoAllsGrid'), // Key for persistent scroll state
@@ -1418,29 +1762,77 @@ class CommonWidgets {
                 itemBuilder: (context, index1) {
                   return GestureDetector(
                     onTap: () {
-                      showDialog(
-                        context: context,
-                        barrierColor: Colors.transparent,
-                        builder: (context) {
-                          return ImagePreview(
-                              assetEntity:
-                                  photoList[index].photos[index1].assetEntity);
-                        },
-                      );
+                      if (isImageFullView != null && isImageFullView) {
+                        clearView!();
+
+                        for (int i = 0;
+                            i < photoList[index].photos.length;
+                            i++) {
+                          photoList[index].photos[i].isFirst = false;
+                        }
+                        photoList[index].photos[index1].isFirst = true;
+                        for (int i = 0;
+                            i < photoList[index].photos.length;
+                            i++) {
+                          photoList[index].photos[i].selectedValue = false;
+                          photoList[index].photos[i].isEditmemory = false;
+                        }
+                        photoList[index].photos[index1].selectedValue = true;
+                        photoList[index].photos[index1].isEditmemory = false;
+                        onPressed();
+                      } else {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.transparent,
+                          builder: (context) {
+                            return ImagePreview(
+                                assetEntity: photoList[index]
+                                    .photos[index1]
+                                    .assetEntity);
+                          },
+                        );
+                      }
                     },
                     child: Stack(
                       children: [
                         MyGridItem(photoList[index].future[index1]),
-                        Container(
-                          height: 120,
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: photoList[index].photos[index1].selectedValue
-                                ? AppColors.primaryColor.withOpacity(0.65)
-                                : null,
-                          ),
-                        ),
+
+                        (isImageFullView != null && isImageFullView)
+                            ? Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photoList[index]
+                                              .photos[index1]
+                                              .isFirst ==
+                                          true
+                                      ? AppColors.whiteColor.withOpacity(0.7)
+                                      : null,
+                                ),
+                              )
+                            : Container(
+                                height: 120,
+                                width: MediaQuery.of(context).size.width,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: photoList[index]
+                                          .photos[index1]
+                                          .selectedValue
+                                      ? AppColors.primaryColor.withOpacity(0.65)
+                                      : null,
+                                ),
+                              ),
+                        // Container(
+                        //   height: 120,
+                        //   width: MediaQuery.of(context).size.width,
+                        //   decoration: BoxDecoration(
+                        //     borderRadius: BorderRadius.circular(12),
+                        //     color: photoList[index].photos[index1].selectedValue
+                        //         ? AppColors.primaryColor.withOpacity(0.65)
+                        //         : null,
+                        //   ),
+                        // ),
                         Positioned(
                           top: 5,
                           right: 5,
@@ -1454,32 +1846,36 @@ class CommonWidgets {
                                 onTap: () {
                                   debugPrint(
                                       "${photoList[index].photos[index1].isEditmemory}");
-
-                                  if (photoList[index]
-                                      .photos[index1]
-                                      .isEditmemory) {
-                                    unSelectedDialog(context);
+                                  if (photoList[index].photos[index1].isFirst ==
+                                          true &&
+                                      isImageFullView!) {
                                   } else {
-                                    photoList[index]
+                                    if (photoList[index]
+                                        .photos[index1]
+                                        .isEditmemory) {
+                                      unSelectedDialog(context);
+                                    } else {
+                                      photoList[index]
+                                              .photos[index1]
+                                              .selectedValue =
+                                          !photoList[index]
+                                              .photos[index1]
+                                              .selectedValue;
+                                      if (selectedCountNotifier != null) {
+                                        if (photoList[index]
                                             .photos[index1]
-                                            .selectedValue =
-                                        !photoList[index]
-                                            .photos[index1]
-                                            .selectedValue;
-                                    if (selectedCountNotifier != null) {
-                                      if (photoList[index]
-                                          .photos[index1]
-                                          .selectedValue) {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value + 1;
-                                      } else {
-                                        selectedCountNotifier.value =
-                                            selectedCountNotifier.value - 1;
+                                            .selectedValue) {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value + 1;
+                                        } else {
+                                          selectedCountNotifier.value =
+                                              selectedCountNotifier.value - 1;
+                                        }
                                       }
                                     }
                                   }
-
                                   onPressed();
+                                  onClickCheckBox!();
                                 },
                                 child: Container(
                                   height: 21.87,
@@ -1491,21 +1887,27 @@ class CommonWidgets {
                                       width: 1.5,
                                     ),
                                     borderRadius: BorderRadius.circular(8),
-                                    color: photoList[index]
-                                            .photos[index1]
-                                            .selectedValue
-                                        ? Colors.white
-                                        : Colors.black.withOpacity(0.3),
+                                    color: (isImageFullView != null &&
+                                            isImageFullView)
+                                        ? Colors.black.withOpacity(0.3)
+                                        : photoList[index]
+                                                .photos[index1]
+                                                .selectedValue
+                                            ? Colors.white
+                                            : Colors.black.withOpacity(0.3),
                                   ),
-                                  child: photoList[index]
-                                          .photos[index1]
-                                          .selectedValue
-                                      ? Image.asset(
-                                          correct,
-                                          height: 12,
-                                          width: 12,
-                                        )
-                                      : const IgnorePointer(),
+                                  child: (isImageFullView != null &&
+                                          isImageFullView)
+                                      ? const IgnorePointer()
+                                      : photoList[index]
+                                              .photos[index1]
+                                              .selectedValue
+                                          ? Image.asset(
+                                              correct,
+                                              height: 12,
+                                              width: 12,
+                                            )
+                                          : const IgnorePointer(),
                                 ),
                               ),
                             ),
@@ -1711,48 +2113,46 @@ class CommonWidgets {
     );
   }
 
-static List<GroupedPhotoModel> combinedGroupPhotosByDate(
-    List<PhotoDetailModel> photoLinks, List<GroupedPhotoModel> existingGroups) {
-  // Map to hold grouped photos by date
-  Map<String, List<PhotoDetailModel>> groupedPhotos = {};
+  static List<GroupedPhotoModel> combinedGroupPhotosByDate(
+      List<PhotoDetailModel> photoLinks,
+      List<GroupedPhotoModel> existingGroups) {
+    // Map to hold grouped photos by date
+    Map<String, List<PhotoDetailModel>> groupedPhotos = {};
 
-  // Group photos by their date
-  for (PhotoDetailModel photo in photoLinks) {
-    String date = photo.captureDate!; // Assuming `PhotoLink` has a `date` property
-    if (groupedPhotos.containsKey(date)) {
-      groupedPhotos[date]!.add(photo);
-    } else {
-      groupedPhotos[date] = [photo];
+    // Group photos by their date
+    for (PhotoDetailModel photo in photoLinks) {
+      String date =
+          photo.captureDate!; // Assuming `PhotoLink` has a `date` property
+      if (groupedPhotos.containsKey(date)) {
+        groupedPhotos[date]!.add(photo);
+      } else {
+        groupedPhotos[date] = [photo];
+      }
     }
-  }
 
-  // Merge into existing groups or create new groups
-  for (String date in groupedPhotos.keys) {
-    // Find if the date group already exists in existingGroups
-    GroupedPhotoModel? existingGroup = existingGroups.firstWhere(
-      (group) => group.date == date,
-            
-
-    );
-
-    if (existingGroup.photos.isNotEmpty) {
-      // Add photos to the existing group
-      existingGroup.photos.addAll(groupedPhotos[date]!);
-    } else {
-      // Create a new group and add it to the model
-      existingGroups.add(
-        GroupedPhotoModel(
-          date: date,
-          photos: groupedPhotos[date]!,
-        ),
+    // Merge into existing groups or create new groups
+    for (String date in groupedPhotos.keys) {
+      // Find if the date group already exists in existingGroups
+      GroupedPhotoModel? existingGroup = existingGroups.firstWhere(
+        (group) => group.date == date,
       );
+
+      if (existingGroup.photos.isNotEmpty) {
+        // Add photos to the existing group
+        existingGroup.photos.addAll(groupedPhotos[date]!);
+      } else {
+        // Create a new group and add it to the model
+        existingGroups.add(
+          GroupedPhotoModel(
+            date: date,
+            photos: groupedPhotos[date]!,
+          ),
+        );
+      }
     }
+
+    return existingGroups;
   }
-
-  return existingGroups;
-}
-
-
 
   static List<GroupedPhotoModel> groupPhotosByDate(
       List<PhotoDetailModel> photoDetails) {
@@ -1772,14 +2172,13 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
       }
     }
 
-
     // Convert the map to a list of GroupedPhotoModel
     List<GroupedPhotoModel> photGroup = groupedMap.entries.map((entry) {
       entry.value.sort((a, b) {
-          DateTime dateA = a.createdTime!;
-          DateTime dateB = b.createdTime!;
-          return dateB.compareTo(dateA); // Sort descending by time
-        });
+        DateTime dateA = a.createdTime!;
+        DateTime dateB = b.createdTime!;
+        return dateB.compareTo(dateA); // Sort descending by time
+      });
       return GroupedPhotoModel(
         date: entry.key,
         photos: entry.value,
@@ -1820,10 +2219,10 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
 
     List<GroupedPhotoModel> photGroup = groupedMap.entries.map((entry) {
       entry.value.sort((a, b) {
-          DateTime dateA = a.createdTime!;
-          DateTime dateB = b.createdTime!;
-          return dateB.compareTo(dateA); // Sort descending by time
-        });
+        DateTime dateA = a.createdTime!;
+        DateTime dateB = b.createdTime!;
+        return dateB.compareTo(dateA); // Sort descending by time
+      });
       return GroupedPhotoModel(
         date: entry.key,
         photos: entry.value,
@@ -1866,10 +2265,10 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
     }
     List<PhotoGroupModel> photGroup = groupedMap.entries.map((entry) {
       entry.value.sort((a, b) {
-          DateTime dateA = a.assetEntity.createDateTime;
-          DateTime dateB = b.assetEntity.createDateTime;
-          return dateB.compareTo(dateA); // Sort descending by time
-        });
+        DateTime dateA = a.assetEntity.createDateTime;
+        DateTime dateB = b.assetEntity.createDateTime;
+        return dateB.compareTo(dateA); // Sort descending by time
+      });
       final date = entry.key;
       final photos = entry.value;
       final photoFutures =
@@ -1902,7 +2301,7 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
       List<PhotoGroupModel> photoGroupModel) {
     Map<String, List<AllPhotoModel>> combinedImages = {};
 
-     for (int k = 0; k < photoGroupModel.length; k++) {
+    for (int k = 0; k < photoGroupModel.length; k++) {
       for (int i = 0; i < photoGroupModel[k].photos.length; i++) {
         AllPhotoModel photo = AllPhotoModel();
         photo.id = photoGroupModel[k].photos[i].assetEntity.id;
@@ -1910,8 +2309,11 @@ static List<GroupedPhotoModel> combinedGroupPhotosByDate(
         photo.assetEntity = photoGroupModel[k].photos[i].assetEntity;
         photo.type = "image";
         photo.isEdit = photoGroupModel[k].photos[i].isEditmemory;
+        photo.isFirst = photoGroupModel[k].photos[i].isFirst;
         photo.isSelected = photoGroupModel[k].photos[i].selectedValue;
-photo.createdDate=photoGroupModel[k].photos[i].assetEntity.createDateTime;
+
+        photo.createdDate =
+            photoGroupModel[k].photos[i].assetEntity.createDateTime;
         combinedImages
             .putIfAbsent(photoGroupModel[k].date, () => [])
             .add(photo);
@@ -1927,7 +2329,9 @@ photo.createdDate=photoGroupModel[k].photos[i].assetEntity.createDateTime;
         photo.isEdit = model.isEdit;
         photo.drivethumbNail = model.thumbnailPath;
         photo.isSelected = model.isSelected;
-        photo.createdDate=model.createdTime;
+        photo.isFirst = model.isFirst;
+
+        photo.createdDate = model.createdTime;
 
         combinedImages
             .putIfAbsent(driveGroupModel[k].date, () => [])
@@ -1943,7 +2347,9 @@ photo.createdDate=photoGroupModel[k].photos[i].assetEntity.createDateTime;
         photo.type = model.type;
         photo.isEdit = model.isEdit;
         photo.isSelected = model.isSelected;
-photo.createdDate=model.createdTime;
+        photo.isFirst = model.isFirst;
+
+        photo.createdDate = model.createdTime;
         combinedImages
             .putIfAbsent(instaGroupModel[k].date, () => [])
             .add(photo);
@@ -1959,28 +2365,28 @@ photo.createdDate=model.createdTime;
         photo.type = model.type;
         photo.isEdit = model.isEdit;
         photo.isSelected = model.isSelected;
-photo.createdDate=model.createdTime;
+        photo.isFirst = model.isFirst;
+
+        photo.createdDate = model.createdTime;
         combinedImages.putIfAbsent(fbGroupModel[k].date, () => []).add(photo);
       }
     }
-   
 
     // Convert combined data into a list of CombinedPhotoModel
     // Convert combined data into a list of CombinedPhotoModel
-  List<CombinedPhotoModel> photoGroupModel1 = combinedImages.entries
-      .map((entry) {
-        // Sort `AllPhotoModel` by createdDate within each group
-        entry.value.sort((a, b) {
-          DateTime dateA = a.createdDate!;
-          DateTime dateB =b.createdDate!;
-          return dateB.compareTo(dateA); // Sort descending by time
-        });
-        return CombinedPhotoModel(
-          createDate: entry.key,
-          photos: entry.value,
-        );
-      })
-      .toList();
+    List<CombinedPhotoModel> photoGroupModel1 =
+        combinedImages.entries.map((entry) {
+      // Sort `AllPhotoModel` by createdDate within each group
+      entry.value.sort((a, b) {
+        DateTime dateA = a.createdDate!;
+        DateTime dateB = b.createdDate!;
+        return dateB.compareTo(dateA); // Sort descending by time
+      });
+      return CombinedPhotoModel(
+        createDate: entry.key,
+        photos: entry.value,
+      );
+    }).toList();
     photoGroupModel1.sort((a, b) {
       DateTime dateA = _parseMonthYear(a.createDate);
       DateTime dateB = _parseMonthYear(b.createDate);
@@ -1992,10 +2398,7 @@ photo.createdDate=model.createdTime;
       }
     });
 
-    // Output the combined list
-    for (var model in photoGroupModel1) {
-      print('Date: ${model.createDate}, Images: ${model.photos}');
-    }
+    
     return photoGroupModel1;
   }
 
@@ -2038,16 +2441,15 @@ photo.createdDate=model.createdTime;
 
     OneSignal.Debug.setAlertLevel(OSLogLevel.none);
     //OneSignal.consentRequired(true);
-    
 
     OneSignal.initialize(AppStrings.oneSingalToken);
     OneSignal.LiveActivities.setupDefault();
     OneSignal.Notifications.requestPermission(false).then((granted) {
-  print("Notification permission granted: $granted");
-});
+      print("Notification permission granted: $granted");
+    });
 
     OneSignal.Notifications.clearAll();
-    
+
     print("token${OneSignal.User.pushSubscription.id}");
     PrefUtils.instance.oneSignalToken(OneSignal.User.pushSubscription.id!);
 
@@ -2113,28 +2515,62 @@ photo.createdDate=model.createdTime;
     }
   }
 
-  static double calculateListItemHeight(CombinedPhotoModel photoModel, double gridRowHeight, double gridSpacing, int crossAxisCount) {
-  int itemCount = photoModel.photos.length;
-  int rowCount = (itemCount / crossAxisCount).ceil(); // Total rows in the grid
-  double gridHeight = (rowCount * gridRowHeight) + ((rowCount - 1) * gridSpacing); // Total height of the grid
-  double additionalHeight = 50.0; // Height for other widgets like title or padding
-  return gridHeight + additionalHeight;
-  
-}
-static double calculateCameraListItemHeight(PhotoGroupModel photoModel, double gridRowHeight, double gridSpacing, int crossAxisCount) {
-  int itemCount = photoModel.photos.length;
-  int rowCount = (itemCount / crossAxisCount).ceil(); // Total rows in the grid
-  double gridHeight = (rowCount * gridRowHeight) + ((rowCount - 1) * gridSpacing); // Total height of the grid
-  // Height for other widgets like title or padding
-  return gridHeight;
-  
-}
+  static double calculateListItemHeight(CombinedPhotoModel photoModel,
+      double gridRowHeight, double gridSpacing, int crossAxisCount) {
+    int itemCount = photoModel.photos.length;
+    int rowCount =
+        (itemCount / crossAxisCount).ceil(); // Total rows in the grid
+    double gridHeight = (rowCount * gridRowHeight) +
+        ((rowCount - 1) * gridSpacing); // Total height of the grid
+    double additionalHeight =
+        50.0; // Height for other widgets like title or padding
+    return gridHeight + additionalHeight;
+  }
 
-static Future<void> fetchPaginatedGooglePhotos(String accessToken) async {
-  String? nextPageToken;
-  do {
-    final url = Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems')
-        .replace(queryParameters: nextPageToken != null ? {'pageToken': nextPageToken} : null);
+  static double calculateCameraListItemHeight(PhotoGroupModel photoModel,
+      double gridRowHeight, double gridSpacing, int crossAxisCount) {
+    int itemCount = photoModel.photos.length;
+    int rowCount =
+        (itemCount / crossAxisCount).ceil(); // Total rows in the grid
+    double gridHeight = (rowCount * gridRowHeight) +
+        ((rowCount - 1) * gridSpacing); // Total height of the grid
+    // Height for other widgets like title or padding
+    return gridHeight;
+  }
+
+  static Future<void> fetchPaginatedGooglePhotos(String accessToken) async {
+    String? nextPageToken;
+    do {
+      final url =
+          Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems')
+              .replace(
+                  queryParameters: nextPageToken != null
+                      ? {'pageToken': nextPageToken}
+                      : null);
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Media Items: ${data['mediaItems']}');
+        getPhotoBaseUrl(accessToken, data['mediaItems'][0]["id"]);
+        nextPageToken = data['nextPageToken'];
+      } else {
+        print('Failed to fetch media items: ${response.body}');
+        break;
+      }
+    } while (nextPageToken != null);
+  }
+
+  static Future<String?> getPhotoBaseUrl(
+      String accessToken, String mediaItemId) async {
+    final url = Uri.parse(
+        'https://photoslibrary.googleapis.com/v1/mediaItems/$mediaItemId');
+
     final response = await http.get(
       url,
       headers: {
@@ -2144,45 +2580,59 @@ static Future<void> fetchPaginatedGooglePhotos(String accessToken) async {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      print('Media Items: ${data['mediaItems']}');
-      getPhotoBaseUrl(accessToken,data['mediaItems'][0]["id"]);
-      nextPageToken = data['nextPageToken'];
+      print("sdfsaf${data['baseUrl']}");
+      return data['baseUrl'];
     } else {
-      print('Failed to fetch media items: ${response.body}');
-      break;
+      print('Error fetching photo: ${response.body}');
+      return null;
     }
-  } while (nextPageToken != null);
-}
-
-static Future<String?> getPhotoBaseUrl(String accessToken, String mediaItemId) async {
-  final url = Uri.parse('https://photoslibrary.googleapis.com/v1/mediaItems/$mediaItemId');
-
-  final response = await http.get(
-    url,
-    headers: {
-      'Authorization': 'Bearer $accessToken',
-    },
-  );
-
-  if (response.statusCode == 200) {
-    final data = json.decode(response.body);
-    print("sdfsaf${data['baseUrl']}");
-    return data['baseUrl'];
-  } else {
-    print('Error fetching photo: ${response.body}');
-    return null;
   }
-}
 
-static List<Map<String, dynamic>> syncTab(){
-   if (PrefUtils.instance.getSelectedtype() == 'instagram_synced') {
-        return photoListItem;
-      } else if (PrefUtils.instance.getSelectedtype() == 'facebook_synced') {
-              return facebookListItem;
+  static List<Map<String, dynamic>> syncTab() {
+    if (PrefUtils.instance.getSelectedtype() == 'instagram_synced') {
+      return photoListItem;
+    } else if (PrefUtils.instance.getSelectedtype() == 'facebook_synced') {
+      return facebookListItem;
+    } else {
+      return driveListItem;
+    }
+  }
 
-      } else  {
-                     return driveListItem;
+  static changeFilePermission(String token, String fileId) async {
+    final apiUrl =
+        "https://www.googleapis.com/drive/v3/files/$fileId/permissions";
 
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json'
+    };
+
+    final body = jsonEncode({"role": "reader", "type": "anyone"});
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: headers,
+        body: body,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+                                                EasyLoading.dismiss();
+        print("Permission set successfully for anyone with the link.");
+      } else {
+                                                        EasyLoading.dismiss();
+
+        print("Failed to set permission: ${response.body}");
       }
-}
+    } catch (e) {
+                                                      EasyLoading.dismiss();
+
+      print("Error: $e");
+    }
+  }
+
+  static MediaQueryData textScale(BuildContext context) {
+    return MediaQuery.of(context)
+        .copyWith(textScaler: const TextScaler.linear(1.1));
+  }
 }

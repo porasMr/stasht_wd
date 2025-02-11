@@ -297,7 +297,11 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         }
       }
     }
+      
     for (int i = 0; i < categoryModel.categories!.length; i++) {
+      print(
+            "category${categoryModel.categories![i].name}");
+
       if (categoryModel.categories![i].id == int.parse(categoryId)) {
         categoryModel.categories![i].isSelected = true;
         categoryId = categoryModel.categories![i].id.toString();
@@ -973,6 +977,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                             selectedMemory =
                                 categoryModel.categories![index].name!;
                                 categoryId= categoryModel.categories![index].id.toString();
+                                widget.cateId=categoryId;
                             for (int i = 0;
                                 i < categoryModel.categories!.length;
                                 i++) {

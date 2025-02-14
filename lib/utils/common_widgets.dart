@@ -716,14 +716,14 @@ class CommonWidgets {
                         }
                         photosList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photosList[index].photos.length;
-                            i++) {
-                          photosList[index].photos[i].isSelected = false;
-                          photosList[index].photos[i].isEdit = false;
-                        }
-                        photosList[index].photos[index1].isSelected = true;
-                        photosList[index].photos[index1].isEdit = false;
+                        // for (int i = 0;
+                        //     i < photosList[index].photos.length;
+                        //     i++) {
+                        //   photosList[index].photos[i].isSelected = false;
+                        //   photosList[index].photos[i].isEdit = false;
+                        // }
+                        // photosList[index].photos[index1].isSelected = true;
+                        // photosList[index].photos[index1].isEdit = false;
                         onPressed();
                       }
                     },
@@ -944,14 +944,14 @@ class CommonWidgets {
                         }
                         photosList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photosList[index].photos.length;
-                            i++) {
-                          photosList[index].photos[i].isSelected = false;
-                          photosList[index].photos[i].isEdit = false;
-                        }
-                        photosList[index].photos[index1].isSelected = true;
-                        photosList[index].photos[index1].isEdit = false;
+                        // for (int i = 0;
+                        //     i < photosList[index].photos.length;
+                        //     i++) {
+                        //   photosList[index].photos[i].isSelected = false;
+                        //   photosList[index].photos[i].isEdit = false;
+                        // }
+                        // photosList[index].photos[index1].isSelected = true;
+                        // photosList[index].photos[index1].isEdit = false;
                         onPressed();
                       } else {
                         showDialog(
@@ -1168,14 +1168,14 @@ class CommonWidgets {
                         }
                         photosList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photosList[index].photos.length;
-                            i++) {
-                          photosList[index].photos[i].isSelected = false;
-                          photosList[index].photos[i].isEdit = false;
-                        }
-                        photosList[index].photos[index1].isSelected = true;
-                        photosList[index].photos[index1].isEdit = false;
+                        // for (int i = 0;
+                        //     i < photosList[index].photos.length;
+                        //     i++) {
+                        //   photosList[index].photos[i].isSelected = false;
+                        //   photosList[index].photos[i].isEdit = false;
+                        // }
+                        // photosList[index].photos[index1].isSelected = true;
+                        // photosList[index].photos[index1].isEdit = false;
                         onPressed();
                       } else {
                         showDialog(
@@ -1491,15 +1491,16 @@ class CommonWidgets {
                         }
                         photoList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photoList[index].photos.length;
-                            i++) {
-                          photoList[index].photos[i].isSelected = false;
-                          photoList[index].photos[i].isEdit = false;
-                        }
-                        photoList[index].photos[index1].isSelected = true;
-                        photoList[index].photos[index1].isEdit = false;
-                        onPressed();
+                        // for (int i = 0;
+                        //     i < photoList[index].photos.length;
+                        //     i++) {
+                        //   photoList[index].photos[i].isSelected = false;
+                        //   photoList[index].photos[i].isEdit = false;
+                        // }
+                        // photoList[index].photos[index1].isSelected = true;
+                        // photoList[index].photos[index1].isEdit = false;
+                        //
+                         onPressed();
                       }
                     },
                     child: Stack(
@@ -1770,16 +1771,17 @@ class CommonWidgets {
                             i++) {
                           photoList[index].photos[i].isFirst = false;
                         }
-                        photoList[index].photos[index1].isFirst = true;
-                        for (int i = 0;
-                            i < photoList[index].photos.length;
-                            i++) {
-                          photoList[index].photos[i].selectedValue = false;
-                          photoList[index].photos[i].isEditmemory = false;
-                        }
-                        photoList[index].photos[index1].selectedValue = true;
-                        photoList[index].photos[index1].isEditmemory = false;
-                        onPressed();
+                         photoList[index].photos[index1].isFirst = true;
+                        // for (int i = 0;
+                        //     i < photoList[index].photos.length;
+                        //     i++) {
+                        //   photoList[index].photos[i].selectedValue = false;
+                        //   photoList[index].photos[i].isEditmemory = false;
+                        // }
+                        // photoList[index].photos[index1].selectedValue = true;
+                        // photoList[index].photos[index1].isEditmemory = false;
+                        //
+                         onPressed();
                       } else {
                         showDialog(
                           context: context,

@@ -34,16 +34,15 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  http: ^1.1.0
+  http: ^0.13.6
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   persistent_bottom_nav_bar: ^6.2.1
-  image_picker:
+  image_picker: any
   flutter_switch: ^0.3.2
   flutter_svg: ^2.0.10+1
   photo_manager: ^3.1.1
-  flutter_login_facebook: ^2.0.0
   intl: ^0.20.0
   pdf: ^3.10.1
   cached_network_image: ^3.3.0
@@ -51,10 +50,10 @@ dependencies:
   get: ^4.6.3
   flutter_share: ^2.0.0
   numberpicker: ^2.1.1
-  insta_login:
-  googleapis:
-  geocoding:
-  image:
+  insta_login: any
+  googleapis: any
+  geocoding: any
+  image: any
   # contacts_service:
   extension_google_sign_in_as_googleapis_auth:
   permission_handler: ^11.3.1
@@ -70,11 +69,10 @@ dependencies:
   lottie:
   shimmer:
   firebase_auth: ^5.2.0
-  firebase_core: ^3.4.0
-  image_picker_for_web: any
+  #firebase_core: ^3.4.0
   onesignal_flutter: ^5.2.6
   shared_preferences: ^2.2.3
-  flutter_facebook_auth:
+  flutter_facebook_auth: any
   flutter_image_compress: ^2.3.0
   http_parser: ^4.0.0
   path_provider: ^2.0.14 
@@ -99,7 +97,8 @@ dependencies:
 
   
 dependency_overrides:
-  http: ^1.1.0
+  http: ^0.13.6
+
 
 dev_dependencies:
   flutter_test:

@@ -759,7 +759,11 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       ),
     );
   }
-
+ValueNotifier<Uint8List?> imageBytesNotifier = ValueNotifier<Uint8List?>(null);
+void loadImage(AssetEntity img ) async {
+  final bytes = await img.originBytes; 
+  imageBytesNotifier.value = bytes;
+}
   Widget fullImageView() {
     return Container(
       height: 300,
@@ -767,39 +771,24 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       child: Stack(
         children: [
           selectedAllPhotoModel.type == "image"
-              ? FutureBuilder<Uint8List?>(
-                  future: selectedAllPhotoModel.thumbData,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                          child: Padding(
-                        padding: EdgeInsets.all(3.0),
-                        child: CircularProgressIndicator(),
-                      ));
-                    }
-                    if (snapshot.data == null) {
-                      return const Center(child: Text('Failed to load image.'));
-                    }
-
-                    return Stack(
-                      children: [
-                        Center(
-                          child: Container(
-                            height: 300,
-                            width: 280,
-                            color: Colors
-                                .grey[200], // Placeholder background if needed
-
-                            child: Image.memory(
-                              snapshot.data!,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                )
+              ? ValueListenableBuilder<Uint8List?>(
+  valueListenable: imageBytesNotifier,
+  builder: (context, imageData, child) {
+    return Center(
+      child: Container(
+        height: 300,
+        width: 280,
+        color: Colors.grey[200], // Placeholder background
+        child: imageData != null
+            ? Image.memory(
+                imageData,
+                fit: BoxFit.cover,
+              )
+            : const Center(child: CircularProgressIndicator()), // Show loader if null
+      ),
+    );
+  },
+)
               : Center(
                   child: SizedBox(
                     height: 300,
@@ -1660,11 +1649,18 @@ memoryId = "";
           isImageFullView: isImageFullView,
           allPhotoGroupModel,
           viewRefersh, selectedPhoto: (photo) {
-        selectedAllPhotoModel = photo;
-        setState(() {});
+        setState(() {
+                  selectedAllPhotoModel = photo;
+                  if(selectedAllPhotoModel.type=="image"){
+loadImage(selectedAllPhotoModel.assetEntity!);
+                  }
+
+        });
       }, onClickCheckBox: () {
-        isImageFullView = false;
-        setState(() {});
+        setState(() {
+                  isImageFullView = false;
+
+        });
       }, clearView: () {
         if (isImageFullView) {
           clearPreviousSelection();
@@ -1675,8 +1671,10 @@ memoryId = "";
           photoGroupModel,
           isImageFullView: isImageFullView,
           viewRefershOtherTab, onClickCheckBox: () {
-        isImageFullView = false;
-        setState(() {});
+        setState(() {
+                  isImageFullView = false;
+
+        });
       }, clearView: () {
         if (isImageFullView) {
           clearPreviousSelection();
@@ -1688,8 +1686,10 @@ memoryId = "";
       } else {
         return CommonWidgets.drivePhtotView(
             driveGroupModel, viewRefershOtherTab, onClickCheckBox: () {
-          isImageFullView = false;
-          setState(() {});
+          setState(() {
+                      isImageFullView = false;
+
+          });
         }, clearView: () {
           if (isImageFullView) {
             clearPreviousSelection();
@@ -1702,8 +1702,10 @@ memoryId = "";
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefershOtherTab,
             isImageFullView: isImageFullView, onClickCheckBox: () {
-          isImageFullView = false;
-          setState(() {});
+          setState(() {
+                      isImageFullView = false;
+
+          });
         }, clearView: () {
           if (isImageFullView) {
             clearPreviousSelection();
@@ -1812,6 +1814,9 @@ memoryId = "";
         for (int p = 0; p < allPhotoGroupModel[i].photos.length; p++) {
           if (allPhotoGroupModel[i].photos[p].isFirst) {
             selectedAllPhotoModel = allPhotoGroupModel[i].photos[p];
+             if(selectedAllPhotoModel.type=="image"){
+loadImage(selectedAllPhotoModel.assetEntity!);
+                  }
             isGet = true;
             break;
           }
@@ -1819,9 +1824,11 @@ memoryId = "";
       }
       if (!isGet) {
         allPhotoGroupModel[0].photos[0].isFirst = true;
-        allPhotoGroupModel[0].photos[0].isSelected = true;
 
         selectedAllPhotoModel = allPhotoGroupModel[0].photos[0];
+         if(selectedAllPhotoModel.type=="image"){
+loadImage(selectedAllPhotoModel.assetEntity!);
+                  }
       }
     }
 

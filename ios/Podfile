@@ -1,6 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '13.0'
-source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '14.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -32,20 +31,18 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Add Firebase Dynamic Links dependencies
-  pod 'Firebase/Core'
-  pod 'Firebase/DynamicLinks'
-
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-
-    # Set BUILD_LIBRARY_FOR_DISTRIBUTION to YES for dynamic frameworks
-    target.build_configurations.each do |config|
-      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
-    end
   end
+end
+target 'OneSignalNotificationServiceExtension' do
+  use_frameworks!
+  pod 'OneSignalXCFramework', '>= 5.0.0', '< 6.0'
 end

@@ -2,10 +2,9 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -261,14 +260,6 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     driveController.addListener(_onScrollEnd);
   }
 
-  void changeTab() {
-    viewRefersh();
-
-    Future.delayed(const Duration(milliseconds: 500), () async {
-      setState(() {});
-    });
-  }
-
   selectionOfAllPhoto() {
     titleController.text = widget.title ?? '';
     selectedTitle = widget.title ?? '';
@@ -276,7 +267,6 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     memoryId = widget.memoryId ?? '';
     subCategoryId = widget.subId ?? '';
     isMemoryTitleDropdownExpanded = true;
-  
 
     if (subCategoryId.isNotEmpty) {
       for (int sub = 0;
@@ -297,10 +287,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         }
       }
     }
-      
+
     for (int i = 0; i < categoryModel.categories!.length; i++) {
-      print(
-            "category${categoryModel.categories![i].name}");
+      print("category${categoryModel.categories![i].name}");
 
       if (categoryModel.categories![i].id == int.parse(categoryId)) {
         categoryModel.categories![i].isSelected = true;
@@ -455,8 +444,10 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                 } else if (selectedTitle == "") {
                   CommonWidgets.errorDialog(
                       context, "Please select or add memory");
-                } else if (allSelectedPhotos() == 0) {
+                } else if(!widget.isEdit){
+                if (allSelectedPhotos() == 0) {
                   CommonWidgets.errorDialog(context, "Please select photo");
+                }
                 } else {
                   if (selectLabel == "" || subCategoryId != "") {
                     uploadCount = 1;
@@ -479,8 +470,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                         style: appTextStyle(
                             fz: 15,
                             fm: interMedium,
-                            color: (allSelectedPhotos() > 0 &&
-                                    titleController.text.isNotEmpty)
+                            color: (
+                                    selectedTitle!=""&&selectedMemory!="")
                                 ? AppColors.primaryColor
                                 : AppColors.greyColor),
                       )
@@ -491,8 +482,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                             style: appTextStyle(
                                 fz: 17,
                                 fm: interMedium,
-                                color: (allSelectedPhotos() > 0 &&
-                                        titleController.text.isNotEmpty)
+                                color:
+                                 (allSelectedPhotos() > 0 &&
+                                        selectedTitle!=""&&selectedMemory!="")
                                     ? AppColors.primaryColor
                                     : AppColors.hintColor),
                           ),
@@ -760,6 +752,13 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     );
   }
 
+  ValueNotifier<Uint8List?> imageBytesNotifier =
+      ValueNotifier<Uint8List?>(null);
+  void loadImage(AssetEntity img) async {
+    final bytes = await img.originBytes;
+    imageBytesNotifier.value = bytes;
+  }
+
   Widget fullImageView() {
     return Container(
       height: 300,
@@ -767,36 +766,23 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       child: Stack(
         children: [
           selectedAllPhotoModel.type == "image"
-              ? FutureBuilder<Uint8List?>(
-                  future: selectedAllPhotoModel.thumbData,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                          child: Padding(
-                        padding: EdgeInsets.all(3.0),
-                        child: CircularProgressIndicator(),
-                      ));
-                    }
-                    if (snapshot.data == null) {
-                      return const Center(child: Text('Failed to load image.'));
-                    }
-
-                    return Stack(
-                      children: [
-                        Center(
-                          child: Container(
-                            height: 300,
-                            width: 280,
-                            color: Colors
-                                .grey[200], // Placeholder background if needed
-
-                            child: Image.memory(
-                              snapshot.data!,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ],
+              ? ValueListenableBuilder<Uint8List?>(
+                  valueListenable: imageBytesNotifier,
+                  builder: (context, imageData, child) {
+                    return Center(
+                      child: Container(
+                        height: 300,
+                        width: 280,
+                        color: Colors.grey[200], // Placeholder background
+                        child: imageData != null
+                            ? Image.memory(
+                                imageData,
+                                fit: BoxFit.cover,
+                              )
+                            : const Center(
+                                child:
+                                    CircularProgressIndicator()), // Show loader if null
+                      ),
                     );
                   },
                 )
@@ -843,7 +829,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                 width: 380,
                 alignment: Alignment.topRight,
                 child: Container(
-                    margin:const EdgeInsets.only(top: 30),
+                    margin: const EdgeInsets.only(top: 30),
                     width: 75,
                     height: 30,
                     decoration: BoxDecoration(
@@ -860,7 +846,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                         ),
                         Text(
                           "Add",
-                          style: TextStyle(color: AppColors.memoeylaneColor,fontFamily: robotoMedium),
+                          style: TextStyle(
+                              color: AppColors.memoeylaneColor,
+                              fontFamily: robotoMedium),
                         )
                       ],
                     )),
@@ -893,7 +881,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                     const  SizedBox(
+                      const SizedBox(
                         height: 5,
                       ),
                       Text(
@@ -909,7 +897,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                          const  SizedBox(
+                            const SizedBox(
                               height: 5,
                             ),
                             Text(
@@ -931,10 +919,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                         onTap: () {
                           isMemoryCategoryDropDownExpanded = false;
                           selectedMemory = "";
-                          categoryId="";
-                          if(widget.isEdit){
-                             widget.cateId = '';
-   
+                          categoryId = "";
+                          if (widget.isEdit) {
+                            widget.cateId = '';
                           }
                           setState(() {});
                         },
@@ -950,75 +937,80 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                 Container(
                   height: 30,
                   margin: const EdgeInsets.only(bottom: 5),
-                  child: ListView.separated(
-                    separatorBuilder: (context, index) {
-                      return const SizedBox(
-                        width: 10,
-                      );
-                    },
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: categoryModel.categories!
-                        .where((test) =>
-                            test.name != "Shared" && test.name != "Published")
-                        .length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.only(
-                            left: 8, right: 8, top: 3, bottom: 3),
-                        decoration: BoxDecoration(
-                            color: AppColors.hintTextColor.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(8)),
-                        child: GestureDetector(
-                          onTap: () {
-                            categoryIndex = index;
-                            selectedMemory =
-                                categoryModel.categories![index].name!;
-                                categoryId= categoryModel.categories![index].id.toString();
-                                widget.cateId=categoryId;
-                            for (int i = 0;
-                                i < categoryModel.categories!.length;
-                                i++) {
-                              if (i == index) {
-                                categoryModel.categories![index].isSelected =
-                                    true;
-                              } else {
-                                categoryModel.categories![i].isSelected = false;
+                  child: FadingEdgeScrollView.fromScrollView(
+                    gradientFractionOnEnd: 0.4,
+                    child: ListView.separated(
+                      controller: ScrollController(),
+                      separatorBuilder: (context, index) {
+                        return const SizedBox(
+                          width: 10,
+                        );
+                      },
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: categoryModel.categories!
+                          .where((test) =>
+                              test.name != "Shared" && test.name != "Published")
+                          .length,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.only(
+                              left: 8, right: 8, top: 3, bottom: 3),
+                          decoration: BoxDecoration(
+                              color: AppColors.hintTextColor.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8)),
+                          child: GestureDetector(
+                            onTap: () {
+                              categoryIndex = index;
+                              selectedMemory =
+                                  categoryModel.categories![index].name!;
+                              categoryId = categoryModel.categories![index].id
+                                  .toString();
+                              widget.cateId = categoryId;
+                              for (int i = 0;
+                                  i < categoryModel.categories!.length;
+                                  i++) {
+                                if (i == index) {
+                                  categoryModel.categories![index].isSelected =
+                                      true;
+                                } else {
+                                  categoryModel.categories![i].isSelected =
+                                      false;
+                                }
                               }
-                            }
-                            isMemoryCategoryDropDownExpanded = true;
-                            memoryItem = [];
-                            //categoryMemoryModelWithoutPage.subCategories = [];
-                            if(!widget.isEdit){
-memoryId = "";
-                            }
-                            
-                            titleController.text = '';
-                            labelController.text = '';
-                            setState(() {});
-                            EasyLoading.show();
-                            ApiCall.memoryByCategory(
-                                api: ApiUrl.memoryByCategory,
-                                id: categoryId,
-                                sub_category_id: '',
-                                type: 'no_page',
-                                page: "1",
-                                callack: this);
-                          },
-                          child: Text(
-                            categoryModel.categories![index].name!,
-                            style: appTextStyle(
-                              fm: robotoMedium,
-                              fz: 14,
-                              fw: FontWeight.w400,
-                              color: AppColors.black,
+                              isMemoryCategoryDropDownExpanded = true;
+                              memoryItem = [];
+                              //categoryMemoryModelWithoutPage.subCategories = [];
+                              if (!widget.isEdit) {
+                                memoryId = "";
+                              }
+
+                           
+                              setState(() {});
+                              EasyLoading.show();
+                              ApiCall.memoryByCategory(
+                                  api: ApiUrl.memoryByCategory,
+                                  id: categoryId,
+                                  sub_category_id: '',
+                                  type: 'no_page',
+                                  page: "1",
+                                  callack: this);
+                            },
+                            child: Text(
+                              categoryModel.categories![index].name!,
+                              style: appTextStyle(
+                                fm: robotoMedium,
+                                fz: 14,
+                                fw: FontWeight.w400,
+                                color: AppColors.black,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
             ],
@@ -1058,7 +1050,7 @@ memoryId = "";
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
+                           const SizedBox(
                               height: 5,
                             ),
                             Row(
@@ -1162,130 +1154,137 @@ memoryId = "";
                   if (isMemoryTitleDropdownExpanded == false)
                     SizedBox(
                       height: 30,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              addMemoryBottomSheet(context);
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.add,
-                                  size: 16,
-                                  color: AppColors.primaryColor,
-                                ),
-                                SizedBox(
-                                  width: 5,
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    addMemoryBottomSheet(context);
-                                  },
-                                  child: Text(
-                                    "Add Memory",
-                                    style: appTextStyle(
-                                      fm: interRegular,
-                                      fz: 14,
-                                      height: 19.2 / 14,
-                                      fw: FontWeight.w400,
-                                      color: AppColors.primaryColor,
+                      child: FadingEdgeScrollView.fromScrollView(
+                        gradientFractionOnEnd: 0.4,
+                        child: ListView(
+                          controller: ScrollController(),
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                addMemoryBottomSheet(context);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: AppColors.primaryColor,
+                                  ),
+                                 const SizedBox(
+                                    width: 5,
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      addMemoryBottomSheet(context);
+                                    },
+                                    child: Text(
+                                      "Add Memory",
+                                      style: appTextStyle(
+                                        fm: interRegular,
+                                        fz: 14,
+                                        height: 19.2 / 14,
+                                        fw: FontWeight.w400,
+                                        color: AppColors.primaryColor,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ),
-                          widget.isEdit
-                              ? Container()
-                              : Container(
-                                  height: 17,
-                                  child: ListView.separated(
-                                    separatorBuilder: (context, index) {
-                                      return const SizedBox(
-                                        width: 10,
-                                      );
-                                    },
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    shrinkWrap: true,
-                                    padding: EdgeInsets.zero,
-                                    itemCount: memoryItem.length,
-                                    scrollDirection: Axis.horizontal,
-                                    itemBuilder: (context, index) {
-                                      final memory = memoryItem[index];
-                                      return GestureDetector(
-                                        onTap: () {
-                                          // memoryItem.forEach((item) => item.isSelected = false);
-                                          // memoryItem[index].isSelected=true;
-                                          selectMemory(memory);
-                                        },
-                                        child: Container(
-                                          height: 30,
-                                          padding: const EdgeInsets.only(
-                                              left: 8,
-                                              right: 8,
-                                              top: 2,
-                                              bottom: 2),
-                                          decoration: BoxDecoration(
-                                              color: AppColors.memoryBackColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(10)),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                height: 27,
-                                                width: 29,
-                                                margin: const EdgeInsets.only(
-                                                    right: 0),
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                      color: AppColors
-                                                          .skeltonBorderColor),
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  image: memory.imageUrl == ''
-                                                      ? const DecorationImage(
-                                                          image: AssetImage(
-                                                            "assets/images/placeHolder.png",
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            widget.isEdit
+                                ? Container()
+                                : Container(
+                                    height: 17,
+                                    child: ListView.separated(
+                                      separatorBuilder: (context, index) {
+                                        return const SizedBox(
+                                          width: 10,
+                                        );
+                                      },
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      shrinkWrap: true,
+                                      padding: EdgeInsets.zero,
+                                      itemCount: memoryItem.length,
+                                      scrollDirection: Axis.horizontal,
+                                      itemBuilder: (context, index) {
+                                        final memory = memoryItem[index];
+                                        return GestureDetector(
+                                          onTap: () {
+                                            // memoryItem.forEach((item) => item.isSelected = false);
+                                            // memoryItem[index].isSelected=true;
+                                            selectMemory(memory);
+                                          },
+                                          child: Container(
+                                            height: 30,
+                                            padding: const EdgeInsets.only(
+                                                left: 8,
+                                                right: 8,
+                                                top: 2,
+                                                bottom: 2),
+                                            decoration: BoxDecoration(
+                                                color:
+                                                    AppColors.memoryBackColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(10)),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  height: 27,
+                                                  width: 29,
+                                                  margin: const EdgeInsets.only(
+                                                      right: 0),
+                                                  decoration: BoxDecoration(
+                                                    border: Border.all(
+                                                        color: AppColors
+                                                            .skeltonBorderColor),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    image: memory.imageUrl == ''
+                                                        ? const DecorationImage(
+                                                            image: AssetImage(
+                                                              "assets/images/placeHolder.png",
+                                                            ),
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : DecorationImage(
+                                                            image:
+                                                                CachedNetworkImageProvider(
+                                                              memory.imageUrl,
+                                                            ),
+                                                            fit: BoxFit.cover,
                                                           ),
-                                                          fit: BoxFit.cover,
-                                                        )
-                                                      : DecorationImage(
-                                                          image:
-                                                              CachedNetworkImageProvider(
-                                                            memory.imageUrl,
-                                                          ),
-                                                          fit: BoxFit.cover,
-                                                        ),
-                                                  color: Colors.white,
+                                                    color: Colors.white,
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 5),
-                                              Text(
-                                                memory.title,
-                                                style: appTextStyle(
-                                                  fm: robotoRegular,
-                                                  fz: 14,
-                                                  fw: FontWeight.w500,
-                                                  color: AppColors.black,
+                                                const SizedBox(width: 5),
+                                                Text(
+                                                  memory.title,
+                                                  style: appTextStyle(
+                                                    fm: robotoRegular,
+                                                    fz: 14,
+                                                    fw: FontWeight.w500,
+                                                    color: AppColors.black,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(width: 10),
-                                            ],
+                                                const SizedBox(width: 10),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
+                                        );
+                                      },
+                                    ),
                                   ),
-                                ),
-                        ],
+                          ],
+                        ),
                       ),
                     )
                 ],
@@ -1325,7 +1324,7 @@ memoryId = "";
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
+                           const SizedBox(
                               height: 6,
                             ),
                             Container(
@@ -1361,8 +1360,8 @@ memoryId = "";
                         onTap: () {
                           isMemoryLabelDropDownExpanded = false;
                           selectLabel = "";
-                          if(widget.isEdit){
-                            widget.subId="";
+                          if (widget.isEdit) {
+                            widget.subId = "";
                           }
                           setState(() {});
                         },
@@ -1380,123 +1379,129 @@ memoryId = "";
                   if (isMemoryLabelDropDownExpanded == false)
                     SizedBox(
                       height: 35,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              addLableBottomSheet(context);
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.add,
-                                  size: 16,
-                                  color: AppColors.primaryColor,
-                                ),
-                                SizedBox(
-                                  width: 5,
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    addLableBottomSheet(context);
-                                  },
-                                  child: Text(
-                                    "Add Tag",
-                                    style: appTextStyle(
-                                      fm: interRegular,
-                                      fz: 14,
-                                      height: 19.2 / 14,
-                                      fw: FontWeight.w400,
-                                      color: AppColors.primaryColor,
+                      child: FadingEdgeScrollView.fromScrollView(
+                        gradientFractionOnEnd: 0.2,
+                        child: ListView(
+                          controller: ScrollController(),
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                addLableBottomSheet(context);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: AppColors.primaryColor,
+                                  ),
+                                const  SizedBox(
+                                    width: 5,
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      addLableBottomSheet(context);
+                                    },
+                                    child: Text(
+                                      "Add Tag",
+                                      style: appTextStyle(
+                                        fm: interRegular,
+                                        fz: 14,
+                                        height: 19.2 / 14,
+                                        fw: FontWeight.w400,
+                                        color: AppColors.primaryColor,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(
-                            width: 10,
-                          ),
-                          Container(
-                            height: 28,
-                            child: ListView.separated(
-                              separatorBuilder: (context, index) {
-                                return const SizedBox(
-                                  width: 10,
-                                );
-                              },
-                              padding: EdgeInsets.zero,
-                              physics: const NeverScrollableScrollPhysics(),
-                              shrinkWrap: true,
-                              scrollDirection: Axis.horizontal,
-                              itemCount: categoryMemoryModelWithoutPage
-                                  .subCategories!.length,
-                              itemBuilder: (context, index) {
-                                final memory = categoryMemoryModelWithoutPage
-                                    .subCategories![index];
-                                return Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        isMemoryLabelDropDownExpanded = true;
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            Container(
+                              height: 28,
+                              child: ListView.separated(
+                                separatorBuilder: (context, index) {
+                                  return const SizedBox(
+                                    width: 10,
+                                  );
+                                },
+                                padding: EdgeInsets.zero,
+                                physics: const NeverScrollableScrollPhysics(),
+                                shrinkWrap: true,
+                                scrollDirection: Axis.horizontal,
+                                itemCount: categoryMemoryModelWithoutPage
+                                    .subCategories!.length,
+                                itemBuilder: (context, index) {
+                                  final memory = categoryMemoryModelWithoutPage
+                                      .subCategories![index];
+                                  return Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          isMemoryLabelDropDownExpanded = true;
 
-                                        selectLabel = memory.name!;
-                                        subCategoryId =
-                                            categoryMemoryModelWithoutPage
-                                                .subCategories![index].id
-                                                .toString();
-                                        for (int i = 0;
-                                            i <
-                                                categoryMemoryModelWithoutPage
-                                                    .subCategories!.length;
-                                            i++) {
-                                          if (index == i) {
-                                            categoryMemoryModelWithoutPage
-                                                .subCategories![index]
-                                                .isselected = true;
-                                          } else {
-                                            categoryMemoryModelWithoutPage
-                                                .subCategories![i]
-                                                .isselected = false;
+                                          selectLabel = memory.name!;
+                                          subCategoryId =
+                                              categoryMemoryModelWithoutPage
+                                                  .subCategories![index].id
+                                                  .toString();
+                                          for (int i = 0;
+                                              i <
+                                                  categoryMemoryModelWithoutPage
+                                                      .subCategories!.length;
+                                              i++) {
+                                            if (index == i) {
+                                              categoryMemoryModelWithoutPage
+                                                  .subCategories![index]
+                                                  .isselected = true;
+                                            } else {
+                                              categoryMemoryModelWithoutPage
+                                                  .subCategories![i]
+                                                  .isselected = false;
+                                            }
                                           }
-                                        }
-                                        setState(() {});
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.only(
-                                            left: 8,
-                                            right: 8,
-                                            top: 2,
-                                            bottom: 2),
-                                        decoration: BoxDecoration(
-                                            color: AppColors.subTitleColor,
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            border: Border.all(
-                                                color: AppColors.subTitleColor,
-                                                width: 1)),
-                                        child: Text(
-                                          memory.name!,
-                                          style: appTextStyle(
-                                            fm: robotoRegular,
-                                            fz: 14,
-                                            fw: FontWeight.w400,
-                                            color: AppColors.black,
+                                          setState(() {});
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.only(
+                                              left: 8,
+                                              right: 8,
+                                              top: 2,
+                                              bottom: 2),
+                                          decoration: BoxDecoration(
+                                              color: AppColors.memoryBackColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              // border: Border.all(
+                                              //     color:
+                                              //         AppColors.subTitleColor,
+                                              //     width: 2)
+                                                  ),
+                                          child: Text(
+                                            memory.name!,
+                                            style: appTextStyle(
+                                              fm: robotoRegular,
+                                              fz: 14,
+                                              fw: FontWeight.w400,
+                                              color: AppColors.black,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    SizedBox(
-                                      width: 5,
-                                    ),
-                                  ],
-                                );
-                              },
+                                      SizedBox(
+                                        width: 5,
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     )
                 ],
@@ -1660,11 +1665,15 @@ memoryId = "";
           isImageFullView: isImageFullView,
           allPhotoGroupModel,
           viewRefersh, selectedPhoto: (photo) {
-        selectedAllPhotoModel = photo;
-        setState(() {});
+
+        setState(() {
+          allPhotoGroupModel = photo;
+        viewRefersh();
+        });
       }, onClickCheckBox: () {
-        isImageFullView = false;
-        setState(() {});
+        setState(() {
+          isImageFullView = false;
+        });
       }, clearView: () {
         if (isImageFullView) {
           clearPreviousSelection();
@@ -1675,8 +1684,9 @@ memoryId = "";
           photoGroupModel,
           isImageFullView: isImageFullView,
           viewRefershOtherTab, onClickCheckBox: () {
-        isImageFullView = false;
-        setState(() {});
+        setState(() {
+          isImageFullView = false;
+        });
       }, clearView: () {
         if (isImageFullView) {
           clearPreviousSelection();
@@ -1688,8 +1698,9 @@ memoryId = "";
       } else {
         return CommonWidgets.drivePhtotView(
             driveGroupModel, viewRefershOtherTab, onClickCheckBox: () {
-          isImageFullView = false;
-          setState(() {});
+          setState(() {
+            isImageFullView = false;
+          });
         }, clearView: () {
           if (isImageFullView) {
             clearPreviousSelection();
@@ -1702,8 +1713,9 @@ memoryId = "";
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefershOtherTab,
             isImageFullView: isImageFullView, onClickCheckBox: () {
-          isImageFullView = false;
-          setState(() {});
+          setState(() {
+            isImageFullView = false;
+          });
         }, clearView: () {
           if (isImageFullView) {
             clearPreviousSelection();
@@ -1812,16 +1824,22 @@ memoryId = "";
         for (int p = 0; p < allPhotoGroupModel[i].photos.length; p++) {
           if (allPhotoGroupModel[i].photos[p].isFirst) {
             selectedAllPhotoModel = allPhotoGroupModel[i].photos[p];
+            if (selectedAllPhotoModel.type == "image") {
+              loadImage(selectedAllPhotoModel.assetEntity!);
+            }
             isGet = true;
             break;
           }
         }
       }
+      print("sdad$isGet");
       if (!isGet) {
         allPhotoGroupModel[0].photos[0].isFirst = true;
-        allPhotoGroupModel[0].photos[0].isSelected = true;
 
         selectedAllPhotoModel = allPhotoGroupModel[0].photos[0];
+        if (selectedAllPhotoModel.type == "image") {
+          loadImage(selectedAllPhotoModel.assetEntity!);
+        }
       }
     }
 
@@ -1862,31 +1880,28 @@ memoryId = "";
     if (allPhotoGroupModel.isNotEmpty) {
       for (int i = 0; i < allPhotoGroupModel.length; i++) {
         for (int p = 0; p < allPhotoGroupModel[i].photos.length; p++) {
+           allPhotoGroupModel[i].photos[p].isFirst=false;
           if (allPhotoGroupModel[i].photos[p].type == "image") {
             for (int k = 0; k < photoGroupModel.length; k++) {
               for (int j = 0; j < photoGroupModel[k].photos.length; j++) {
-                photoGroupModel[k].photos[j].selectedValue = false;
                 photoGroupModel[k].photos[j].isFirst = false;
               }
             }
           } else if (allPhotoGroupModel[i].photos[p].type == "insta") {
             for (int j = 0; j < instaGroupModel.length; j++) {
               for (int i = 0; i < instaGroupModel[j].photos.length; i++) {
-                instaGroupModel[j].photos[i].isSelected = false;
                 instaGroupModel[j].photos[i].isFirst = false;
               }
             }
           } else if (allPhotoGroupModel[i].photos[p].type == "fb") {
             for (int j = 0; j < fbGroupModel.length; j++) {
               for (int i = 0; i < fbGroupModel[j].photos.length; i++) {
-                fbGroupModel[j].photos[i].isSelected = false;
                 fbGroupModel[j].photos[i].isFirst = false;
               }
             }
           } else if (allPhotoGroupModel[i].photos[p].type == "drive") {
             for (int j = 0; j < driveGroupModel.length; j++) {
               for (int i = 0; i < driveGroupModel[j].photos.length; i++) {
-                driveGroupModel[j].photos[i].isSelected = false;
                 driveGroupModel[j].photos[i].isFirst = false;
               }
             }
@@ -1894,6 +1909,7 @@ memoryId = "";
         }
       }
     }
+
     setState(() {});
   }
 
@@ -2053,16 +2069,14 @@ memoryId = "";
   void onSuccess(String data, String apiType) {
     print(apiType);
     if (apiType == ApiUrl.categories) {
-
       categoryModel = CategoryModel.fromJson(jsonDecode(data));
       int k = 0;
-if(selectedMemory==""){
-      categoryModel.categories![k].isSelected = true;
-      categoryId = categoryModel.categories![k].id.toString();
-      selectedMemory = categoryModel.categories![k].name!;
-            isMemoryCategoryDropDownExpanded = true;
-
-}
+      if (selectedMemory == "") {
+        categoryModel.categories![k].isSelected = true;
+        categoryId = categoryModel.categories![k].id.toString();
+        selectedMemory = categoryModel.categories![k].name!;
+        isMemoryCategoryDropDownExpanded = true;
+      }
       if (categoryModel.categories != null &&
           categoryModel.categories!.isNotEmpty) {
         for (var category in categoryModel.categories!) {
@@ -2072,15 +2086,13 @@ if(selectedMemory==""){
         }
       }
 
-      
       ApiCall.memoryByCategory(
           api: ApiUrl.memoryByCategory,
-          id:categoryId,
+          id: categoryId,
           sub_category_id: '',
           type: 'no_page',
           page: "1",
           callack: this);
-      
     } else if (apiType == ApiUrl.memoryByCategory) {
       debugPrint("Memory By Categories Api hit");
       setState(() {
@@ -2111,14 +2123,11 @@ if(selectedMemory==""){
         }
       } else {
         memoryLabel = [];
-        selectLabel = '';
       }
-      if(widget.isEdit){
-
-                selectionOfAllPhoto();
-
+      if (widget.isEdit) {
+        selectionOfAllPhoto();
       }
-             EasyLoading.dismiss();
+      EasyLoading.dismiss();
 
       setState(() {});
     } else if (apiType == ApiUrl.uploadImageTomemory) {

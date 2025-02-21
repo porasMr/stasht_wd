@@ -716,14 +716,14 @@ class CommonWidgets {
                         }
                         photosList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photosList[index].photos.length;
-                            i++) {
-                          photosList[index].photos[i].isSelected = false;
-                          photosList[index].photos[i].isEdit = false;
-                        }
-                        photosList[index].photos[index1].isSelected = true;
-                        photosList[index].photos[index1].isEdit = false;
+                        // for (int i = 0;
+                        //     i < photosList[index].photos.length;
+                        //     i++) {
+                        //   photosList[index].photos[i].isSelected = false;
+                        //   photosList[index].photos[i].isEdit = false;
+                        // }
+                        // photosList[index].photos[index1].isSelected = true;
+                        // photosList[index].photos[index1].isEdit = false;
                         onPressed();
                       }
                     },
@@ -944,14 +944,14 @@ class CommonWidgets {
                         }
                         photosList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photosList[index].photos.length;
-                            i++) {
-                          photosList[index].photos[i].isSelected = false;
-                          photosList[index].photos[i].isEdit = false;
-                        }
-                        photosList[index].photos[index1].isSelected = true;
-                        photosList[index].photos[index1].isEdit = false;
+                        // for (int i = 0;
+                        //     i < photosList[index].photos.length;
+                        //     i++) {
+                        //   photosList[index].photos[i].isSelected = false;
+                        //   photosList[index].photos[i].isEdit = false;
+                        // }
+                        // photosList[index].photos[index1].isSelected = true;
+                        // photosList[index].photos[index1].isEdit = false;
                         onPressed();
                       } else {
                         showDialog(
@@ -1168,14 +1168,14 @@ class CommonWidgets {
                         }
                         photosList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photosList[index].photos.length;
-                            i++) {
-                          photosList[index].photos[i].isSelected = false;
-                          photosList[index].photos[i].isEdit = false;
-                        }
-                        photosList[index].photos[index1].isSelected = true;
-                        photosList[index].photos[index1].isEdit = false;
+                        // for (int i = 0;
+                        //     i < photosList[index].photos.length;
+                        //     i++) {
+                        //   photosList[index].photos[i].isSelected = false;
+                        //   photosList[index].photos[i].isEdit = false;
+                        // }
+                        // photosList[index].photos[index1].isSelected = true;
+                        // photosList[index].photos[index1].isEdit = false;
                         onPressed();
                       } else {
                         showDialog(
@@ -1340,49 +1340,19 @@ class CommonWidgets {
     int? gridIndex,
     bool? isImageFullView,
     VoidCallback? clearView,
-    Function(AllPhotoModel selectedModel)? selectedPhoto,
+    Function(List<CombinedPhotoModel> photoList)? selectedPhoto,
     Function(double offset)? selectValue,
   }) {
     late GridObserverController observerController;
 
     final ScrollController _scrollController = ScrollController();
-    final Map<int, ScrollController> gridControllers = {};
-    if (selectedCount != null && selectedCount != 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        double totalOffset = 0;
-
-        for (int i = 0; i < selectedCount; i++) {
-          // Calculate dynamic height for each ListView item
-          double listItemHeight = calculateListItemHeight(
-            photoList[i],
-            108.0, // Grid row height
-            10.0, // Grid spacing
-            3, // Number of columns in GridView
-          );
-
-          totalOffset += listItemHeight;
-        } // Height of each GridView item row
-
-        // ListView scroll offset
-
-        // GridView scroll offset within the target ListView item
-        double gridOffset = (gridIndex! ~/ 3) * 110;
-
-        // Animate ListView scroll
-        _scrollController.animateTo(
-          totalOffset + gridOffset,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      });
-    }
+   
 
     return ListView.builder(
       controller: _scrollController,
       itemCount: photoList.length,
       padding: EdgeInsets.zero,
       itemBuilder: (context, index) {
-        gridControllers[index] = ScrollController();
 
         return Wrap(
           children: [
@@ -1405,7 +1375,6 @@ class CommonWidgets {
               child: GridView.builder(
                 padding: EdgeInsets.zero,
 
-                controller: gridControllers[index],
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 key: const PageStorageKey(
@@ -1424,9 +1393,7 @@ class CommonWidgets {
                     onTap: () {
                       if (photoList[index].photos[index1].type == "image") {
                         if (isImageFullView != null && isImageFullView) {
-                          clearView!();
 
-                          selectedPhoto!(photoList[index].photos[index1]);
                         } else {
                           showDialog(
                             context: context,
@@ -1443,9 +1410,8 @@ class CommonWidgets {
                         if (photoList[index].photos[index1].type == "drive") {
                           getFileFromGoogleDrive(context).then((value) async {
                             if (isImageFullView != null && isImageFullView) {
-                              clearView!();
+                            
 
-                              selectedPhoto!(photoList[index].photos[index1]);
                             } else {
                               showDialog(
                                 context: context,
@@ -1465,9 +1431,7 @@ class CommonWidgets {
                           });
                         } else {
                           if (isImageFullView != null && isImageFullView) {
-                            clearView!();
 
-                            selectedPhoto!(photoList[index].photos[index1]);
                           } else {
                             showDialog(
                               context: context,
@@ -1484,6 +1448,9 @@ class CommonWidgets {
                         }
                       }
                       if (isImageFullView != null && isImageFullView) {
+                                                    clearView!();
+
+                         photoList[0].photos[0].isFirst=false;
                         for (int i = 0;
                             i < photoList[index].photos.length;
                             i++) {
@@ -1491,15 +1458,16 @@ class CommonWidgets {
                         }
                         photoList[index].photos[index1].isFirst = true;
 
-                        for (int i = 0;
-                            i < photoList[index].photos.length;
-                            i++) {
-                          photoList[index].photos[i].isSelected = false;
-                          photoList[index].photos[i].isEdit = false;
-                        }
-                        photoList[index].photos[index1].isSelected = true;
-                        photoList[index].photos[index1].isEdit = false;
-                        onPressed();
+                        // for (int i = 0;
+                        //     i < photoList[index].photos.length;
+                        //     i++) {
+                        //   photoList[index].photos[i].isSelected = false;
+                        //   photoList[index].photos[i].isEdit = false;
+                        // }
+                        // photoList[index].photos[index1].isSelected = true;
+                        // photoList[index].photos[index1].isEdit = false;
+                        //
+                          selectedPhoto!(photoList);
                       }
                     },
                     child: Stack(
@@ -1770,16 +1738,17 @@ class CommonWidgets {
                             i++) {
                           photoList[index].photos[i].isFirst = false;
                         }
-                        photoList[index].photos[index1].isFirst = true;
-                        for (int i = 0;
-                            i < photoList[index].photos.length;
-                            i++) {
-                          photoList[index].photos[i].selectedValue = false;
-                          photoList[index].photos[i].isEditmemory = false;
-                        }
-                        photoList[index].photos[index1].selectedValue = true;
-                        photoList[index].photos[index1].isEditmemory = false;
-                        onPressed();
+                         photoList[index].photos[index1].isFirst = true;
+                        // for (int i = 0;
+                        //     i < photoList[index].photos.length;
+                        //     i++) {
+                        //   photoList[index].photos[i].selectedValue = false;
+                        //   photoList[index].photos[i].isEditmemory = false;
+                        // }
+                        // photoList[index].photos[index1].selectedValue = true;
+                        // photoList[index].photos[index1].isEditmemory = false;
+                        //
+                         onPressed();
                       } else {
                         showDialog(
                           context: context,
@@ -1985,7 +1954,7 @@ class CommonWidgets {
     }
 
     debugPrint("Generated link: $shareLink");
-    return "$userName has invited you to collaborate in a memory called $title on Stasht.  Tap the join link here:$shareLink";
+    return "$userName has invited you to collaborate in a memory called $title on Stasht.  Tap the join link here:-$shareLink";
   }
 
   static void unSelectedDialog(BuildContext context) {

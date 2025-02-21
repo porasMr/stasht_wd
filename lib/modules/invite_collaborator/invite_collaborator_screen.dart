@@ -92,15 +92,16 @@ UserModel model=UserModel();
                   String imageIdentifier = widget.image.replaceFirst(baseUrl, "");
                   String link = await CommonWidgets.createDynamicLink(
                       widget.memoryId, widget.title, imageIdentifier, model.user!.name!, "");
-                      EasyLoading.show();
                   if (link.isNotEmpty) {
+                    print("link:-"+link);
+
                     for (var element in selectedContacts) {
                       sendLinkBySms(
                           phoneNumber: element.phones.first.normalizedNumber,
-                          link: Uri.parse(link),
+                          link: link,
                           title: TextEditingController(text: widget.title));
                     }
-                     EasyLoading.dismiss();
+                    
       
                     Navigator.pushReplacement(
                       context,
@@ -109,7 +110,7 @@ UserModel model=UserModel();
                                 photosList: widget.photosList,
                                 isSkip: false,
                               )));
-                              openSentLink(context,link);
+                              openSentLink(context,link.split(":-")[1]);
       
                   }
                 } else {
@@ -125,6 +126,7 @@ UserModel model=UserModel();
               child: Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Text(
+                  selectedContacts.isNotEmpty?AppStrings.done :
                   AppStrings.skip,
                   style: appTextStyle(
                       color: AppColors.primaryColor, fm: robotoRegular, fz: 15),
@@ -424,7 +426,7 @@ openSentLink(BuildContext context,String link){
 
   sendLinkBySms(
       {String? phoneNumber,
-      Uri? link,
+      String? link,
       required TextEditingController title}) async {
     final ioc = HttpClient()
       ..badCertificateCallback =
@@ -435,7 +437,7 @@ openSentLink(BuildContext context,String link){
       'To': phoneNumber ?? "",
       'From': '+18076977883',
       'Body':
-          '$userName has invited you to collaborate in a memory called ${title.text} : $link'
+          '$link'
     };
     print('https://api.twilio.com/2010-04-01/Accounts/$accountSid/Messages.json');
     try {
@@ -451,15 +453,12 @@ openSentLink(BuildContext context,String link){
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         print("request success");
-        EasyLoading.dismiss();
       } else {
         print("request failed");
-                EasyLoading.dismiss();
 
       }
     } catch (e) {
       print("request failed");
-              EasyLoading.dismiss();
 
 
     }

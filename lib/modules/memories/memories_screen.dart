@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -270,7 +271,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 10),
                       Expanded(
                         child: SingleChildScrollView(
                           controller: _mainScrollController,
@@ -645,8 +646,8 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                   ],
                 ),
               ),
-              SizedBox(
-                height: 10,
+             const  SizedBox(
+                height: 5,
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15.0),
@@ -1646,8 +1647,8 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                               value,
                                                               Widget? child) {
                                                             return Container(
-                                                              height: 50,
-                                                              width: 50,
+                                                              height: 42,
+                                                              width: 42,
                                                               alignment:
                                                                   Alignment
                                                                       .center,
@@ -1665,7 +1666,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                 borderRadius:
                                                                     BorderRadius
                                                                         .circular(
-                                                                            40),
+                                                                            30),
                                                                 child: memoriesList[index]
                                                                             .user!
                                                                             .profileImage !=
@@ -1677,9 +1678,9 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                         fit: BoxFit
                                                                             .cover,
                                                                         height:
-                                                                            50,
+                                                                            42,
                                                                         width:
-                                                                            50,
+                                                                            42,
                                                                         progressIndicatorBuilder: (context,
                                                                                 url,
                                                                                 downloadProgress) =>
@@ -1712,10 +1713,9 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                               CrossAxisAlignment
                                                                   .start,
                                                           children: [
-                                                            if (type ==
-                                                                    'Shared' ||
+                                                            if (
                                                                 type ==
-                                                                    'Published')
+                                                                    'Shared')
                                                               Text(
                                                                 memoriesList[
                                                                         index]
@@ -1726,9 +1726,8 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                         .black,
                                                                     fontFamily:
                                                                         robotoRegular,
-                                                                    height:
-                                                                        17.2 /
-                                                                            13,
+                                                                        fontWeight: FontWeight.w400,
+                                                                    
                                                                     fontSize:
                                                                         12),
                                                               ),
@@ -1758,27 +1757,27 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                         index]
                                                                     .maxUploadedImgDate!
                                                                     .isNotEmpty)
-                                                              (type == 'Shared' ||
-                                                                      type ==
-                                                                          'Published')
-                                                                  ? Container()
-                                                                  : Column(
+                                                              // (type == 'Shared' ||
+                                                              //         type ==
+                                                              //             'Published')
+                                                              //     ? Container()
+                                                              //     :
+                                                                   Column(
                                                                       mainAxisSize:
                                                                           MainAxisSize
                                                                               .min,
                                                                       children: [
-                                                                        SizedBox(
-                                                                          height:
-                                                                              3,
-                                                                        ),
+                                                                     
                                                                         Text(
                                                                           "${CommonWidgets.dateRetrun(memoriesList[index].minUploadedImgDate!)}-${CommonWidgets.maxDateRetrun(memoriesList[index].maxUploadedImgDate!)}",
                                                                           style: const TextStyle(
-                                                                              fontStyle: FontStyle.italic,
+                                                                             // fontStyle: FontStyle.italic,
                                                                               color: AppColors.black,
+                                                                              fontWeight: FontWeight.w400,
                                                                               fontFamily: robotoRegular,
                                                                               fontSize: 10),
                                                                         ),
+                                                                     const   SizedBox(height: 2,)
                                                                       ],
                                                                     ),
                                                           ],
@@ -1796,15 +1795,17 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                   ],
                                 ),
                               ),
-                              if (memoriesList[index].subCategoryId != '')
+                              if (memoriesList[index].subCategoryId != ''&&
+                                                                type !=
+                                                                    'Shared')
                                 Positioned(
-                                  top: deviceHeight * .085,
+                                  top: deviceHeight * .090,
                                   child: Container(
-                                    width: deviceWidth * .43,
-                                    alignment: Alignment.center,
+                                    width: deviceWidth * .40,
+                                    alignment: Alignment.centerRight,
                                     child: Container(
                                         padding: const EdgeInsets.only(
-                                            left: 10, right: 10, top: 4),
+                                            left: 14, right: 14, top: 4),
                                         height: 26,
                                         // margin: const EdgeInsets.only(
                                         //     left: 16, right: 16, top: 8),
@@ -1838,23 +1839,32 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                 children: [
                                   Container(
                                     alignment: Alignment.center,
-                                    height: 32,
-                                    width: 77,
+                                    height: 40,
+                                    width: 68,
                                     decoration: BoxDecoration(
                                         color: Colors.white,
                                         border:
                                             Border.all(color: AppColors.black),
                                         borderRadius:
-                                            BorderRadius.circular(26)),
-                                    child: Text(
-                                      memoriesList[index].postsCount! > 1
-                                          ? '${memoriesList[index].postsCount!} Posts'
-                                          : '${memoriesList[index].postsCount!} Post',
-                                      style: appTextStyle(
-                                          fz: 12,
-                                          color: AppColors.black,
-                                          height: 24 / 12,
-                                          fm: interMedium),
+                                            BorderRadius.circular(10)),
+                                    child:  Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Image.asset(galeryPic,width: 18,height: 16),
+                                       const  SizedBox(width: 5,),
+                                        Text(
+                                          memoriesList[index].postsCount! > 1
+                                              ? '${memoriesList[index].postsCount!}'
+                                              : '${memoriesList[index].postsCount!}',
+                                          style: appTextStyle(
+                                              fz: 12,
+                                              color: AppColors.black,
+                                              height: 24 / 12,
+                                              fw:FontWeight.w500,
+                                              fm: interMedium),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(
@@ -1939,16 +1949,16 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                     },
                                     child: Container(
                                         alignment: Alignment.center,
-                                        height: 32,
-                                        width: 39,
+                                        height: 40,
+                                        width: 40,
                                         decoration: BoxDecoration(
                                             color: AppColors.black,
                                             borderRadius:
                                                 BorderRadius.circular(26)),
                                         child: Image.asset(
                                           add,
-                                          height: 9,
-                                          width: 9,
+                                          height: 20,
+                                          width: 20,
                                         )),
                                   ),
                                 ],

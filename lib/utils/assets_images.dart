@@ -70,6 +70,8 @@ const googlePhotoLogo = "${assetPath}google_photo.png";
 const camera = "${assetPath}camera.png";
 const driveLogo = "${assetPath}drive_logo.png";
 const timeImg = "${assetPath}time_img.png";
+const galeryPic = "${assetPath}galery_pic.png";
+
 
 
 

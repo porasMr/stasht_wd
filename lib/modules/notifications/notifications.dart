@@ -42,8 +42,13 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
    return MediaQuery(data:CommonWidgets.textScale(context),
      child: Scaffold(
               appBar:AppBar(
+                 backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            leading: const IgnorePointer(),
+            leadingWidth: 0,
                 centerTitle: false,
                 automaticallyImplyLeading: false,
+
                 title: 
                 Row(
                   children: [
@@ -89,7 +94,7 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                           child: Container(
      
                             decoration: BoxDecoration(
-                                color:notificationModel.data![index].read==0?AppColors.textfieldFillColor:
+                                color:notificationModel.data![index].read==0?AppColors.unReadFillColor:
                                 Colors.white
                                 ,
                                border: Border(
@@ -109,7 +114,7 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                                   alignment: Alignment.centerRight,
                                   child: Text(CommonWidgets.formatTimeAgo(DateTime.parse(notificationModel.data!
                                      [index].createdAt!) ),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color:Color(0XFF858484),
                                     fontSize: 13,
                                     height: 19.2/13
@@ -162,7 +167,9 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                                     Expanded(
                                       child: RichText(
                                         text: TextSpan(
-                                          text: notificationModel.data!
+                                          text:
+                                          
+                                           notificationModel.data!
                                      [index].description,
                                           style: const TextStyle(
                                               fontFamily: interBold,
@@ -186,9 +193,9 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                                               fontSize: 14,
                                               height: 19.2/13),
                                           children: <TextSpan>[
-                                           const TextSpan(
-                                          text: " has accept your Invitation for memory\n",
-                                          style:  TextStyle(
+                                            TextSpan(
+                                          text:notificationModel.data![index].title==""? " has accepted your invitation for memory\n":" has commented on the memory\n",
+                                          style:const  TextStyle(
                                               color: AppColors.black,
                                               fontSize: 13,
                                                   fontWeight: FontWeight.w500,
@@ -243,6 +250,7 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
   
   @override
   void onSuccess(String data, String apiType) {
+    print(data);
     if(apiType==ApiUrl.notifications){
           EasyLoading.dismiss();
 

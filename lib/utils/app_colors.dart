@@ -34,6 +34,8 @@ class AppColors {
   static const Color collaboratorBgColor = Color(0XFFE5E4FC);
   static const Color errorColor = Color(0XFFCBA1CF);
   static const Color textfieldFillColor = Color(0XFFD9DAFF);
+    static const Color unReadFillColor = Color(0XFFFEF7FF);
+
   static const Color selectedTabColor = Color(0XFFB7DDFF);
   static const Color redBorder = Color(0XFFCC0707);
   static const Color lightGrey = Color(0XFF8A8A8D);

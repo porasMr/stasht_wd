@@ -87,6 +87,8 @@ dependencies:
   flutter_swipe_action_cell:
   font_awesome_flutter: ^10.8.0
   scrollview_observer: ^1.24.0
+  fading_edge_scrollview: ^4.1.1
+ 
   # crypto: ^3.0.0
   # dio: ^5.0.0 
   # #amazon_s3_cognito: ^0.8.1

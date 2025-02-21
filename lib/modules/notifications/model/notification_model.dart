@@ -38,6 +38,7 @@ class Data {
   String? updatedAt;
   Sendby? sendby;
   String? memoryTitle;
+  String? title;
 
   Data(
       {this.id,
@@ -48,7 +49,7 @@ class Data {
       this.description,
       this.createdAt,
       this.updatedAt,
-      this.sendby,this.memoryTitle});
+      this.sendby,this.memoryTitle,this.title});
 
   Data.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -62,6 +63,7 @@ class Data {
     memoryTitle=json['memory_title']??'';
     sendby =
         json['sendby'] != null ? new Sendby.fromJson(json['sendby']) : null;
+        title=json['title']??'';
   }
 
   Map<String, dynamic> toJson() {

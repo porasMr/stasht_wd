@@ -91,16 +91,16 @@ class PrefUtils {
     return []; // Return an empty list if not found
   }
 
-  Future<void> saveInstaPhotoLinks(List<PhotoDetailModel> photoLinks) async {
+  Future<void> saveGooglePhotoLinks(List<PhotoDetailModel> photoLinks) async {
     // Convert each PhotoLink to JSON and then to a list of JSON strings
     String jsonList =
         jsonEncode(photoLinks.map((link) => link.toJson()).toList());
 
-    await prefsProvider.prefs.setString(SPKeys.instaData, jsonList);
+    await prefsProvider.prefs.setString(SPKeys.googlePhtotoData, jsonList);
   }
 
-  Future<List<PhotoDetailModel>> getInstaPrefs() async {
-    String? jsonList = prefsProvider.prefs.getString(SPKeys.instaData);
+  Future<List<PhotoDetailModel>> getGooglePhotoPrefs() async {
+    String? jsonList = prefsProvider.prefs.getString(SPKeys.googlePhtotoData);
 
     if (jsonList != null) {
       List<dynamic> decodedList = jsonDecode(jsonList);
@@ -119,7 +119,17 @@ class PrefUtils {
   String? getDriveToken() {
     return prefsProvider.prefs.getString(SPKeys.driveToken) ?? '';
   }
+ Future<void> photoToken(String token) =>
+      prefsProvider.prefs.setString(SPKeys.photoToken, token);
+  String? getPhotoToken() {
+    return prefsProvider.prefs.getString(SPKeys.photoToken) ?? '';
+  }
 
+  Future<void> facebookToken(String token) =>
+      prefsProvider.prefs.setString(SPKeys.facebookToken, token);
+  String? getFacebookToken() {
+    return prefsProvider.prefs.getString(SPKeys.facebookToken) ?? '';
+  }
   Future<void> memoryId(String memoryId) =>
       prefsProvider.prefs.setString(SPKeys.memoryId, memoryId);
   Future<void> setTtile(String title) =>

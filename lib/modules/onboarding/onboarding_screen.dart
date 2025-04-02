@@ -26,6 +26,7 @@ import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/pref_utils.dart';
 import 'package:stasht/utils/progress_dialog.dart';
+import 'package:uuid/uuid.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:stasht/utils/assets_images.dart';
 import 'package:stasht/utils/constants.dart';
@@ -72,7 +73,8 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
         photosList.add(PhotoModel(
             assetEntity: allAssets[i],
             selectedValue: false,
-            isEditmemory: false,isFirst: false));
+            isEditmemory: false,
+            isFirst: false));
         if (allAssets.length - 1 == i) {
           getImageFutureData();
         }
@@ -99,8 +101,7 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
       ),
     );
     return MediaQuery(
-                             data:CommonWidgets.textScale(context),
-
+      data: CommonWidgets.textScale(context),
       child: Scaffold(
         body: _onboardView(context),
       ),
@@ -258,12 +259,11 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
                       SizedBox(
                         height: MediaQuery.of(context).size.height * .8 / 3,
                       ),
-                      selectedType == "instagram_synced"
+                      selectedType == "google_photo_synced"
                           ? _googlePhotoLogo()
                           : selectedType == "facebook_synced"
                               ? _fbLogo()
                               : _driveLogo(),
-                     
                       const Center(
                         child: Text(
                           "Please wait,while we gather \nyour images...",
@@ -309,8 +309,7 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Image.asset(googlePhotoLogo,          width: 160,
- height: 88),
+        Image.asset(googlePhotoLogo, width: 160, height: 88),
       ],
     );
   }
@@ -319,8 +318,7 @@ class _OnboardScreenState extends State<OnboardScreen> implements ApiCallback {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Image.asset(driveLogo,           width: 160,
-height: 76),
+        Image.asset(driveLogo, width: 160, height: 76),
       ],
     );
   }
@@ -329,8 +327,7 @@ height: 76),
     return Switch(
       value: type == "fb"
           ? fbValue
-          : 
-          type == "google_photo"
+          : type == "google_photo"
               ? instaValue
               : driveValue,
       onChanged: (value) async {
@@ -340,16 +337,20 @@ height: 76),
         //   //   instaRequestForAccessToken(value);
         //   // });
         // } else
-         if (type == "drive" && driveValue) {
+        if (type == "drive" && driveValue) {
           CommonWidgets.getFileFromGoogleDrive(context).then((value) {
             fetchPhotosFromDrive(value!, context);
-                        selectedType="google_drive_synced";
-
+            selectedType = "google_drive_synced";
           });
         } else if (type == "fb" && fbValue) {
           CommonWidgets.loginWithFacebook()!.then((value) {
             fetchFacebookPhotos(value!);
-            selectedType="facebook_synced";
+            selectedType = "facebook_synced";
+          });
+        } else if (type == "google_photo" && instaValue) {
+          CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+            fetchGooglePhotos(value!, context);
+            selectedType = "google_photo_synced";
           });
         }
         setState(() {});
@@ -368,20 +369,108 @@ height: 76),
     }*/
     if (type == "fb") {
       fbValue = value;
-     // instaValue = false;
+      instaValue = false;
       driveValue = false;
-    } 
-    // else if (type == "insta") {
-    //   instaValue = value;
-    //   fbValue = false;
-    //   driveValue = false;
-    // }
-     else if (type == "drive") {
+    } else if (type == "google_photo") {
+      instaValue = value;
+      fbValue = false;
+      driveValue = false;
+    } else if (type == "drive") {
       driveValue = value;
-      //instaValue = false;
+      instaValue = false;
       fbValue = false;
     }
     setState(() {});
+  }
+
+  //=============Google photo==============================
+ 
+
+  fetchGooglePhotos(
+    GoogleSignIn googleSignIn,
+    BuildContext context,
+  ) async {
+    try {
+var uuid = Uuid();
+
+      var httpClient = await googleSignIn.authenticatedClient();
+      if (httpClient == null) {
+        print('Failed to get authenticated client');
+        return null;
+      }
+      print(httpClient.credentials.accessToken.data);
+      showProgressDialog(context);
+      setState(() {
+        showDataFetch = true;
+      });
+      CommonWidgets.fetchPaginatedGooglePhotos(
+        idToken: googleSignIn.currentUser!.email,
+       
+          httpClient.credentials.accessToken.data, (media) async{
+            if(media.mediaItems!=null){
+        if (media.mediaItems!.length > 0) {
+          print(media.mediaItems!.length);
+
+          for (int i = 0; i < media.mediaItems!.length; i++) {
+            uploadCount = uploadCount + 1;
+            progressbarValue = uploadCount / media.mediaItems!.length;
+            progressNotifier.value = progressbarValue;
+            String captureDate = CommonWidgets.daysWithYearRetrun(
+                media.mediaItems![i].mediaMetadata!.creationTime ?? "");
+            photoLinks.add(PhotoDetailModel(
+                id: media.mediaItems![i].id,
+                createdTime: DateTime.parse(
+                    media.mediaItems![i].mediaMetadata!.creationTime!),
+                isSelected: false,
+                isEdit: false,
+                type: "google_photo",
+                webLink: media.mediaItems![i].baseUrl,
+                captureDate: captureDate));
+                            await Future.delayed(const Duration(microseconds: 500), () {});
+
+            if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+              clossProgressDialog('google_photo_synced');
+            }
+          }
+        } else {
+          setState(() {
+            instaValue = false;
+
+           showDataFetch = false;
+          });
+               
+       
+          progressbarValue = 1.0;
+          progressNotifier.value = progressbarValue;
+          print(progressbarValue);
+          clossProgressDialog('');
+          CommonWidgets.errorDialog(
+              context, 'No image available in google Photo');
+        }
+            }else{
+                    setState(() {
+            instaValue = false;
+
+           showDataFetch = false;
+          });
+               progressbarValue = 1.0;
+          progressNotifier.value = progressbarValue;
+          print(progressbarValue);
+          clossProgressDialog('');
+          CommonWidgets.errorDialog(
+              context, 'No image available in google Photo');
+            }
+      });
+
+      // do {
+
+    } catch (e) {
+      instaValue = false;
+      setState(() {
+        showDataFetch = false;
+      });
+      CommonWidgets.errorDialog(context, 'No image available in google Photo');
+    }
   }
 
   fetchPhotosFromDrive(
@@ -393,13 +482,13 @@ height: 76),
       List<File> allFiles = [];
       FileList fileList;
       String? nextPageToken;
-      
+
       var httpClient = await googleSignIn.authenticatedClient();
       if (httpClient == null) {
         print('Failed to get authenticated client');
         return null;
       }
-     
+
       var driveApi = DriveApi(httpClient);
       print(httpClient.credentials.accessToken.data);
       setState(() {
@@ -489,18 +578,23 @@ height: 76),
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
       progressbarValue = 0.0;
+      selectedType = type;
+
       if (type == "google_drive_synced") {
         PrefUtils.instance.saveDrivePhotoLinks(photoLinks);
+        ApiCall.syncAccount(
+            api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
         PrefUtils.instance.saveFacebookPhotoLinks(photoLinks);
-      } else {
-        PrefUtils.instance.saveInstaPhotoLinks(photoLinks);
+        ApiCall.syncAccount(
+            api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
+      } else if (type == 'google_photo_synced') {
+        PrefUtils.instance.saveGooglePhotoLinks(photoLinks);
+        ApiCall.syncAccount(
+            api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
-      selectedType = type;
-      setState(() {});
-      ApiCall.syncAccount(
-          api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
     }
+     
   }
 
   updateProgressValue({var galleryLength, var driveLength}) async {
@@ -725,95 +819,87 @@ height: 76),
   }
 
 //=============facebook=======================
-  fetchFacebookPhotos(AccessToken accessToken) async {
-    photoLinks.clear();
-    // EasyLoading.show(status: 'Processing');
 
+  fetchFacebookPhotos(AccessToken accessToken) async {
+    // EasyLoading.show(status: 'Processing');
+    photoLinks.clear();
+    showProgressDialog(context);
+      setState(() {
+        showDataFetch = true;
+      });
+      try{
     final response = await http.get(
       Uri.parse(
-        'https://graph.facebook.com/me/photos?type=uploaded&access_token=${accessToken.tokenString}',
+        'https://graph.facebook.com/me/photos?type=uploaded&limit=50&fields=images,name,created_time&access_token=${accessToken.tokenString}',
       ),
     );
 
     if (response.statusCode == 200) {
-      List<FaceBookPhoto> faceBook = [];
       final data = json.decode(response.body);
-      var photos = data['data'] as List;
-      photos.forEach((element) {
-        faceBook.add(FaceBookPhoto(
-            id: element["id"], createdTime: element["created_time"]));
-      });
-      if (faceBook.isNotEmpty) {
-         setState(() {
-          showDataFetch = true;
-          isFb = true;
-        });
-        showProgressDialog(context);
+      FaceBookPhoto faceBook = FaceBookPhoto.fromJson(data);
 
-        await Future.forEach(faceBook, (dynamic element) async {
-          print(faceBook.length);
-          await fetchFacebookPhotosById(
-                  accessToken.tokenString, element, faceBook)
-              .then((value) {});
-        });
-      }
-      if (photoLinks.isNotEmpty) {
-        await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": Get.context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true,
-          //   "type": "fb"
-          // });
-        });
-        // groupFbByMonth(photoList);
+ if (faceBook.paging!.next!.isNotEmpty) {
+          PrefUtils.instance.facebookToken(faceBook.paging!.next!);
+        } else {
+          PrefUtils.instance.facebookToken("");
+        }      if (faceBook.data!.isNotEmpty) {
+        for (int i = 0; i < faceBook.data!.length; i++) {
+          uploadCount += 1;
+          progressbarValue = uploadCount / faceBook.data!.length;
+          progressNotifier.value = progressbarValue;
+          String captureDate = CommonWidgets.daysWithYearRetrun(
+              faceBook.data![i].createdTime ?? "");
+          photoLinks.add(PhotoDetailModel(
+              type: "fb",
+              createdTime:
+                  DateTime.tryParse(faceBook.data![i].createdTime ?? ""),
+              webLink: faceBook.data![i].images![2].source,
+              captureDate: captureDate,
+              id: faceBook.data![i].id));
+            await Future.delayed(const Duration(microseconds: 500), () {});
+
+          if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+            setState(() {});
+            clossProgressDialog("facebook_synced");
+          }
+        }
+      } else {
+        instaValue = false;
+      setState(() {
+        showDataFetch = false;
+      });
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('');
+                              CommonWidgets.errorDialog(context, 'No image available in facebook');
+
       }
 
       // Extract the URL of the first image from each photo
     } else {
-      throw Exception('Failed to load photos');
-    }
-  }
-
-
-  
-
-  ///Fetch facebook url by photo id
-  Future fetchFacebookPhotosById(
-    String accessToken,
-    FaceBookPhoto element,
-    List<FaceBookPhoto> faceBook,
-  ) async {
-    final response = await http.get(
-      Uri.parse(
-        'https://graph.facebook.com/${element.id}?fields=images&access_token=$accessToken',
-      ),
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-       String captureDate =
-          CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
-      photoLinks.add(PhotoDetailModel(
-          type: "fb",
-          createdTime: DateTime.tryParse(element.createdTime ?? ""),
-                             captureDate:captureDate,
-
-          webLink: data['images'][0]["source"],
-          id: element.id));
-      print(photoLinks);
-      uploadCount += 1;
-      progressbarValue = uploadCount / faceBook.length;
+      instaValue = false;
+      setState(() {
+        showDataFetch = false;
+      });
+      progressbarValue = 1.0;
       progressNotifier.value = progressbarValue;
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {});
-      clossProgressDialog('facebook_synced');
-    } else {
-      throw Exception('Failed to load photos');
+      print(progressbarValue);
+      clossProgressDialog('');
+                            CommonWidgets.errorDialog(context, 'No image available in facebook');
+
     }
+      }catch(e){
+        instaValue = false;
+      setState(() {
+        showDataFetch = false;
+      });
+      progressbarValue = 1.0;
+      progressNotifier.value = progressbarValue;
+      print(progressbarValue);
+      clossProgressDialog('');
+                      CommonWidgets.errorDialog(context, 'No image available in facebook');
+      }
   }
 
   final ValueNotifier<double> progressNotifier = ValueNotifier<double>(0.0);
@@ -835,10 +921,13 @@ height: 76),
   @override
   void onSuccess(String data, String apiType) {
     if (apiType == ApiUrl.syncAccount) {
-      setState(() {
-        showDataFetch = false;
+      if (mounted) {
+        setState(() {
+           showDataFetch = false;
         isFb = false;
-      });
+        });
+      }
+    
       if (model.hasMemory == 1) {
         Navigator.pushReplacement(
             context,

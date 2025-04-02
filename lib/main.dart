@@ -5,7 +5,6 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:provider/provider.dart';
 
 // Import your app-specific screens
-import 'package:stasht/modules/create_memory/create_memory.dart';
 import 'package:stasht/modules/login_signup/presentation/pages/forgot_password_screen.dart';
 import 'package:stasht/modules/login_signup/presentation/pages/sign_in.dart';
 import 'package:stasht/modules/login_signup/presentation/pages/sign_up.dart';
@@ -80,8 +79,7 @@ class MyApp extends StatelessWidget {
         '/Signup': (BuildContext context) => const Signup(),
         '/PhotosView': (BuildContext context) => PhotosView(photosList: [],isSkip: false,),
         '/MyProfileScreen': (BuildContext context) => const OnboardScreen(),
-        '/CreateMemoryScreen': (BuildContext context) =>
-            CreateMemoryScreen(photosList: [], future: [], isBack: false),
+       
       },
       theme: ThemeData(
         fontFamily: robotoRegular,

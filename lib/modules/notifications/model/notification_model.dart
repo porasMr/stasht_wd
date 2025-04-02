@@ -32,6 +32,7 @@ class Data {
   int? userId;
   int? senderId;
   int? read;
+  dynamic image_id;
   String? type;
   String? description;
   String? createdAt;
@@ -49,6 +50,7 @@ class Data {
       this.description,
       this.createdAt,
       this.updatedAt,
+      this.image_id,
       this.sendby,this.memoryTitle,this.title});
 
   Data.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,8 @@ class Data {
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
     memoryTitle=json['memory_title']??'';
+      image_id=json['image_id'];
+    
     sendby =
         json['sendby'] != null ? new Sendby.fromJson(json['sendby']) : null;
         title=json['title']??'';

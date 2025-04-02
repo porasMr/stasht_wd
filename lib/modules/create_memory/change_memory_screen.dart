@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -12,9 +13,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart';
+import 'package:googleapis/photoslibrary/v1.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/image_preview_widget.dart';
+import 'package:stasht/modules/create_memory/model/DrivePhotoModel.dart';
+import 'package:stasht/modules/create_memory/model/GooglePhotoMedia.dart';
 import 'package:stasht/modules/create_memory/model/group_modle.dart';
 import 'package:stasht/modules/create_memory/model/memory_item.dart';
 import 'package:stasht/modules/create_memory/model/sub_category_model.dart';
@@ -35,9 +39,7 @@ import 'package:stasht/network/api_call.dart';
 import 'package:stasht/network/api_callback.dart';
 import 'package:stasht/network/api_url.dart';
 import 'package:stasht/utils/app_colors.dart';
-import 'package:stasht/utils/app_strings.dart';
 import 'package:stasht/utils/assets_images.dart';
-import 'package:stasht/utils/aws_s3_upload.dart';
 import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:intl/intl.dart';
@@ -139,6 +141,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
   var progressbarValue = 0.0;
   UserModel model = UserModel();
   ScrollController driveController = ScrollController();
+  ScrollController photoController = ScrollController();
+  ScrollController facebookController = ScrollController();
 
   // Dummy List
   List<String> memoryOptions = [];
@@ -159,8 +163,11 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
   List<CombinedPhotoModel> allPhotoGroupModel = [];
   AllPhotoModel selectedAllPhotoModel = AllPhotoModel();
   bool isImageFullView = true;
+    bool isFirstTime = true;
+
   String photoId = "";
   List<AllPhotoModel> selectedPhoto = [];
+  List<MemoryListData>? tempMemoryListData = [];
 
   void toggleMemoryTitleDropdown() {
     setState(() {
@@ -216,6 +223,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     tabListItem = CommonWidgets.syncTab();
     if (widget.isEdit) {
       isImageFullView = false;
+
+      tempMemoryListData = List.from(widget.memoryListData!);
     }
 
     PrefUtils.instance.getUserFromPrefs().then((value) {
@@ -233,7 +242,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       }
       driveModel = value;
       driveGroupModel = CommonWidgets.groupPhotosByDate(driveModel);
-      viewRefershOtherTab();
+         viewRefershOtherTab();
+
     });
     PrefUtils.instance.getFacebookPrefs().then((value) {
       for (var photoList in value) {
@@ -241,23 +251,34 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       }
       fbModel = value;
       fbGroupModel = CommonWidgets.groupPhotosForFBAndINSTAByDate(fbModel);
-      viewRefershOtherTab();
+          viewRefershOtherTab();
+
     });
-    PrefUtils.instance.getInstaPrefs().then((value) {
+    PrefUtils.instance.getGooglePhotoPrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       instaModel = value;
-      instaGroupModel =
-          CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
-      viewRefershOtherTab();
+      instaGroupModel = CommonWidgets.groupGooglePhotosByDate(instaModel);
+         viewRefershOtherTab();
+
     });
+
 
     deselectAll();
 
     EasyLoading.show();
     ApiCall.category(api: ApiUrl.categories, callack: this);
     driveController.addListener(_onScrollEnd);
+    photoController.addListener(_onPhotoScrollEnd);
+    facebookController.addListener(_onFacebookScrollEnd);
+  }
+
+  @override
+  void dispose() {
+    tempMemoryListData = [];
+    selectedPhoto = [];
+    super.dispose();
   }
 
   selectionOfAllPhoto() {
@@ -272,10 +293,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       for (int sub = 0;
           sub < categoryMemoryModelWithoutPage.subCategories!.length;
           sub++) {
-        print(
-            "subCategoryId${categoryMemoryModelWithoutPage.subCategories![sub].id == int.parse(subCategoryId)}");
-
-        if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
+         if (categoryMemoryModelWithoutPage.subCategories![sub].id ==
             int.parse(subCategoryId)) {
           categoryMemoryModelWithoutPage.subCategories![sub].isselected = true;
           selectLabel =
@@ -289,7 +307,6 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     }
 
     for (int i = 0; i < categoryModel.categories!.length; i++) {
-      print("category${categoryModel.categories![i].name}");
 
       if (categoryModel.categories![i].id == int.parse(categoryId)) {
         categoryModel.categories![i].isSelected = true;
@@ -303,7 +320,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     for (int p = 0; p < widget.memoryListData!.length; p++) {
       if (widget.memoryListData![p].type == "image") {
         updateSelectedValue(widget.memoryListData![p].typeId!);
-      } else if (widget.memoryListData![p].type == "insta") {
+      } else if (widget.memoryListData![p].type == "google_photo") {
         updateInstaSelectedValue2(widget.memoryListData![p].typeId!.toString());
       } else if (widget.memoryListData![p].type == "fb") {
         updateFbSelectedValue2(widget.memoryListData![p].typeId!.toString());
@@ -444,10 +461,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                 } else if (selectedTitle == "") {
                   CommonWidgets.errorDialog(
                       context, "Please select or add memory");
-                } else if(!widget.isEdit){
-                if (allSelectedPhotos() == 0) {
+                } else if (!widget.isEdit && allSelectedPhotos() == 0) {
                   CommonWidgets.errorDialog(context, "Please select photo");
-                }
                 } else {
                   if (selectLabel == "" || subCategoryId != "") {
                     uploadCount = 1;
@@ -470,8 +485,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                         style: appTextStyle(
                             fz: 15,
                             fm: interMedium,
-                            color: (
-                                    selectedTitle!=""&&selectedMemory!="")
+                            color: (selectedTitle != "" && selectedMemory != "")
                                 ? AppColors.primaryColor
                                 : AppColors.greyColor),
                       )
@@ -482,9 +496,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                             style: appTextStyle(
                                 fz: 17,
                                 fm: interMedium,
-                                color:
-                                 (allSelectedPhotos() > 0 &&
-                                        selectedTitle!=""&&selectedMemory!="")
+                                color: (allSelectedPhotos() > 0 &&
+                                        selectedTitle != "" &&
+                                        selectedMemory != "")
                                     ? AppColors.primaryColor
                                     : AppColors.hintColor),
                           ),
@@ -495,6 +509,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
             children: [
               GestureDetector(
                   onTap: () {
+                    selectedPhoto = [];
+                    tempMemoryListData = [];
                     Navigator.pop(context);
                   },
                   child: const Icon(
@@ -506,10 +522,10 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
               ),
               Text(
                 !widget.isEdit
-                    ? "Media"
+                    ? "Media ${selectedPhoto.isNotEmpty ? "(${selectedPhoto.length})" : ""}"
                     : widget.isAddPhoto
                         ? "Edit Memory"
-                        : "Media",
+                        : "Media ${selectedPhoto.isNotEmpty ? "(${selectedPhoto.length})" : ""}",
                 style: appTextStyle(
                     fz: 20,
                     height: 28 / 22,
@@ -542,8 +558,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                                     horizontal: 20.0),
                                 child: Row(
                                   children: [
-                                    if (widget.memoryListData![0].imageLink !=
-                                        '')
+                                    if (widget.memoryListData!.isNotEmpty &&
+                                        widget.memoryListData![0].imageLink !=
+                                            '')
                                       Row(
                                         children: [
                                           Container(
@@ -591,7 +608,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                                   ],
                                 ),
                               ),
-                              SizedBox(
+                             const SizedBox(
                                 height: 10,
                               ),
                               Container(
@@ -600,126 +617,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                                 color: AppColors.textfieldFillColor,
                               ),
                               if (selectedPhoto.isNotEmpty)
-                                Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20.0),
-                                    child: Container(
-                                      height: 60,
-                                      width: MediaQuery.of(context).size.width,
-                                      child: ListView.builder(
-                                        padding: EdgeInsets.zero,
-                                        itemCount: selectedPhoto.length,
-                                        scrollDirection: Axis.horizontal,
-                                        itemBuilder: (context, index) {
-                                          return selectedPhoto[index].type ==
-                                                  "image"
-                                              ? FutureBuilder<Uint8List?>(
-                                                  future: selectedPhoto[index]
-                                                      .thumbData,
-                                                  builder: (context, snapshot) {
-                                                    if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState
-                                                            .waiting) {
-                                                      return const Center(
-                                                          child: Padding(
-                                                        padding:
-                                                            EdgeInsets.all(3.0),
-                                                        child:
-                                                            CircularProgressIndicator(),
-                                                      ));
-                                                    }
-                                                    if (snapshot.data == null) {
-                                                      return const Center(
-                                                          child: Text(
-                                                              'Failed to load image.'));
-                                                    }
-
-                                                    return Stack(
-                                                      children: [
-                                                        Center(
-                                                          child:
-                                                              GestureDetector(
-                                                            onTap: () {
-                                                              showDialog(
-                                                                context:
-                                                                    context,
-                                                                barrierColor: Colors
-                                                                    .transparent,
-                                                                builder:
-                                                                    (context) {
-                                                                  return ImagePreview(
-                                                                      assetEntity:
-                                                                          selectedPhoto[index]
-                                                                              .assetEntity!);
-                                                                },
-                                                              );
-                                                            },
-                                                            child: Container(
-                                                              height: 60,
-                                                              width: 60,
-                                                              child:
-                                                                  Image.memory(
-                                                                snapshot.data!,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
-                                                )
-                                              : GestureDetector(
-                                                  onTap: () {
-                                                    showDialog(
-                                                      context: context,
-                                                      barrierColor:
-                                                          Colors.transparent,
-                                                      builder: (context) {
-                                                        return WebImagePreview(
-                                                            path: selectedPhoto[
-                                                                    index]
-                                                                .webLink!);
-                                                      },
-                                                    );
-                                                  },
-                                                  child: Container(
-                                                    height: 60,
-                                                    width: 60,
-                                                    child: ClipRRect(
-                                                      child: CachedNetworkImage(
-                                                          imageUrl: selectedPhoto[
-                                                                          index]
-                                                                      .type ==
-                                                                  "drive"
-                                                              ? selectedPhoto[
-                                                                      index]
-                                                                  .drivethumbNail!
-                                                              : selectedPhoto[
-                                                                      index]
-                                                                  .webLink!,
-                                                          fit: BoxFit.cover,
-                                                          placeholder: (context,
-                                                                  url) =>
-                                                              const SizedBox(
-                                                                height: 60,
-                                                                width: 60,
-                                                                child: Center(
-                                                                  child:
-                                                                      CircularProgressIndicator(
-                                                                    color: AppColors
-                                                                        .primaryColor,
-                                                                  ),
-                                                                ),
-                                                              )),
-                                                    ),
-                                                  ),
-                                                );
-                                        },
-                                      ),
-                                    )),
+                                showThumbnailAllImage(),
                               Container(
                                 height: 1,
                                 width: MediaQuery.of(context).size.width,
@@ -760,6 +658,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
   }
 
   Widget fullImageView() {
+    print(selectedAllPhotoModel.type);
     return Container(
       height: 300,
       color: AppColors.memoryBackColor.withOpacity(0.8),
@@ -772,7 +671,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                     return Center(
                       child: Container(
                         height: 300,
-                        width: 280,
+
                         color: Colors.grey[200], // Placeholder background
                         child: imageData != null
                             ? Image.memory(
@@ -987,7 +886,6 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                                 memoryId = "";
                               }
 
-                           
                               setState(() {});
                               EasyLoading.show();
                               ApiCall.memoryByCategory(
@@ -1050,7 +948,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                           const SizedBox(
+                            const SizedBox(
                               height: 5,
                             ),
                             Row(
@@ -1172,7 +1070,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
                                     size: 16,
                                     color: AppColors.primaryColor,
                                   ),
-                                 const SizedBox(
+                                  const SizedBox(
                                     width: 5,
                                   ),
                                   GestureDetector(
@@ -1292,326 +1190,329 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
             ],
           ),
         ),
-        const Divider(
-          color: AppColors.textfieldFillColor,
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      Text(
-                        "Add Tag",
-                        style: appTextStyle(
-                          fz: 14,
-                          color: AppColors.black,
-                          fw: FontWeight.w500,
-                          fm: robotoBold,
-                        ),
-                      ),
-                      if (isMemoryLabelDropDownExpanded)
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                           const SizedBox(
-                              height: 6,
-                            ),
-                            Container(
-                              padding: const EdgeInsets.only(
-                                  left: 8, right: 8, top: 2, bottom: 2),
-                              decoration: BoxDecoration(
-                                  color: AppColors.subTitleColor,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: AppColors.subTitleColor,
-                                      width: 1)),
-                              child: Text(
-                                selectLabel,
-                                style: appTextStyle(
-                                  fm: robotoRegular,
-                                  fz: 16,
-                                  fw: FontWeight.w400,
-                                  color: AppColors.black,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 5,
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  const Spacer(),
-                  if (isMemoryLabelDropDownExpanded)
-                    GestureDetector(
-                        onTap: () {
-                          isMemoryLabelDropDownExpanded = false;
-                          selectLabel = "";
-                          if (widget.isEdit) {
-                            widget.subId = "";
-                          }
-                          setState(() {});
-                        },
-                        child: const Icon(Icons.close,
-                            size: 24, color: AppColors.primaryColor))
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    height: 5,
-                  ),
-                  if (isMemoryLabelDropDownExpanded == false)
-                    SizedBox(
-                      height: 35,
-                      child: FadingEdgeScrollView.fromScrollView(
-                        gradientFractionOnEnd: 0.2,
-                        child: ListView(
-                          controller: ScrollController(),
-                          scrollDirection: Axis.horizontal,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                addLableBottomSheet(context);
-                              },
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.add,
-                                    size: 16,
-                                    color: AppColors.primaryColor,
-                                  ),
-                                const  SizedBox(
-                                    width: 5,
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      addLableBottomSheet(context);
-                                    },
-                                    child: Text(
-                                      "Add Tag",
-                                      style: appTextStyle(
-                                        fm: interRegular,
-                                        fz: 14,
-                                        height: 19.2 / 14,
-                                        fw: FontWeight.w400,
-                                        color: AppColors.primaryColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ),
-                            Container(
-                              height: 28,
-                              child: ListView.separated(
-                                separatorBuilder: (context, index) {
-                                  return const SizedBox(
-                                    width: 10,
-                                  );
-                                },
-                                padding: EdgeInsets.zero,
-                                physics: const NeverScrollableScrollPhysics(),
-                                shrinkWrap: true,
-                                scrollDirection: Axis.horizontal,
-                                itemCount: categoryMemoryModelWithoutPage
-                                    .subCategories!.length,
-                                itemBuilder: (context, index) {
-                                  final memory = categoryMemoryModelWithoutPage
-                                      .subCategories![index];
-                                  return Row(
-                                    children: [
-                                      GestureDetector(
-                                        onTap: () {
-                                          isMemoryLabelDropDownExpanded = true;
+        SizedBox(height: 5,),
+        // const Divider(
+        //   color: AppColors.textfieldFillColor,
+        // ),
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        //   child: Column(
+        //     crossAxisAlignment: CrossAxisAlignment.start,
+        //     mainAxisSize: MainAxisSize.min,
+        //     children: [
+        //       Row(
+        //         children: [
+        //           Column(
+        //             crossAxisAlignment: CrossAxisAlignment.start,
+        //             mainAxisAlignment: MainAxisAlignment.start,
+        //             mainAxisSize: MainAxisSize.min,
+        //             children: [
+        //               const SizedBox(
+        //                 height: 5,
+        //               ),
+        //               Text(
+        //                 "Add Tag",
+        //                 style: appTextStyle(
+        //                   fz: 14,
+        //                   color: AppColors.black,
+        //                   fw: FontWeight.w500,
+        //                   fm: robotoBold,
+        //                 ),
+        //               ),
+        //               if (isMemoryLabelDropDownExpanded)
+        //                 Column(
+        //                   mainAxisSize: MainAxisSize.min,
+        //                   children: [
+        //                     const SizedBox(
+        //                       height: 6,
+        //                     ),
+        //                     Container(
+        //                       padding: const EdgeInsets.only(
+        //                           left: 8, right: 8, top: 2, bottom: 2),
+        //                       decoration: BoxDecoration(
+        //                           color: AppColors.subTitleColor,
+        //                           borderRadius: BorderRadius.circular(10),
+        //                           border: Border.all(
+        //                               color: AppColors.subTitleColor,
+        //                               width: 1)),
+        //                       child: Text(
+        //                         selectLabel,
+        //                         style: appTextStyle(
+        //                           fm: robotoRegular,
+        //                           fz: 16,
+        //                           fw: FontWeight.w400,
+        //                           color: AppColors.black,
+        //                         ),
+        //                         overflow: TextOverflow.ellipsis,
+        //                       ),
+        //                     ),
+        //                     const SizedBox(
+        //                       height: 5,
+        //                     ),
+        //                   ],
+        //                 ),
+        //             ],
+        //           ),
+        //           const Spacer(),
+        //           if (isMemoryLabelDropDownExpanded)
+        //             GestureDetector(
+        //                 onTap: () {
+        //                   isMemoryLabelDropDownExpanded = false;
+        //                   selectLabel = "";
+        //                   if (widget.isEdit) {
+        //                     widget.subId = "";
+        //                   }
+        //                   setState(() {});
+        //                 },
+        //                 child: const Icon(Icons.close,
+        //                     size: 24, color: AppColors.primaryColor))
+        //         ],
+        //       ),
+        //       Column(
+        //         crossAxisAlignment: CrossAxisAlignment.start,
+        //         mainAxisSize: MainAxisSize.min,
+        //         children: [
+        //           const SizedBox(
+        //             height: 5,
+        //           ),
+        //           if (isMemoryLabelDropDownExpanded == false)
+        //             SizedBox(
+        //               height: 35,
+        //               child: FadingEdgeScrollView.fromScrollView(
+        //                 gradientFractionOnEnd: 0.2,
+        //                 child: ListView(
+        //                   controller: ScrollController(),
+        //                   scrollDirection: Axis.horizontal,
+        //                   children: [
+        //                     GestureDetector(
+        //                       onTap: () {
+        //                         addLableBottomSheet(context);
+        //                       },
+        //                       child: Row(
+        //                         mainAxisSize: MainAxisSize.min,
+        //                         children: [
+        //                           const Icon(
+        //                             Icons.add,
+        //                             size: 16,
+        //                             color: AppColors.primaryColor,
+        //                           ),
+        //                           const SizedBox(
+        //                             width: 5,
+        //                           ),
+        //                           GestureDetector(
+        //                             onTap: () {
+        //                               addLableBottomSheet(context);
+        //                             },
+        //                             child: Text(
+        //                               "Add Tag",
+        //                               style: appTextStyle(
+        //                                 fm: interRegular,
+        //                                 fz: 14,
+        //                                 height: 19.2 / 14,
+        //                                 fw: FontWeight.w400,
+        //                                 color: AppColors.primaryColor,
+        //                               ),
+        //                             ),
+        //                           ),
+        //                         ],
+        //                       ),
+        //                     ),
+        //                     const SizedBox(
+        //                       width: 10,
+        //                     ),
+        //                     Container(
+        //                       height: 28,
+        //                       child: ListView.separated(
+        //                         separatorBuilder: (context, index) {
+        //                           return const SizedBox(
+        //                             width: 10,
+        //                           );
+        //                         },
+        //                         padding: EdgeInsets.zero,
+        //                         physics: const NeverScrollableScrollPhysics(),
+        //                         shrinkWrap: true,
+        //                         scrollDirection: Axis.horizontal,
+        //                         itemCount: categoryMemoryModelWithoutPage
+        //                             .subCategories!.length,
+        //                         itemBuilder: (context, index) {
+        //                           final memory = categoryMemoryModelWithoutPage
+        //                               .subCategories![index];
+        //                           return Row(
+        //                             children: [
+        //                               GestureDetector(
+        //                                 onTap: () {
+        //                                   isMemoryLabelDropDownExpanded = true;
 
-                                          selectLabel = memory.name!;
-                                          subCategoryId =
-                                              categoryMemoryModelWithoutPage
-                                                  .subCategories![index].id
-                                                  .toString();
-                                          for (int i = 0;
-                                              i <
-                                                  categoryMemoryModelWithoutPage
-                                                      .subCategories!.length;
-                                              i++) {
-                                            if (index == i) {
-                                              categoryMemoryModelWithoutPage
-                                                  .subCategories![index]
-                                                  .isselected = true;
-                                            } else {
-                                              categoryMemoryModelWithoutPage
-                                                  .subCategories![i]
-                                                  .isselected = false;
-                                            }
-                                          }
-                                          setState(() {});
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.only(
-                                              left: 8,
-                                              right: 8,
-                                              top: 2,
-                                              bottom: 2),
-                                          decoration: BoxDecoration(
-                                              color: AppColors.memoryBackColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              // border: Border.all(
-                                              //     color:
-                                              //         AppColors.subTitleColor,
-                                              //     width: 2)
-                                                  ),
-                                          child: Text(
-                                            memory.name!,
-                                            style: appTextStyle(
-                                              fm: robotoRegular,
-                                              fz: 14,
-                                              fw: FontWeight.w400,
-                                              color: AppColors.black,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 5,
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                ],
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 5,
-        ),
+        //                                   selectLabel = memory.name!;
+        //                                   subCategoryId =
+        //                                       categoryMemoryModelWithoutPage
+        //                                           .subCategories![index].id
+        //                                           .toString();
+        //                                   for (int i = 0;
+        //                                       i <
+        //                                           categoryMemoryModelWithoutPage
+        //                                               .subCategories!.length;
+        //                                       i++) {
+        //                                     if (index == i) {
+        //                                       categoryMemoryModelWithoutPage
+        //                                           .subCategories![index]
+        //                                           .isselected = true;
+        //                                     } else {
+        //                                       categoryMemoryModelWithoutPage
+        //                                           .subCategories![i]
+        //                                           .isselected = false;
+        //                                     }
+        //                                   }
+        //                                   setState(() {});
+        //                                 },
+        //                                 child: Container(
+        //                                   padding: const EdgeInsets.only(
+        //                                       left: 8,
+        //                                       right: 8,
+        //                                       top: 2,
+        //                                       bottom: 2),
+        //                                   decoration: BoxDecoration(
+        //                                     color: AppColors.memoryBackColor,
+        //                                     borderRadius:
+        //                                         BorderRadius.circular(10),
+        //                                     // border: Border.all(
+        //                                     //     color:
+        //                                     //         AppColors.subTitleColor,
+        //                                     //     width: 2)
+        //                                   ),
+        //                                   child: Text(
+        //                                     memory.name!,
+        //                                     style: appTextStyle(
+        //                                       fm: robotoRegular,
+        //                                       fz: 14,
+        //                                       fw: FontWeight.w400,
+        //                                       color: AppColors.black,
+        //                                     ),
+        //                                   ),
+        //                                 ),
+        //                               ),
+        //                               SizedBox(
+        //                                 width: 5,
+        //                               ),
+        //                             ],
+        //                           );
+        //                         },
+        //                       ),
+        //                     ),
+        //                   ],
+        //                 ),
+        //               ),
+        //             )
+        //         ],
+        //       ),
+        //     ],
+        //   ),
+        // ),
+        // SizedBox(
+        //   height: 5,
+        // ),
         Container(
           height: 1,
           width: MediaQuery.of(context).size.width,
           color: AppColors.textfieldFillColor,
         ),
         if (selectedPhoto.isNotEmpty)
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Container(
-                height: 60,
-                width: MediaQuery.of(context).size.width,
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: selectedPhoto.length,
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    return selectedPhoto[index].type == "image"
-                        ? FutureBuilder<Uint8List?>(
-                            future: selectedPhoto[index].thumbData,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                    child: Padding(
-                                  padding: EdgeInsets.all(3.0),
-                                  child: CircularProgressIndicator(),
-                                ));
-                              }
-                              if (snapshot.data == null) {
-                                return const Center(
-                                    child: Text('Failed to load image.'));
-                              }
+          Container(height: 60, child: showThumbnailAllImage()),
+        // if (selectedPhoto.isNotEmpty)
+        //   Padding(
+        //       padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        //       child: Container(
+        //         height: 60,
+        //         width: MediaQuery.of(context).size.width,
+        //         child: ListView.builder(
+        //           padding: EdgeInsets.zero,
+        //           itemCount: selectedPhoto.length,
+        //           scrollDirection: Axis.horizontal,
+        //           itemBuilder: (context, index) {
+        //             return selectedPhoto[index].type == "image"
+        //                 ? FutureBuilder<Uint8List?>(
+        //                     future: selectedPhoto[index].thumbData,
+        //                     builder: (context, snapshot) {
+        //                       if (snapshot.connectionState ==
+        //                           ConnectionState.waiting) {
+        //                         return const Center(
+        //                             child: Padding(
+        //                           padding: EdgeInsets.all(3.0),
+        //                           child: CircularProgressIndicator(),
+        //                         ));
+        //                       }
+        //                       if (snapshot.data == null) {
+        //                         return const Center(
+        //                             child: Text('Failed to load image.'));
+        //                       }
 
-                              return Stack(
-                                children: [
-                                  Center(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        showDialog(
-                                          context: context,
-                                          barrierColor: Colors.transparent,
-                                          builder: (context) {
-                                            return ImagePreview(
-                                                assetEntity:
-                                                    selectedPhoto[index]
-                                                        .assetEntity!);
-                                          },
-                                        );
-                                      },
-                                      child: Container(
-                                        height: 60,
-                                        width: 60,
-                                        child: Image.memory(
-                                          snapshot.data!,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          )
-                        : GestureDetector(
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                barrierColor: Colors.transparent,
-                                builder: (context) {
-                                  return WebImagePreview(
-                                      path: selectedPhoto[index].webLink!);
-                                },
-                              );
-                            },
-                            child: Container(
-                              height: 60,
-                              width: 60,
-                              child: ClipRRect(
-                                child: CachedNetworkImage(
-                                    imageUrl: selectedPhoto[index].type ==
-                                            "drive"
-                                        ? selectedPhoto[index].drivethumbNail!
-                                        : selectedPhoto[index].webLink!,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        const SizedBox(
-                                          height: 60,
-                                          width: 60,
-                                          child: Center(
-                                            child: CircularProgressIndicator(
-                                              color: AppColors.primaryColor,
-                                            ),
-                                          ),
-                                        )),
-                              ),
-                            ),
-                          );
-                  },
-                ),
-              )),
+        //                       return Stack(
+        //                         children: [
+        //                           Center(
+        //                             child: GestureDetector(
+        //                               onTap: () {
+        //                                 showDialog(
+        //                                   context: context,
+        //                                   barrierColor: Colors.transparent,
+        //                                   builder: (context) {
+        //                                     return ImagePreview(
+        //                                         assetEntity:
+        //                                             selectedPhoto[index]
+        //                                                 .assetEntity!);
+        //                                   },
+        //                                 );
+        //                               },
+        //                               child: Container(
+        //                                 height: 60,
+        //                                 width: 60,
+        //                                 child: Image.memory(
+        //                                   snapshot.data!,
+        //                                   fit: BoxFit.cover,
+        //                                 ),
+        //                               ),
+        //                             ),
+        //                           ),
+        //                         ],
+        //                       );
+        //                     },
+        //                   )
+        //                 : GestureDetector(
+        //                     onTap: () {
+        //                       showDialog(
+        //                         context: context,
+        //                         barrierColor: Colors.transparent,
+        //                         builder: (context) {
+        //                           return WebImagePreview(
+        //                               path: selectedPhoto[index].webLink!);
+        //                         },
+        //                       );
+        //                     },
+        //                     child: Container(
+        //                       height: 60,
+        //                       width: 60,
+        //                       child: ClipRRect(
+        //                         child: CachedNetworkImage(
+        //                             imageUrl: selectedPhoto[index].type ==
+        //                                     "drive"
+        //                                 ? selectedPhoto[index].drivethumbNail!
+        //                                 : selectedPhoto[index].webLink!,
+        //                             fit: BoxFit.cover,
+        //                             placeholder: (context, url) =>
+        //                                 const SizedBox(
+        //                                   height: 60,
+        //                                   width: 60,
+        //                                   child: Center(
+        //                                     child: CircularProgressIndicator(
+        //                                       color: AppColors.primaryColor,
+        //                                     ),
+        //                                   ),
+        //                                 )),
+        //                       ),
+        //                     ),
+        //                   );
+        //           },
+        //         ),
+        //       )),
         Container(
           height: 1,
           width: MediaQuery.of(context).size.width,
@@ -1619,6 +1520,160 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         )
       ],
     );
+  }
+
+  Widget showThumbnailAllImage() {
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Container(
+          height: 60,
+          width: MediaQuery.of(context).size.width,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            scrollDirection: Axis.horizontal,
+            children: [
+              if (selectedPhoto.isNotEmpty)
+                Container(
+                  height: 60,
+                  child: ListView.builder(
+                    shrinkWrap:
+                        true, // Allow ListView to take as much space as it needs
+
+                    padding: EdgeInsets.zero,
+                    itemCount: selectedPhoto.length,
+                    physics: NeverScrollableScrollPhysics(),
+                    scrollDirection: Axis.horizontal,
+                    itemBuilder: (context, index) {
+                      return selectedPhoto[index].type == "image"
+                          ? FutureBuilder<Uint8List?>(
+                              future: selectedPhoto[index].thumbData,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                      child: Padding(
+                                    padding: EdgeInsets.all(3.0),
+                                    child: CircularProgressIndicator(),
+                                  ));
+                                }
+                                if (snapshot.data == null) {
+                                  return const Center(
+                                      child: Text('Failed to load image.'));
+                                }
+
+                                return Stack(
+                                  children: [
+                                    Center(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showDialog(
+                                            context: context,
+                                            barrierColor: Colors.transparent,
+                                            builder: (context) {
+                                              return ImagePreview(
+                                                  assetEntity:
+                                                      selectedPhoto[index]
+                                                          .assetEntity!);
+                                            },
+                                          );
+                                        },
+                                        child: Container(
+                                          height: 60,
+                                          width: 60,
+                                          child: Image.memory(
+                                            snapshot.data!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            )
+                          : GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  barrierColor: Colors.transparent,
+                                  builder: (context) {
+                                    return WebImagePreview(
+                                        path: selectedPhoto[index].webLink!);
+                                  },
+                                );
+                              },
+                              child: Container(
+                                height: 60,
+                                width: 60,
+                                child: ClipRRect(
+                                  child: CachedNetworkImage(
+                                      imageUrl: selectedPhoto[index].type ==
+                                              "drive"
+                                          ? selectedPhoto[index].drivethumbNail!
+                                          : selectedPhoto[index].webLink!,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const SizedBox(
+                                            height: 60,
+                                            width: 60,
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                color: AppColors.primaryColor,
+                                              ),
+                                            ),
+                                          )),
+                                ),
+                              ),
+                            );
+                    },
+                  ),
+                ),
+              //    Container(
+              // height: 60,
+              //       child: ListView.builder(
+              //         padding: EdgeInsets.zero,
+              //         itemCount: tempMemoryListData!.length,
+              //                 shrinkWrap: true,  // Allow ListView to take as much space as it needs
+
+              //         physics: NeverScrollableScrollPhysics(),
+              //         scrollDirection: Axis.horizontal,
+              //         itemBuilder: (context, index) {
+              //           return GestureDetector(
+              //             onTap: () {
+              //               showDialog(
+              //                 context: context,
+              //                 barrierColor: Colors.transparent,
+              //                 builder: (context) {
+              //                   return WebImagePreview(
+              //                       path: tempMemoryListData![index].imageLink!);
+              //                 },
+              //               );
+              //             },
+              //             child: Container(
+              //               height: 60,
+              //               width: 60,
+              //               child: ClipRRect(
+              //                 child: CachedNetworkImage(
+              //                     imageUrl: tempMemoryListData![index].imageLink!,
+              //                     fit: BoxFit.cover,
+              //                     placeholder: (context, url) => const SizedBox(
+              //                           height: 60,
+              //                           width: 60,
+              //                           child: Center(
+              //                             child: CircularProgressIndicator(
+              //                               color: AppColors.primaryColor,
+              //                             ),
+              //                           ),
+              //                         )),
+              //               ),
+              //             ),
+              //           );
+              //         },
+              //       ),
+              //     ),
+            ],
+          ),
+        ));
   }
 
   int allSelectedPhotos() {
@@ -1665,10 +1720,12 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
           isImageFullView: isImageFullView,
           allPhotoGroupModel,
           viewRefersh, selectedPhoto: (photo) {
-
         setState(() {
+          setState(() {
+            isFirstTime=false;
+          });
           allPhotoGroupModel = photo;
-        viewRefersh();
+          viewRefersh();
         });
       }, onClickCheckBox: () {
         setState(() {
@@ -1712,6 +1769,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefershOtherTab,
+            controller: facebookController,
             isImageFullView: isImageFullView, onClickCheckBox: () {
           setState(() {
             isImageFullView = false;
@@ -1723,21 +1781,68 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         });
       }
     } else if (tabListItem[selectedIndex]['label'] == "Photos") {
-      // if (instaGroupModel.isEmpty) {
-      return CommonWidgets.driveView(context, getPhotoView);
+      if (instaGroupModel.isEmpty) {
+        return CommonWidgets.photoView(context, getGooglePhotoView);
+      } else {
+        return CommonWidgets.googlePhotoView(
+            instaGroupModel, viewRefershOtherTab, onClickCheckBox: () {
+          setState(() {
+            isImageFullView = false;
+          });
+        }, clearView: () {
+          if (isImageFullView) {
+            clearPreviousSelection();
+          }
+        }, isImageFullView: isImageFullView, controller: photoController);
+      }
+    }
+  }
 
-      // } else {
-      //   return CommonWidgets.instaPhtotView(
-      //     instaGroupModel,
-      //     viewRefershOtherTab,
-      //     isImageFullView: isImageFullView,
-      //     clearView: (){
-      //   if(isImageFullView){
-      //   clearPreviousSelection();
-      //   }
-      // }
-      //   );
-      // }
+  void _onFacebookScrollEnd() {
+    if (facebookController.position.pixels >=
+        facebookController.position.maxScrollExtent) {
+      if (PrefUtils.instance.getFacebookToken() != null &&
+          PrefUtils.instance.getFacebookToken()!.isNotEmpty &&
+        !_isBottomSheetVisible) {
+                _isBottomSheetVisible = true;
+
+        CommonWidgets.showBottomSheet(context, () {
+                            _isBottomSheetVisible = false;
+
+          fetchAfterPageFacebookPhotos(PrefUtils.instance.getFacebookToken());
+        }).then((v){
+                              _isBottomSheetVisible = false;
+
+        });
+
+        //_showLoadMoreSnackbar();
+      }
+    }
+  }
+  bool _isBottomSheetVisible = false; // Prevent multiple dialogs
+
+
+  void _onPhotoScrollEnd() {
+    if (photoController.position.pixels >=
+        photoController.position.maxScrollExtent) {
+      if (PrefUtils.instance.getPhotoToken() != null &&
+          PrefUtils.instance.getPhotoToken()!.isNotEmpty &&
+        !_isBottomSheetVisible) {
+      _isBottomSheetVisible = true;
+
+        CommonWidgets.showBottomSheet(context, () {
+          CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+                  _isBottomSheetVisible = false;
+
+            getGooglePhotoView(value!, PrefUtils.instance.getPhotoToken()!);
+          });
+
+        }).then((v){
+                              _isBottomSheetVisible = false;
+
+        });
+        //_showLoadMoreSnackbar();
+      }
     }
   }
 
@@ -1746,11 +1851,19 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     if (driveController.position.pixels >=
         driveController.position.maxScrollExtent) {
       if (PrefUtils.instance.getDriveToken() != null &&
-          PrefUtils.instance.getDriveToken()!.isNotEmpty) {
+          PrefUtils.instance.getDriveToken()!.isNotEmpty &&
+        !_isBottomSheetVisible) {
+                _isBottomSheetVisible = true;
+
         CommonWidgets.showBottomSheet(context, () {
           CommonWidgets.getFileFromGoogleDrive(context).then((value) {
             getDriveView(value!, PrefUtils.instance.getDriveToken()!);
+                              _isBottomSheetVisible = false;
+
           });
+        }).then((v){
+                              _isBottomSheetVisible = false;
+
         });
         //_showLoadMoreSnackbar();
       }
@@ -1774,11 +1887,11 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     );
   }
 
-  getFacebbokPhoto(AccessToken token) {
-    fetchFacebookPhotos(token);
+  getFacebbokPhoto(AccessToken token, String? pageToken) {
+    fetchFacebookPhotos(token, pageToken: pageToken!);
   }
 
-  getPhotoView(GoogleSignIn v1, String pageToken) async {
+  getPhotoView(GoogleSignIn v1) async {
     var httpClient = await v1.authenticatedClient();
     if (httpClient == null) {
       print('Failed to get authenticated client');
@@ -1811,14 +1924,24 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     fetchPhotosFromDrive(v1, context, pageToken);
   }
 
+  getGooglePhotoView(GoogleSignIn v1, String pageToken) {
+    fetchGooglePhotos(v1, context, pageToken);
+  }
+
   viewRefershOtherTab() {
-    allPhotoGroupModel = CommonWidgets.allPhotoGroup(
+    allPhotoGroupModel =  CommonWidgets.allPhotoGroup(
         driveGroupModel, instaGroupModel, fbGroupModel, photoGroupModel);
     viewRefersh();
   }
 
   viewRefersh() {
     if (!widget.isEdit) {
+      if(selectedIndex==0){
+        if(isFirstTime){
+        clearPreviousSelection();
+
+        }
+      }
       bool isGet = false;
       for (int i = 0; i < allPhotoGroupModel.length; i++) {
         for (int p = 0; p < allPhotoGroupModel[i].photos.length; p++) {
@@ -1832,11 +1955,11 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
           }
         }
       }
-      print("sdad$isGet");
       if (!isGet) {
         allPhotoGroupModel[0].photos[0].isFirst = true;
 
         selectedAllPhotoModel = allPhotoGroupModel[0].photos[0];
+        print(selectedAllPhotoModel.type);
         if (selectedAllPhotoModel.type == "image") {
           loadImage(selectedAllPhotoModel.assetEntity!);
         }
@@ -1846,7 +1969,8 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     selectedPhoto = [];
     for (int i = 0; i < allPhotoGroupModel.length; i++) {
       for (int p = 0; p < allPhotoGroupModel[i].photos.length; p++) {
-        if (allPhotoGroupModel[i].photos[p].isSelected) {
+        if (allPhotoGroupModel[i].photos[p].isSelected &&
+            allPhotoGroupModel[i].photos[p].isEdit == false) {
           selectedPhoto.add(allPhotoGroupModel[i].photos[p]);
         }
         if (allPhotoGroupModel[i].photos[p].type == "image") {
@@ -1873,14 +1997,26 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       }
     }
     firstSelected = false;
+
     setState(() {});
+  }
+
+  void removeMatchingMemoryItems() {
+    print(selectedPhoto.length);
+    // Loop through each AllPhotoModel in the photoList
+    for (var photo in selectedPhoto) {
+      tempMemoryListData!.removeWhere((memoryData) {
+        // Check if the id from AllPhotoModel matches typeId from MemoryListData
+        return memoryData.typeId == photo.id.toString(); // Compare id as String
+      });
+    }
   }
 
   clearPreviousSelection() {
     if (allPhotoGroupModel.isNotEmpty) {
       for (int i = 0; i < allPhotoGroupModel.length; i++) {
         for (int p = 0; p < allPhotoGroupModel[i].photos.length; p++) {
-           allPhotoGroupModel[i].photos[p].isFirst=false;
+          allPhotoGroupModel[i].photos[p].isFirst = false;
           if (allPhotoGroupModel[i].photos[p].type == "image") {
             for (int k = 0; k < photoGroupModel.length; k++) {
               for (int j = 0; j < photoGroupModel[k].photos.length; j++) {
@@ -1973,6 +2109,7 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     return SizedBox(
       height: 36,
       child: ListView.separated(
+        padding: EdgeInsets.only(right: 10),
         separatorBuilder: (context, index) {
           return SizedBox(
             width: 16,
@@ -2203,7 +2340,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       uploadData(
           getSelectedCategory(), subCategoryResModel.categories!.id.toString());
     } else if (apiType == ApiUrl.syncAccount) {
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -2602,16 +2741,22 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
     );
   }
 
-  clossProgressDialog(String type, List<PhotoDetailModel> tempPhotoLinks) {
+  clossProgressDialog(String type, List<PhotoDetailModel> photoLinks) {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
+
       progressbarValue = 0.0;
+      progressNotifier.value = progressbarValue;
+
       uploadCount = 0;
       if (type == "google_drive_synced") {
         if (driveModel.isEmpty) {
-          driveModel = tempPhotoLinks;
+          driveModel = photoLinks;
         } else {
-          driveModel.addAll(tempPhotoLinks);
+          final Map<String, PhotoDetailModel> uniquePhotos = {
+            for (var photo in [...driveModel, ...photoLinks]) photo.id: photo
+          };
+          driveModel = uniquePhotos.values.toList();
         }
         PrefUtils.instance.saveDrivePhotoLinks(driveModel);
         driveGroupModel = CommonWidgets.groupPhotosByDate(driveModel);
@@ -2619,25 +2764,102 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
-        fbModel = tempPhotoLinks;
+        if (fbModel.isEmpty) {
+          fbModel = photoLinks;
+        } else {
+          final Map<String, PhotoDetailModel> uniquePhotos = {
+            for (var photo in [...fbModel, ...photoLinks]) photo.id: photo
+          };
+          fbModel = uniquePhotos.values.toList();
+        }
+        PrefUtils.instance.saveFacebookPhotoLinks(fbModel);
 
         fbGroupModel = CommonWidgets.groupPhotosForFBAndINSTAByDate(fbModel);
 
-        PrefUtils.instance.saveFacebookPhotoLinks(tempPhotoLinks);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
-      } else if (type == "instagram_synced") {
-        instaModel = tempPhotoLinks;
-        instaGroupModel =
-            CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
+      } else if (type == "google_photo_synced") {
+        if (instaModel.isEmpty) {
+          instaModel = photoLinks;
+        } else {
+          final Map<String, PhotoDetailModel> uniquePhotos = {
+            for (var photo in [...instaModel, ...photoLinks]) photo.id: photo
+          };
+          instaModel =
+              uniquePhotos.values.toList(); // ✅ Converts back to a list
+        }
+        PrefUtils.instance.saveGooglePhotoLinks(instaModel);
 
-        PrefUtils.instance.saveInstaPhotoLinks(tempPhotoLinks);
+        instaGroupModel = CommonWidgets.groupGooglePhotosByDate(instaModel);
+
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
+
       allPhotoGroupModel = CommonWidgets.allPhotoGroup(
           driveGroupModel, instaGroupModel, fbGroupModel, photoGroupModel);
-      setState(() {});
+    }
+  }
+
+  //=============Google photo==============================
+  fetchGooglePhotos(GoogleSignIn googleSignIn, BuildContext context,
+      String? nextPageToken) async {
+
+//         FilePickerResult? result = await FilePicker.platform.pickFiles(
+//   allowMultiple: true,
+//   type: FileType.image,
+// );
+
+
+    try {
+      var httpClient = await googleSignIn.authenticatedClient();
+      if (httpClient == null) {
+        print('Failed to get authenticated client');
+        return null;
+      }
+
+      print(httpClient.credentials.accessToken.data);
+      showProgressDialog(context);
+
+      CommonWidgets.fetchPaginatedGooglePhotos(
+          nextpageToken: nextPageToken,
+          httpClient.credentials.accessToken.data, (media) async {
+if(media.mediaItems!=null){
+        for (int i = 0; i < media.mediaItems!.length; i++) {
+          uploadCount = uploadCount + 1;
+          progressbarValue = uploadCount / media.mediaItems!.length;
+          progressNotifier.value = progressbarValue;
+          String captureDate = CommonWidgets.daysWithYearRetrun(
+              media.mediaItems![i].mediaMetadata!.creationTime ?? "");
+          tempPhotoLinks.add(PhotoDetailModel(
+              id: media.mediaItems![i].id,
+              createdTime: DateTime.parse(
+                  media.mediaItems![i].mediaMetadata!.creationTime!),
+              isSelected: false,
+              isEdit: false,
+              type: "google_photo",
+              webLink: media.mediaItems![i].baseUrl,
+              captureDate: captureDate));
+          await Future.delayed(const Duration(microseconds: 500), () {});
+          setState(() {});
+          if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+            clossProgressDialog("google_photo_synced", tempPhotoLinks);
+          }
+        }
+}else{
+   progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        clossProgressDialog('', []);
+      CommonWidgets.errorDialog(context, 'No image available in google Photo');
+}
+      });
+
+      // do {
+    } catch (e) {
+       progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        clossProgressDialog('', []);
+      CommonWidgets.errorDialog(context, 'No image available in googlePhoto');
     }
   }
 
@@ -2656,20 +2878,9 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       }
 
       var driveApi = DriveApi(httpClient);
-      print(httpClient.credentials.accessToken.data);
-      //  CommonWidgets.fetchPaginatedGooglePhotos(httpClient.credentials.accessToken.data);
+      //CommonWidgets.fetchImages(httpClient.credentials.accessToken.data);
       showProgressDialog(context);
 
-      //     final api = PhotosLibraryApi(httpClient);
-
-      // // Example: List albums
-      // var albums = await api.albums.list(pageSize: 10);
-      // print("Albums:${albums.albums!.length}");
-      // for (var album in albums.albums ?? []) {
-      //   print(album.title);
-      // }
-
-      // do {
       fileList = await driveApi.files.list(
         // q: "mimeType contains 'image/'",
         q: "mimeType='image/png' or mimeType='image/jpeg' or mimeType='image/jpg' and trashed=false and visibility='anyoneWithLink'",
@@ -2685,7 +2896,6 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         allFiles.addAll(fileList.files!);
         //}
         nextPageToken = fileList.nextPageToken;
-        print("dsfasfa${allFiles.length} $nextPageToken");
         if (nextPageToken != null) {
           PrefUtils.instance.driveToken(nextPageToken);
         } else {
@@ -2727,7 +2937,6 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
         CommonWidgets.errorDialog(context, 'No image available in drive');
         progressbarValue = 1.0;
         progressNotifier.value = progressbarValue;
-        print(progressbarValue);
         clossProgressDialog('', []);
         PrefUtils.instance.driveToken('');
 
@@ -2737,20 +2946,16 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
       CommonWidgets.errorDialog(context, 'No image available in drive');
       progressbarValue = 1.0;
       progressNotifier.value = progressbarValue;
-      print(progressbarValue);
       clossProgressDialog('', []);
-      print('Error fetching files: $e');
       return null;
     }
   }
 
   String convertToDirectLink(
       String shareableLink, String fileId, String accessToken, var driveApi) {
-    print("Before ====>$shareableLink");
     final parts = shareableLink.split('/');
     final fileId = parts[5]; // The file ID is at index 5
     final directLink = 'https://drive.google.com/uc?export=view&id=$fileId';
-    print("After ========>$directLink");
 
     changeFilePermission(fileId, accessToken, driveApi);
 
@@ -2793,87 +2998,125 @@ class _ChangeCreateMemoryScreenState extends State<ChangeCreateMemoryScreen>
   }
 
 //=============facebook=======================
-  fetchFacebookPhotos(AccessToken accessToken) async {
+  List<PhotoDetailModel> tempPhotoLinks = [];
+
+  fetchFacebookPhotos(AccessToken accessToken, {String? pageToken}) async {
     // EasyLoading.show(status: 'Processing');
     tempPhotoLinks.clear();
-    final response = await http.get(
-      Uri.parse(
-        'https://graph.facebook.com/me/photos?type=uploaded&access_token=${accessToken.tokenString}',
-      ),
-    );
+    try {
+      showProgressDialog(context);
 
-    if (response.statusCode == 200) {
-      List<FaceBookPhoto> faceBook = [];
-      final data = json.decode(response.body);
-      var photos = data['data'] as List;
-      photos.forEach((element) {
-        faceBook.add(FaceBookPhoto(
-            id: element["id"], createdTime: element["created_time"]));
-      });
-      if (faceBook.isNotEmpty) {
-        showProgressDialog(context);
+      final response = await http.get(
+        Uri.parse(
+          'https://graph.facebook.com/me/photos?type=uploaded&limit=50&fields=images,name,created_time&access_token=${accessToken.tokenString}',
+        ),
+      );
+      print(response.statusCode);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        FaceBookPhoto faceBook = FaceBookPhoto.fromJson(data);
+        if (faceBook.paging!.next!.isNotEmpty) {
+          PrefUtils.instance.facebookToken(faceBook.paging!.next!);
+        } else {
+          PrefUtils.instance.facebookToken("");
+        }
+        if (faceBook.data!.isNotEmpty) {
+          for (int i = 0; i < faceBook.data!.length; i++) {
+            uploadCount += 1;
+            progressbarValue = uploadCount / faceBook.data!.length;
+            progressNotifier.value = progressbarValue;
+            String captureDate = CommonWidgets.daysWithYearRetrun(
+                faceBook.data![i].createdTime ?? "");
+            tempPhotoLinks.add(PhotoDetailModel(
+                type: "fb",
+                createdTime:
+                    DateTime.tryParse(faceBook.data![i].createdTime ?? ""),
+                webLink: faceBook.data![i].images![2].source,
+                captureDate: captureDate,
+                id: faceBook.data![i].id));
+            await Future.delayed(const Duration(microseconds: 500), () {});
+            setState(() {});
+            if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+              clossProgressDialog("facebook_synced", tempPhotoLinks);
+            }
+          }
+        } else {
+          progressbarValue = 1.0;
+          progressNotifier.value = progressbarValue;
+          clossProgressDialog('', []);
+                CommonWidgets.errorDialog(context, 'No image available in facebook');
 
-        await Future.forEach(faceBook, (dynamic element) async {
-          await fetchFacebookPhotosById(
-                  accessToken.tokenString, element, faceBook)
-              .then((value) {});
-        });
+        }
+
+        // Extract the URL of the first image from each photo
+      } else {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        clossProgressDialog('', []);
+                        CommonWidgets.errorDialog(context, 'No image available in facebook');
+
       }
-      if (tempPhotoLinks.isNotEmpty) {
-        await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": Get.context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true,
-          //   "type": "fb"
-          // });
-        });
-        // groupFbByMonth(photoList);
-      }
+    } catch (e) {
+      progressbarValue = 1.0;
+      progressNotifier.value = progressbarValue;
+      clossProgressDialog('', []);
+                      CommonWidgets.errorDialog(context, 'No image available in facebook');
 
-      // Extract the URL of the first image from each photo
-    } else {
-      throw Exception('Failed to load photos');
     }
   }
 
-  List<PhotoDetailModel> tempPhotoLinks = [];
+  fetchAfterPageFacebookPhotos(String? pageToken) async {
+    // EasyLoading.show(status: 'Processing');
+    tempPhotoLinks.clear();
+    try {
+      showProgressDialog(context);
 
-  ///Fetch facebook url by photo id
-  Future fetchFacebookPhotosById(
-    String accessToken,
-    FaceBookPhoto element,
-    List<FaceBookPhoto> faceBook,
-  ) async {
-    final response = await http.get(
-      Uri.parse(
-        'https://graph.facebook.com/${element.id}?fields=images&access_token=$accessToken',
-      ),
-    );
+      final response = await http.get(
+        Uri.parse(pageToken!),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        FaceBookPhoto faceBook = FaceBookPhoto.fromJson(data);
+        if (faceBook.paging!.next!.isNotEmpty) {
+          PrefUtils.instance.facebookToken(faceBook.paging!.next!);
+        } else {
+          PrefUtils.instance.facebookToken("");
+        }
+        for (int i = 0; i < faceBook.data!.length; i++) {
+          uploadCount += 1;
+          progressbarValue = uploadCount / faceBook.data!.length;
+          progressNotifier.value = progressbarValue;
+          String captureDate = CommonWidgets.daysWithYearRetrun(
+              faceBook.data![i].createdTime ?? "");
+          tempPhotoLinks.add(PhotoDetailModel(
+              type: "fb",
+              createdTime:
+                  DateTime.tryParse(faceBook.data![i].createdTime ?? ""),
+              webLink: faceBook.data![i].images![2].source,
+              captureDate: captureDate,
+              id: faceBook.data![i].id));
+          await Future.delayed(const Duration(microseconds: 500), () {});
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      String captureDate =
-          CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
-      tempPhotoLinks.add(PhotoDetailModel(
-          type: "fb",
-          createdTime: DateTime.tryParse(element.createdTime ?? ""),
-          webLink: data['images'][0]["source"],
-          captureDate: captureDate,
-          id: element.id));
-      print(tempPhotoLinks);
-      uploadCount += 1;
-      progressbarValue = uploadCount / faceBook.length;
+          if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+            clossProgressDialog("facebook_synced", tempPhotoLinks);
+          }
+        }
+
+        // Extract the URL of the first image from each photo
+      } else {
+
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        clossProgressDialog('', []);
+                              CommonWidgets.errorDialog(context, 'No more image available in facebook');
+
+      }
+    } catch (e) {
+      progressbarValue = 1.0;
       progressNotifier.value = progressbarValue;
+      clossProgressDialog('', []);
+                            CommonWidgets.errorDialog(context, 'No more image available in facebook');
 
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {});
-      clossProgressDialog('facebook_synced', tempPhotoLinks);
-    } else {
-      throw Exception('Failed to load photos');
     }
   }
 

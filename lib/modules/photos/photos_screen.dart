@@ -10,7 +10,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:stasht/memory_detail_bottom_sheet.dart';
 import 'package:stasht/modules/create_memory/change_memory_screen.dart';
-import 'package:stasht/modules/create_memory/create_memory_copy.dart';
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/media_screen.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
@@ -67,12 +66,14 @@ class _PhotosViewState extends State<PhotosView>
   final ScrollController _scrollController = ScrollController();
   int categorySelectedIndex = 0;
   int notificationCount=0;
+  String? photoId;
 
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     ApiCall.getNotifications(api: ApiUrl.notificationCount, callack: this);
     CommonWidgets.initPlatformState(returnBack: getMemoryIdFromNotification);
+    CommonWidgets.permissionForOnesinal();
     _initDynamicLinks();
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
@@ -112,7 +113,7 @@ class _PhotosViewState extends State<PhotosView>
             userId: model.user?.id,
             callBak: () {
               if (_scaffoldKey.currentState!.mounted) {
-                _scaffoldKey.currentState!.refrehScreen();
+                _scaffoldKey.currentState!.refrehScreen(isEnd: true);
                 PrefUtils.instance.memoryId("");
                 PrefUtils.instance.setTtile("");
                 PrefUtils.instance.imageLink("");
@@ -126,8 +127,16 @@ class _PhotosViewState extends State<PhotosView>
     );
   }
 
-  void getMemoryIdFromNotification(memoryId) {
+  void getMemoryIdFromNotification(memoryId,imageId) {
 //CommonWidgets.successDialog(context, memoryId);
+print("dfsdfsdfsd$imageId");
+if(imageId!=null){
+  
+photoId=imageId;
+
+}else{
+  photoId=null;
+}
     EasyLoading.show();
     ApiCall.memoryDetails(
         api: ApiUrl.memoryDetail, id: memoryId, page: "", callack: this);
@@ -583,13 +592,20 @@ class _PhotosViewState extends State<PhotosView>
   void onFailure(String message) {
     EasyLoading.dismiss();
   }
+  bool isMemoryDetailPageOpen = false;
 
   @override
   void onSuccess(String data, String apiType) {
     EasyLoading.dismiss();
     if (apiType == ApiUrl.memoryDetail) {
+      if(isMemoryDetailPageOpen==false){
+        setState(() {
+                  isMemoryDetailPageOpen=true;
+
+        });
       MemoryDetailsModel details =
           MemoryDetailsModel.fromJson(json.decode(data));
+          print("hellofdgdfg");
       Navigator.push(
           context,
           MaterialPageRoute(
@@ -607,11 +623,16 @@ class _PhotosViewState extends State<PhotosView>
                     subId: details.data![0].memory!.subCategoryId.toString(),
                     catId: details.data![0].memory!.categoryId.toString(),
                     selectionType: "Personal",
+                    imageId:photoId!=null? int.parse(photoId!):null,
                   ))).then((value) {
-        if (_scaffoldKey.currentState!.mounted) {
+ setState(() {
+                  isMemoryDetailPageOpen=false;
+
+        });        if (_scaffoldKey.currentState!.mounted) {
           _scaffoldKey.currentState!.refrehScreen();
         }
       });
+      }
     }else{
       notificationCount=json.decode(data)['data'];
       setState(() {

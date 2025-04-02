@@ -9,7 +9,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:stasht/modules/create_memory/edit_memory.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memories/model/category_memory_model.dart';
 import 'package:stasht/modules/memories/model/category_model.dart';
@@ -25,7 +24,6 @@ import 'package:stasht/utils/common_widgets.dart';
 import 'package:stasht/utils/constants.dart';
 import 'package:stasht/utils/shimmer_widget.dart';
 
-import '../create_memory/create_memory.dart';
 
 class MemoriesScreen extends StatefulWidget {
   MemoriesScreen(
@@ -58,6 +56,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
   final ScrollController _scrollController = ScrollController();
   List<Future<Uint8List?>> future = [];
   final ScrollController _mainScrollController = ScrollController();
+  bool isCollaborator=false;
 
   @override
   void initState() {
@@ -70,24 +69,27 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
     }
   }
 
-  refrehScreen() {
+  refrehScreen({bool? isEnd}) {
+    if(isEnd!=null){
+      isCollaborator=isEnd;
+    }
     ApiCall.category(api: ApiUrl.categories, callack: this);
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels ==
-          _scrollController.position.maxScrollExtent) {
-        if (_hasMore) {
-          _isLoading = true;
-          _currentPage = _currentPage + 1;
-          _hasMore = false;
-          setState(() {});
-          if (subIdIndex == null) {
-            nextPageSubCategory('');
-          } else {
-            nextPageSubCategory(subCategoriesId);
-          }
-        }
-      }
-    });
+    // // _scrollController.addListener(() {
+    // //   if (_scrollController.position.pixels ==
+    // //       _scrollController.position.maxScrollExtent) {
+    // //     if (_hasMore) {
+    // //       _isLoading = true;
+    // //       _currentPage = _currentPage + 1;
+    // //       _hasMore = false;
+    // //       setState(() {});
+    // //       if (subIdIndex == null) {
+    // //         nextPageSubCategory('');
+    // //       } else {
+    // //         nextPageSubCategory(subCategoriesId);
+    // //       }
+    // //     }
+    // //   }
+    // });
   }
 
   @override
@@ -336,7 +338,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
         .any((category) => category.isSelected);
     return isAnySelected;
   }
-
+String catId="";
   selectedCategory(int index) {
     print(index);
     for (int i = 0; i < categoryModel.categories!.length; i++) {
@@ -346,11 +348,12 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
         categoryModel.categories![i].isSelected = false;
       }
     }
+    catId=categoryModel.categories![index].id.toString();
     setState(() {});
     EasyLoading.show();
     ApiCall.memoryByCategory(
-        api: ApiUrl.memoryByCategory,
-        id: categoryModel.categories![index].id.toString(),
+        api: ApiUrl.memoryByCategoryWithSubcategory,
+        id: catId,
         sub_category_id: '',
         type: '',
         page: '1',
@@ -358,21 +361,19 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
   }
 
   refershSubCategory(String subId) {
-    print(subId);
-    for (int i = 0; i < categoryModel.categories!.length; i++) {
-      if (categoryModel.categories![i].isSelected) {
+    
+        print(true);
         setState(() {});
         EasyLoading.show();
         ApiCall.memoryByCategory(
-            api: ApiUrl.memoryByCategory,
-            id: categoryModel.categories![i].id.toString(),
+            api: ApiUrl.memoryByCategoryWithSubcategory,
+            id: catId,
             sub_category_id: subId,
             type: '',
             page: "$_currentPage",
             callack: this);
-      }
-      break;
-    }
+      
+    
   }
 
   nextPageSubCategory(String subId) {
@@ -730,12 +731,11 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
         children: [
           (getSelectedCategory() == 'Shared' ||
                   getSelectedCategory() == 'Published')
-              ? SizedBox(
+              ? const SizedBox(
                   height: 16,
                 )
               : Container(
                   height: 49,
-                  margin: const EdgeInsets.only(top: 8),
                   width: MediaQuery.of(context).size.width,
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Row(
@@ -789,14 +789,17 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                 ), // Call the subTitle method
                               ),
                             ),
+                           const SizedBox(
+                                      width: 3,
+                                    ),
                       categoryMemoryModel.subCategories == null
                           ? Container()
                           : Expanded(
                               child: Container(
                                 child: ListView.separated(
                                   separatorBuilder: (context, index) {
-                                    return SizedBox(
-                                      width: 16,
+                                    return const SizedBox(
+                                      width: 10,
                                     );
                                   },
                                   itemCount:
@@ -826,6 +829,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                         subCategoriesId = categoryMemoryModel
                                             .subCategories![index].id
                                             .toString();
+                                            print('sdgsgsg$subCategoriesId');
                                         refershSubCategory(subCategoriesId);
                                       },
                                       onLongPressStart: (details) {},
@@ -1009,89 +1013,108 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  memory.user!.name!,
-                                                  style: appTextStyle(
-                                                    fm: robotoRegular,
-                                                    fz: 12,
-                                                    color: AppColors.black,
-                                                    height: 19.2 / 12,
+                                            Expanded(
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    memory.user!.name!,
+                                                    style: appTextStyle(
+                                                      fm: robotoRegular,
+                                                      fz: 12,
+                                                      color: AppColors.black,
+                                                      height: 19.2 / 12,
+                                                    ),
                                                   ),
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      memory.title!.length > 20
-                                                          ? memory.title!
-                                                                  .substring(
-                                                                      0, 20) +
-                                                              "...."
-                                                          : memory.title!,
-                                                      style: appTextStyle(
-                                                        fm: robotoMedium,
-                                                        fz: 16,
-                                                        color: AppColors.black,
-                                                        height: 19 / 16,
+                                                  
+                                                      Text(
+                                                        memory.title!.length > 20
+                                                            ? memory.title!
+                                                                    .substring(
+                                                                        0, 20) +
+                                                                "...."
+                                                            : memory.title!,
+                                                        style: appTextStyle(
+                                                          fm: robotoMedium,
+                                                          fz: 16,
+                                                          color: AppColors.black,
+                                                          height: 19 / 16,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  height: 3,
-                                                ),
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      "${CommonWidgets.dateRetrun(memory.minUploadedImgDate!)}-${CommonWidgets.maxDateRetrun(memory.maxUploadedImgDate!)}",
-                                                      style: const TextStyle(
-                                                          color: Colors.black,
-                                                          fontStyle:
-                                                              FontStyle.italic,
-                                                          fontFamily:
-                                                              robotoRegular,
-                                                          fontSize: 10),
-                                                    ),
-                                                  ],
-                                                )
-                                              ],
+                                                    
+                                                  const SizedBox(
+                                                    height: 3,
+                                                  ),
+                                                  if(memory
+                                                                      .minUploadedImgDate!=null || memory
+                                                                      .maxUploadedImgDate!=null)
+                                                     if (memory
+                                                                      .minUploadedImgDate!
+                                                                      .isNotEmpty &&
+                                                                 memory
+                                                                      .maxUploadedImgDate!
+                                                                      .isNotEmpty)
+                                                  Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        "${CommonWidgets.dateRetrun(memory.minUploadedImgDate!)}-${CommonWidgets.maxDateRetrun(memory.maxUploadedImgDate!)}",
+                                                        style:const TextStyle(
+                                                                               // fontStyle: FontStyle.italic,
+                                                                                color: AppColors.black,
+                                                                                fontWeight: FontWeight.w400,
+                                                                                fontFamily: robotoRegular,
+                                                                                fontSize: 11),
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
                                             ),
                                             Align(
                                               alignment: Alignment.centerRight,
                                               child: Container(
-                                                height: 32,
-                                                width: 43,
-                                                alignment: Alignment.center,
-                                                decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                        color: AppColors.black),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            18)),
-                                                child: Text(
-                                                  '${memory.postsCount}',
-                                                  style: appTextStyle(
-                                                    fm: interMedium,
-                                                    fz: 12,
-                                                    color: AppColors.black,
-                                                    height: 26.2 / 12,
-                                                  ),
-                                                ),
-                                              ),
+                                    alignment: Alignment.center,
+                                    height: 32,
+                                    width: 62,
+                                    decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border:
+                                            Border.all(color: AppColors.black),
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child:  Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Image.asset(galeryPic,width: 18,height: 16),
+                                       const  SizedBox(width: 5,),
+                                        Text(
+                                         '${memory.postsCount}',
+                                          style: appTextStyle(
+                                              fz: 12,
+                                              color: AppColors.black,
+                                              height: 24 / 12,
+                                              fw:FontWeight.w500,
+                                              fm: interMedium),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                              
+                                              
+                                              
                                             ),
                                           ],
                                         ),
+                                      ),
+                                      const SizedBox(
+                                        width: 10,
                                       ),
                                     ],
                                   ),
@@ -1155,11 +1178,25 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
       final double offset = index *
           deviceHeight *
           .237; // Assuming each item has a height of 50.0
+          if(isCollaborator){
+ _mainScrollController.animateTo(
+    
+      _mainScrollController.position.maxScrollExtent, // Scroll to the end
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+      );
+      isCollaborator=false;
+          }else{
+
+          
+
       _mainScrollController.animateTo(
+    
         offset,
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeInOut,
       );
+      }
     });
     setState(() {});
   }
@@ -1172,6 +1209,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
 
   @override
   void onSuccess(String data, String apiType) {
+    print(apiType);
     print(data);
     if (apiType == ApiUrl.categories) {
       categoryModel = CategoryModel.fromJson(jsonDecode(data));
@@ -1198,7 +1236,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
 
       EasyLoading.dismiss();
       ApiCall.category(api: ApiUrl.categories, callack: this);
-    } else if (apiType == ApiUrl.memoryByCategory) {
+    } else if (apiType == ApiUrl.memoryByCategoryWithSubcategory) {
       EasyLoading.dismiss();
 
       if (_isLoading) {
@@ -1692,6 +1730,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                             .name![0]
                                                                             .toUpperCase(),
                                                                         style: const TextStyle(
+                                                                        
                                                                             fontSize:
                                                                                 24,
                                                                             color:
@@ -1742,8 +1781,9 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                   color:
                                                                       AppColors
                                                                           .black,
+                                                                          fontWeight:FontWeight.w500,
                                                                   fontFamily:
-                                                                      robotoBold,
+                                                                      robotoMedium,
                                                                   height:
                                                                       17.2 / 15,
                                                                   fontSize: 15),
@@ -1775,7 +1815,7 @@ class MemoriesScreenState extends State<MemoriesScreen> implements ApiCallback {
                                                                               color: AppColors.black,
                                                                               fontWeight: FontWeight.w400,
                                                                               fontFamily: robotoRegular,
-                                                                              fontSize: 10),
+                                                                              fontSize: 11),
                                                                         ),
                                                                      const   SizedBox(height: 2,)
                                                                       ],

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_swipe_action_cell/core/cell.dart';
@@ -12,8 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:stasht/modules/comment_screen/comment_screen.dart';
 import 'package:stasht/modules/create_memory/change_memory_screen.dart';
-import 'package:stasht/modules/create_memory/create_memory.dart';
-import 'package:stasht/modules/create_memory/edit_memory.dart';
+
 import 'package:stasht/modules/login_signup/domain/user_model.dart';
 import 'package:stasht/modules/media/model/phot_mdoel.dart';
 import 'package:stasht/modules/memory_details/add_caption.dart';
@@ -52,7 +52,9 @@ class MemoryDetailPage extends StatefulWidget {
       required this.photosList,
       required this.selectionType,
       this.subId,
-      this.catId,this.jump});
+      this.catId,this.jump,this.imageId});
+        int? imageId;
+
   String memoryTtile = '';
   String userName = '';
   String memoryId = '';
@@ -97,6 +99,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
   CollaboratorList collaBoratorList=new CollaboratorList();
   @override
   void initState() {
+    print("dsfsafsaf${widget.imageId}");
     PrefUtils.instance.getUserFromPrefs().then((value) {
       model = value!;
       print("${widget.email} ${model.user!.id}");
@@ -443,7 +446,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                       if (value != null) {
                                         photoId=value;
                                         _currentPage = 1;
-          
+          widget.jump="";
                                         ApiCall.memoryDetails(
                                             api: ApiUrl.memoryDetail,
                                             id: widget.memoryId,
@@ -519,7 +522,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                                 ).then((value) {
                                   if (value != null) {
                                                                           photoId=value;
-          
+          widget.jump="";
                                     _currentPage = 1;
                                     ApiCall.memoryDetails(
                                         api: ApiUrl.memoryDetail,
@@ -573,7 +576,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage>
                             ).then((value) {
                               if (value != null) {
                                                                       photoId=value;
-          
+          widget.jump="";
                                 _currentPage = 1;
                                 ApiCall.memoryDetails(
                                     api: ApiUrl.memoryDetail,
@@ -1013,7 +1016,33 @@ fw:FontWeight.w600,
                                                             height: 19.2 / 14,
                                                             color:memoriesModel.data![index]
                                                           .description == "" ?AppColors.hintColor: AppColors.black,
-                                                          ),
+                                                          ),recognizer: TapGestureRecognizer()
+    ..onTap = () {
+      if (memoriesModel.data![index].description == '') {
+ Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                  builder: (BuildContext
+                                                                          context) =>
+                                                                      AddCaption(
+                                                                        id: widget
+                                                                            .memoryId,
+                                                                        memoriesModel:
+                                                                            memoriesModel
+                                                                                .data!
+                                                                               [index],
+                                                                      ))).then(
+                                                              (value) {
+                                                            if (value != null) {
+                                                              memoriesModel
+                                                                      .data!
+                                                                      [index]
+                                                                      .description =
+                                                                  value;
+                                                              setState(() {});
+                                                            }
+                                                          });      } 
+    },
                                                           
                                                         ),
                                                       ],
@@ -1682,6 +1711,38 @@ void scrollToPosition(int index) {
         print(data);
 
         memoriesModel = MemoryDetailsModel.fromJson(json.decode(data));
+        if(widget.imageId!=null){
+          for(int i=0;i<memoriesModel.data!.length;i++){
+            if(memoriesModel.data![i].id==widget.imageId){
+ Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                              builder: (BuildContext
+                                                                      context) =>
+                                                                  Comments(
+                                                                    memoryId: widget
+                                                                        .memoryId,
+                                                                    imagePath:
+                                                                        memoriesModel.data![i].imageLink!,
+                                                                    imageId: widget.imageId.toString(),
+                                                                  ))).then((value) {
+                                                        _currentPage = 0;
+                                                                                                              widget.imageId=null;
+
+                                                        ApiCall.memoryDetails(
+                                                            api:
+                                                                ApiUrl.memoryDetail,
+                                                            id: widget.memoryId,
+                                                            page: _currentPage
+                                                                .toString(),
+                                                            callack: this);
+                                                      });
+                                                      break;
+                                                      
+            }
+          }
+           
+        }
         if (memoriesModel.data!.isNotEmpty) {
           widget.memoryTtile = memoriesModel.data![0].memory!.title!;
         }

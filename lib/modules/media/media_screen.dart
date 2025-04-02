@@ -20,9 +20,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stasht/bottom_bar_visibility_provider.dart';
 import 'package:stasht/image_preview_widget.dart';
-import 'package:stasht/modules/create_memory/create_memory_copy.dart';
 import 'package:stasht/modules/create_memory/model/group_modle.dart';
-import 'package:stasht/modules/create_memory/new_memory.dart';
 import 'package:stasht/modules/invite_collaborator/invite_collaborator_screen.dart';
 
 import 'package:stasht/modules/media/model/CombinedPhotoModel.dart';
@@ -115,6 +113,10 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
   bool isBottomSheetOpen = false;
   ValueNotifier<int> selectedCountNotifier = ValueNotifier<int>(0);
   ScrollController driveController = ScrollController();
+      ScrollController photoController = ScrollController();
+        ScrollController facebookController = ScrollController();
+
+
   List<AllPhotoModel> selectedPhoto = [];
 
   double radians(double degree) {
@@ -194,13 +196,13 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
 
       changeTab();
     });
-    PrefUtils.instance.getInstaPrefs().then((value) {
+    PrefUtils.instance.getGooglePhotoPrefs().then((value) {
       for (var photoList in value) {
         photoList.isSelected = false;
       }
       instaModel = value;
-      instaGroupModel =
-          CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
+     instaGroupModel =
+          CommonWidgets.groupGooglePhotosByDate(instaModel);
 
      changeTab();
     });
@@ -209,6 +211,9 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     EasyLoading.show();
     ApiCall.category(api: ApiUrl.categories, callack: this);
     driveController.addListener(_onScrollEnd);
+        photoController.addListener(_onPhotoScrollEnd);
+         facebookController.addListener(_onFacebookScrollEnd);
+
   }
 
   
@@ -227,7 +232,7 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       //  Future.delayed(const Duration(milliseconds: 500), () async {
       print(widget.type);
 
-      if (PrefUtils.instance.getSelectedtype() == 'instagram_synced') {
+      if (PrefUtils.instance.getSelectedtype() == 'google_photo_synced') {
         selectedIndex = 2;
         setState(() {});
       } else if (PrefUtils.instance.getSelectedtype() == 'facebook_synced') {
@@ -672,15 +677,21 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
         return CommonWidgets.fbView(context, getFacebbokPhoto);
       } else {
         return CommonWidgets.fbPhtotView(fbGroupModel, viewRefershOtherTab,
-            selectedCountNotifier: selectedCountNotifier);
+            selectedCountNotifier: selectedCountNotifier,            controller: facebookController,
+);
       }
-    } else if (tabListItem[selectedIndex]['label']  == "Photos") {
+    } 
+      else if (tabListItem[selectedIndex]['label'] == "Photos") {
       if (instaGroupModel.isEmpty) {
-        return CommonWidgets.photoView(context, getInstaView);
+        return CommonWidgets.photoView(context, getGooglePhotoView);
       } else {
-        return CommonWidgets.instaPhtotView(instaGroupModel, viewRefershOtherTab,
-            selectedCountNotifier: selectedCountNotifier);
+        return    CommonWidgets.googlePhotoView(
+            instaGroupModel, viewRefershOtherTab,            selectedCountNotifier: selectedCountNotifier,controller: photoController
+
+           
+       );
       }
+    
     }
   }
 
@@ -837,17 +848,69 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
       },
     );
   }
+    bool _isBottomSheetVisible = false; // Prevent multiple dialogs
+
+  void _onFacebookScrollEnd() {
+    if (facebookController.position.pixels >=
+        facebookController.position.maxScrollExtent) {
+      if (PrefUtils.instance.getFacebookToken() != null &&
+          PrefUtils.instance.getFacebookToken()!.isNotEmpty &&
+        !_isBottomSheetVisible) {
+          _isBottomSheetVisible=true;
+        CommonWidgets.showBottomSheet(context, () {
+                                _isBottomSheetVisible=false;
+
+          fetchAfterPageFacebookPhotos(PrefUtils.instance.getFacebookToken());
+        }).then((v){
+                              _isBottomSheetVisible = false;
+
+        });
+
+        //_showLoadMoreSnackbar();
+      }
+    }
+  }
+  void _onPhotoScrollEnd() {
+    if (photoController.position.pixels >=
+        photoController.position.maxScrollExtent) {
+      if (PrefUtils.instance.getPhotoToken() != null &&
+          PrefUtils.instance.getPhotoToken()!.isNotEmpty &&
+        !_isBottomSheetVisible) {
+                    _isBottomSheetVisible=true;
+
+        CommonWidgets.showBottomSheet(context, () {
+          CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+                                  _isBottomSheetVisible=false;
+
+            getGooglePhotoView(value!, PrefUtils.instance.getPhotoToken()!);
+          });
+        }).then((v){
+                              _isBottomSheetVisible = false;
+
+        });
+        //_showLoadMoreSnackbar();
+      }
+    }
+  }
 
   void _onScrollEnd() {
     print("scroll end");
     if (driveController.position.pixels >=
         driveController.position.maxScrollExtent) {
       if (PrefUtils.instance.getDriveToken() != null &&
-          PrefUtils.instance.getDriveToken()!.isNotEmpty) {
+          PrefUtils.instance.getDriveToken()!.isNotEmpty &&
+        !_isBottomSheetVisible) {
+                    _isBottomSheetVisible=true;
+
         CommonWidgets.showBottomSheet(context, () {
           CommonWidgets.getFileFromGoogleDrive(context).then((value) {
+                      _isBottomSheetVisible=false;
+
             getDriveView(value!, PrefUtils.instance.getDriveToken()!);
           });
+        }).then((v){
+                              _isBottomSheetVisible = false;
+
         });
         //_showLoadMoreSnackbar();
       }
@@ -873,12 +936,12 @@ class _MediaScreenState extends State<MediaScreen> implements ApiCallback {
     );
   }
 
-  getFacebbokPhoto(AccessToken token) {
+  getFacebbokPhoto(AccessToken token,String pageToken) {
     fetchFacebookPhotos(token);
   }
 
-  getInstaView(String token) {
-    instaRequestForAccessToken(token);
+ getGooglePhotoView(GoogleSignIn v1, String pageToken) {
+    fetchGooglePhotos(v1, context, pageToken);
   }
 
   getDriveView(GoogleSignIn v1, String pageToken) {
@@ -1107,6 +1170,8 @@ if(isOneSelect==false){
     return SizedBox(
       height: 36,
       child: ListView.separated(
+                padding: EdgeInsets.only(right: 10),
+
         separatorBuilder: (context, index) {
           return SizedBox(width: 16,);
         },
@@ -2777,50 +2842,126 @@ if(isOneSelect==false){
     );
   }
 
-  clossProgressDialog(String type, List<PhotoDetailModel> tempPhotoLinks) {
+  clossProgressDialog(String type, List<PhotoDetailModel> photoLinks) {
     if ((progressbarValue * 100).toStringAsFixed(0) == '100') {
       Navigator.pop(context);
+
       progressbarValue = 0.0;
+      progressNotifier.value = progressbarValue;
+
       uploadCount = 0;
       if (type == "google_drive_synced") {
-       // photoLinks = tempPhotoLinks;
         if (driveModel.isEmpty) {
-          driveModel = tempPhotoLinks;
+          driveModel = photoLinks;
         } else {
-          driveModel.addAll(tempPhotoLinks);
+          final Map<String, PhotoDetailModel> uniquePhotos = {
+            for (var photo in [...driveModel, ...photoLinks]) photo.id: photo
+          };
+          driveModel =
+              uniquePhotos.values.toList(); 
         }
         PrefUtils.instance.saveDrivePhotoLinks(driveModel);
-       // if (driveGroupModel.isEmpty) {
-          driveGroupModel = CommonWidgets.groupPhotosByDate(driveModel);
-        // } else {
-        //   driveGroupModel.addAll(CommonWidgets.groupPhotosByDate(driveModel));
+        driveGroupModel = CommonWidgets.groupPhotosByDate(driveModel);
 
-        //  // driveGroupModel=CommonWidgets.combinedGroupPhotosByDate(photoLinks,driveGroupModel);
-        // }
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       } else if (type == 'facebook_synced') {
-        fbModel = tempPhotoLinks;
+        if (fbModel.isEmpty) {
+          fbModel = photoLinks;
+        } else {
+           final Map<String, PhotoDetailModel> uniquePhotos = {
+            for (var photo in [...fbModel, ...photoLinks]) photo.id: photo
+          };
+          fbModel =
+              uniquePhotos.values.toList(); 
+        }
+        PrefUtils.instance.saveFacebookPhotoLinks(fbModel);
 
         fbGroupModel = CommonWidgets.groupPhotosForFBAndINSTAByDate(fbModel);
 
-        PrefUtils.instance.saveFacebookPhotoLinks(fbModel);
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
-      } else if (type == "instagram_synced") {
-        instaModel = tempPhotoLinks;
-        instaGroupModel =
-            CommonWidgets.groupPhotosForFBAndINSTAByDate(instaModel);
+      } else if (type == "google_photo_synced") {
+        if (instaModel.isEmpty) {
+          instaModel = photoLinks;
+        } else {
+          final Map<String, PhotoDetailModel> uniquePhotos = {
+            for (var photo in [...instaModel, ...photoLinks]) photo.id: photo
+          };
+          instaModel =
+              uniquePhotos.values.toList(); // ✅ Converts back to a list
+        }
+        PrefUtils.instance.saveGooglePhotoLinks(instaModel);
 
-        PrefUtils.instance.saveInstaPhotoLinks(instaModel);
+        instaGroupModel = CommonWidgets.groupGooglePhotosByDate(instaModel);
+
         ApiCall.syncAccount(
             api: ApiUrl.syncAccount, type: type, status: "1", callack: this);
       }
+
       allPhotoGroupModel = CommonWidgets.allPhotoGroup(
           driveGroupModel, instaGroupModel, fbGroupModel, photoGroupModel);
-      setState(() {});
     }
   }
+
+//=============Google photo==============================
+   fetchGooglePhotos(GoogleSignIn googleSignIn, BuildContext context,
+      String? nextPageToken) async {
+    try {
+      var httpClient = await googleSignIn.authenticatedClient();
+      if (httpClient == null) {
+        print('Failed to get authenticated client');
+        return null;
+      }
+
+      print(httpClient.credentials.accessToken.data);
+      showProgressDialog(context);
+
+      CommonWidgets.fetchPaginatedGooglePhotos(
+          nextpageToken: nextPageToken,
+          httpClient.credentials.accessToken.data, (media) async {
+if(media.mediaItems!=null){
+        for (int i = 0; i < media.mediaItems!.length; i++) {
+          uploadCount = uploadCount + 1;
+          progressbarValue = uploadCount / media.mediaItems!.length;
+          progressNotifier.value = progressbarValue;
+          String captureDate = CommonWidgets.daysWithYearRetrun(
+              media.mediaItems![i].mediaMetadata!.creationTime ?? "");
+          tempPhotoLinks.add(PhotoDetailModel(
+              id: media.mediaItems![i].id,
+              createdTime: DateTime.parse(
+                  media.mediaItems![i].mediaMetadata!.creationTime!),
+              isSelected: false,
+              isEdit: false,
+              type: "google_photo",
+              webLink: media.mediaItems![i].baseUrl,
+              captureDate: captureDate));
+          await Future.delayed(const Duration(microseconds: 500), () {});
+          setState(() {});
+          if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+            clossProgressDialog("google_photo_synced", tempPhotoLinks);
+          }
+        }
+}else{
+  
+   progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        clossProgressDialog('', []);
+      CommonWidgets.errorDialog(context, 'No image available in google Photo');
+
+}
+      });
+
+      // do {
+    } catch (e) {
+
+   progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        clossProgressDialog('', []);
+      CommonWidgets.errorDialog(context, 'No image available in google Photo');
+    }
+  }
+
 
 //===============Drive===================
   fetchPhotosFromDrive(GoogleSignIn googleSignIn, BuildContext context,
@@ -2965,90 +3106,134 @@ if(isOneSelect==false){
   }
 
 //=============facebook=======================
-  fetchFacebookPhotos(AccessToken accessToken) async {
-    tempPhotoLinks.clear();
-    // EasyLoading.show(status: 'Processing');
-
-    final response = await http.get(
-      Uri.parse(
-        'https://graph.facebook.com/me/photos?type=uploaded&access_token=${accessToken.tokenString}',
-      ),
-    );
-
-    if (response.statusCode == 200) {
-      List<FaceBookPhoto> faceBook = [];
-      final data = json.decode(response.body);
-      var photos = data['data'] as List;
-      photos.forEach((element) {
-        faceBook.add(FaceBookPhoto(
-            id: element["id"], createdTime: element["created_time"]));
-      });
-      if (faceBook.isNotEmpty) {
-        showProgressDialog(context);
-
-        await Future.forEach(faceBook, (dynamic element) async {
-          await fetchFacebookPhotosById(
-                  accessToken.tokenString, element, faceBook)
-              .then((value) {});
-        });
-      }
-      if (tempPhotoLinks.isNotEmpty) {
-        await Future.delayed(const Duration(seconds: 2), () {
-          // Get.offNamed(AppRoutes.photosViewScreen, arguments: {
-          //   "photoList": photoLinks,
-          //   "context": Get.context,
-          //   "groupAssets": groupedAssets,
-          //   "assetsList": assetsItems,
-          //   "assets": assets,
-          //   "fromMedia": true,
-          //   "type": "fb"
-          // });
-        });
-        // groupFbByMonth(photoList);
-      }
-
-      // Extract the URL of the first image from each photo
-    } else {
-      throw Exception('Failed to load photos');
-    }
-  }
-
-  ///Fetch facebook url by photo id
   List<PhotoDetailModel> tempPhotoLinks = [];
 
-  Future fetchFacebookPhotosById(
-    String accessToken,
-    FaceBookPhoto element,
-    List<FaceBookPhoto> faceBook,
-  ) async {
-    final response = await http.get(
-      Uri.parse(
-        'https://graph.facebook.com/${element.id}?fields=images&access_token=$accessToken',
-      ),
-    );
+   fetchFacebookPhotos(AccessToken accessToken, {String? pageToken}) async {
+    // EasyLoading.show(status: 'Processing');
+    tempPhotoLinks.clear();
+    try {
+      showProgressDialog(context);
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      String captureDate =
-          CommonWidgets.daysWithYearRetrun(element.createdTime ?? "");
-      tempPhotoLinks.add(PhotoDetailModel(
-          type: "fb",
-          createdTime: DateTime.tryParse(element.createdTime ?? ""),
-          webLink: data['images'][0]["source"],
-          captureDate: captureDate,
-          id: element.id));
-      print(tempPhotoLinks);
-      uploadCount += 1;
-      progressbarValue = uploadCount / faceBook.length;
+      final response = await http.get(
+        Uri.parse(
+          'https://graph.facebook.com/me/photos?type=uploaded&limit=50&fields=images,name,created_time&access_token=${accessToken.tokenString}',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        FaceBookPhoto faceBook = FaceBookPhoto.fromJson(data);
+        if (faceBook.paging!.next!.isNotEmpty) {
+          PrefUtils.instance.facebookToken(faceBook.paging!.next!);
+        } else {
+          PrefUtils.instance.facebookToken("");
+        }
+        if (faceBook.data!.isNotEmpty) {
+          for (int i = 0; i < faceBook.data!.length; i++) {
+            uploadCount += 1;
+            progressbarValue = uploadCount / faceBook.data!.length;
+            progressNotifier.value = progressbarValue;
+            String captureDate = CommonWidgets.daysWithYearRetrun(
+                faceBook.data![i].createdTime ?? "");
+            tempPhotoLinks.add(PhotoDetailModel(
+                type: "fb",
+                createdTime:
+                    DateTime.tryParse(faceBook.data![i].createdTime ?? ""),
+                webLink: faceBook.data![i].images![2].source,
+                captureDate: captureDate,
+                id: faceBook.data![i].id));
+            await Future.delayed(const Duration(microseconds: 500), () {});
+            setState(() {});
+            if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+              clossProgressDialog("facebook_synced", tempPhotoLinks);
+            }
+          }
+        } else {
+          progressbarValue = 1.0;
+          progressNotifier.value = progressbarValue;
+          print(progressbarValue);
+          clossProgressDialog('', []);
+                          CommonWidgets.errorDialog(context, 'No image available in facebook');
+
+        }
+
+        // Extract the URL of the first image from each photo
+      } else {
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('', []);
+                        CommonWidgets.errorDialog(context, 'No image available in facebook');
+
+      }
+    } catch (e) {
+      progressbarValue = 1.0;
       progressNotifier.value = progressbarValue;
-
-      await Future.delayed(const Duration(seconds: 1));
-      setState(() {});
-      clossProgressDialog('facebook_synced', tempPhotoLinks);
-    } else {
-      throw Exception('Failed to load photos');
+      print(progressbarValue);
+      clossProgressDialog('', []);
+                CommonWidgets.errorDialog(context, 'No image available in facebook');
     }
   }
+  fetchAfterPageFacebookPhotos(String? pageToken) async {
+    print(pageToken);
+    // EasyLoading.show(status: 'Processing');
+    tempPhotoLinks.clear();
+    try {
+      showProgressDialog(context);
+
+      final response = await http.get(
+        Uri.parse(pageToken!),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        FaceBookPhoto faceBook = FaceBookPhoto.fromJson(data);
+        if (faceBook.paging!.next!.isNotEmpty) {
+          PrefUtils.instance.facebookToken(faceBook.paging!.next!);
+        } else {
+          PrefUtils.instance.facebookToken("");
+        }
+        for (int i = 0; i < faceBook.data!.length; i++) {
+          uploadCount += 1;
+          progressbarValue = uploadCount / faceBook.data!.length;
+          progressNotifier.value = progressbarValue;
+          String captureDate = CommonWidgets.daysWithYearRetrun(
+              faceBook.data![i].createdTime ?? "");
+          tempPhotoLinks.add(PhotoDetailModel(
+              type: "fb",
+              createdTime:
+                  DateTime.tryParse(faceBook.data![i].createdTime ?? ""),
+              webLink: faceBook.data![i].images![2].source,
+              captureDate: captureDate,
+              id: faceBook.data![i].id));
+          await Future.delayed(const Duration(microseconds: 500), () {});
+
+          if ((progressbarValue * 100).toStringAsFixed(0) == "100") {
+            clossProgressDialog("facebook_synced", tempPhotoLinks);
+          }
+        }
+
+        // Extract the URL of the first image from each photo
+      } else {
+        print("error");
+
+        progressbarValue = 1.0;
+        progressNotifier.value = progressbarValue;
+        print(progressbarValue);
+        clossProgressDialog('', []);
+                        CommonWidgets.errorDialog(context, 'No more image available in facebook');
+
+      }
+    } catch (e) {
+      print(e);
+      progressbarValue = 1.0;
+      progressNotifier.value = progressbarValue;
+      print(progressbarValue);
+      clossProgressDialog('', []);
+                      CommonWidgets.errorDialog(context, 'No more image available in facebook');
+
+    }
+  }
+
+
 
   showFirstMemoryDialog(BuildContext context) {
     showDialog(

@@ -31,6 +31,8 @@ class NotificationScreen extends StatefulWidget{
 class NotificationState extends State<NotificationScreen> implements ApiCallback{
   NotificationModel notificationModel=NotificationModel();
   String memoryId="";
+    int? photoId;
+
   @override
   void initState() {
     EasyLoading.show();
@@ -85,6 +87,7 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                           onTap: () {
                             memoryId=notificationModel.data![index].type!;
                             notificationModel.data![index].read=1;
+                            photoId=notificationModel.data![index].image_id;
                             setState(() {
                               
                             });
@@ -285,6 +288,7 @@ class NotificationState extends State<NotificationScreen> implements ApiCallback
                                               subId: details.data![0].memory!.subCategoryId.toString(),
                                               catId:
                                                   details.data![0].memory!.categoryId.toString(),
+                                                  imageId:photoId??null,
                                               selectionType:
                                                   "Personal",
                                             ))).then((value) {

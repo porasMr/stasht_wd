@@ -77,7 +77,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       }
       setState(() {});
     });
-    PrefUtils.instance.getInstaPrefs().then((value) {
+    PrefUtils.instance.getGooglePhotoPrefs().then((value) {
       if (value.isNotEmpty) {
         isInstaeSync = true;
       }
@@ -656,7 +656,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
           selectedType = "facebook_synced";
         } else {
           isInstaeSync = false;
-          selectedType = "instagram_synced";
+          selectedType = "google_photo_synced";
         }
         if(isInstaeSync==false&&isFbSync==false&&isDriveSync==false){
           PrefUtils.instance.saveSelectedType("");
@@ -881,6 +881,8 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
       setState(() {});
     } else if (apiType == ApiUrl.deleteUserAccount) {
               PrefUtils.instance.driveToken('');
+              PrefUtils.instance.photoToken('');
+              PrefUtils.instance.facebookToken('');
 
       PrefUtils.instance.clearPreferance();
                             Navigator.of(context).pushNamedAndRemoveUntil(
@@ -890,6 +892,7 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
 
       EasyLoading.dismiss();
       if (selectedType == "facebook_synced") {
+        PrefUtils.instance.facebookToken('');
         model.user!.facebookSynced = 0;
         isFbSync = false;
         PrefUtils.instance.saveFacebookPhotoLinks([]);
@@ -900,14 +903,19 @@ class _ProfileState extends State<ProfileScreen> implements ApiCallback {
         PrefUtils.instance.saveDrivePhotoLinks([]);
       } 
       else {
-        PrefUtils.instance.saveInstaPhotoLinks([]);
+        PrefUtils.instance.saveGooglePhotoLinks([]);
+          PrefUtils.instance.photoToken('');
 
         isInstaeSync = false;
         model.user!.instagramSynced = 0;
       }
       PrefUtils.instance.saveUserToPrefs(model);
     }else if(apiType==ApiUrl.unSyncAccount){
-              PrefUtils.instance.driveToken('');
+             PrefUtils.instance.driveToken('');
+              PrefUtils.instance.photoToken('');
+              PrefUtils.instance.facebookToken('');
+
+
 
       PrefUtils.instance.clearPreferance();
                             Navigator.of(context).pushNamedAndRemoveUntil(

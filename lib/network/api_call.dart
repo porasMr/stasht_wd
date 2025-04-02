@@ -120,6 +120,7 @@ callack.onFailure(
     try {
       final Response response =
           await ApiClient.postTypeWithTokenApi(api: api, body: body);
+          print(response.body);
       if (response.statusCode == 201 || response.statusCode == 200) {
         callack.onSuccess(response.body, api);
       }  else {

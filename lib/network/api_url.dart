@@ -15,6 +15,9 @@ class ApiUrl {
   static const String deleteCategory = "delete-category";
   static const String subCategory = "sub-category-list?category_id=";
   static const String memoryByCategory = "memory-by-category";
+    static const String memoryByCategoryWithSubcategory = "memory_by_category_with_subCateogry";
+
+  
   static const String createMemory = "create-memory";
   static const String updateMemory = "update-memory";
 

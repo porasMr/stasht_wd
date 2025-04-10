@@ -1,4 +1,4 @@
-package com.app.stasht
+package com.pro.stasht
 
 import io.flutter.embedding.android.FlutterActivity
 
